@@ -1,0 +1,41 @@
+# =============================================================================
+# Stochos Platform — Docker Compose
+# =============================================================================
+# Adds PostgreSQL + Next.js alongside existing RStudio/Shiny containers.
+# Existing containers are NOT modified or referenced here.
+#
+# Ports:
+#   3000 — Next.js (Stochos Platform)
+#   5433 — PostgreSQL (avoids conflict with default 5432)
+#
+# Volumes:
+#   stochos_pg_data — PostgreSQL persistent storage
+#
+# Usage:
+#   docker compose up -d          # Start platform services
+#   docker compose down           # Stop platform services
+#   docker compose logs -f        # Follow logs
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stochos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: stochos_platform
+      POSTGRES_USER: stochos
+      POSTGRES_PASSWORD: stochos_dev_2026
+    ports:
+      - "5433:5432"
+    volumes:
+      - stochos_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stochos -d stochos_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  stochos_pg_data:
+    name: stochos_pg_data

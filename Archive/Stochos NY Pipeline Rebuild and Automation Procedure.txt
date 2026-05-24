@@ -1,0 +1,537 @@
+
+
+1. New York raw data refresh
+2. New York DuckDB normalization refresh
+
+
+
+## Stochos NY Pipeline Rebuild and Automation Procedure
+
+### Purpose
+
+This procedure rebuilds and automates the New York pipeline on the Stochos server.
+
+At the end of this procedure, the server will:
+
+1. Refresh New York raw data into `/srv/stochos/data/raw/new_york/nylottery_data`
+2. Normalize that data into DuckDB at `/srv/stochos/data/duckdb/stochos_lottery.duckdb`
+3. Run both steps automatically every week through cron
+
+The current normalized pipeline uses:
+
+raw sales staging table
+raw retailer staging table
+dimension tables for games and retailers
+a normalized fact table
+a unified modeled view for revenue, estimated payouts, commissions, and contribution logic 
+
+---
+
+## Part 1. Understand the two automated functions
+
+### Function A: Raw NY data refresh
+
+This job downloads or refreshes the New York source files and stores them under:
+
+`/srv/stochos/data/raw/new_york/nylottery_data`
+
+This is the ingestion layer.
+
+### Function B: NY DuckDB normalization refresh
+
+This job reads the raw files and builds the normalized warehouse model inside DuckDB.
+
+The current Python normalization script:
+
+reads the raw sales CSV and raw retailer CSV
+builds staging tables
+builds retailer and game dimensions
+melts the wide sales table into a long fact table
+builds a unified modeled view and reconciliation outputs 
+
+This is the warehouse layer.
+
+---
+
+## Part 2. Required server folders
+
+Log into the Ubuntu server as a user with administrative access.
+
+Create the Stochos folder structure if it does not already exist:
+
+```bash
+mkdir -p /srv/stochos/data/raw
+mkdir -p /srv/stochos/data/duckdb
+mkdir -p /srv/stochos/data/manifests
+mkdir -p /srv/stochos/jobs
+mkdir -p /srv/stochos/logs
+mkdir -p /srv/stochos/docs
+```
+
+Confirm the folders exist:
+
+```bash
+ls -lah /srv/stochos
+ls -lah /srv/stochos/data
+```
+
+You should see at minimum:
+
+`raw`
+`duckdb`
+`manifests`
+
+---
+
+## Part 3. Permissions setup
+
+This is important. If permissions are wrong, the jobs may work manually for one user but fail later under automation.
+
+### Step 3.1 Create or confirm the shared group
+
+```bash
+groupadd stochos
+```
+
+If the group already exists, Linux will say so. That is fine.
+
+### Step 3.2 Add analyst users to the group
+
+Replace usernames if needed, but based on your current environment these are the relevant people:
+
+```bash
+usermod -a -G stochos analyst1
+usermod -a -G stochos analyst2
+usermod -a -G stochos coreychappell
+```
+
+### Step 3.3 Set group ownership and inheritance
+
+```bash
+chgrp -R stochos /srv/stochos
+chmod -R g+rwX /srv/stochos
+find /srv/stochos -type d -exec chmod g+s {} \;
+```
+
+This does three things:
+
+1. makes the `stochos` group own the directory tree
+2. gives the group read/write access
+3. makes new files inherit the `stochos` group automatically
+
+### Step 3.4 Ensure the DuckDB folder is writable
+
+```bash
+chmod 2775 /srv/stochos/data/duckdb
+ls -lah /srv/stochos/data
+```
+
+You want to see the `duckdb` folder with permissions like:
+
+`drwxrwsr-x`
+
+### Step 3.5 If the RStudio container writes as uid 1000
+
+In your environment, the RStudio process wrote as uid 1000. You verified this with:
+
+`whoami = rstudio`
+`uid=1000(rstudio)` in the container session
+
+If ACL support is needed again in a rebuild, install ACL tools:
+
+```bash
+apt-get update
+apt-get install -y acl
+```
+
+Then allow uid 1000 to write into the DuckDB folder:
+
+```bash
+setfacl -m u:1000:rwx /srv/stochos/data/duckdb
+setfacl -d -m u:1000:rwx /srv/stochos/data/duckdb
+getfacl /srv/stochos/data/duckdb
+```
+
+You should see an ACL line for `user:1000:rwx`.
+
+This was necessary because the RStudio runtime user inside the container was not a normal host user, but still needed write access.
+
+---
+
+## Part 4. Install required software
+
+### Step 4.1 Python and pip
+
+```bash
+apt-get update
+apt-get install -y python3 python3-pip
+```
+
+Verify:
+
+```bash
+python3 --version
+pip3 --version
+```
+
+### Step 4.2 DuckDB Python package
+
+```bash
+pip3 install duckdb
+```
+
+Verify:
+
+```bash
+python3 -c "import duckdb; print(duckdb.__version__)"
+```
+
+In your environment this returned version `1.4.4`.
+
+---
+
+## Part 5. Create the NY DuckDB normalization script
+
+The current normalization script is the warehouse engine. It creates the normalized truth model for NY, including:
+
+gross revenue
+estimated commissions
+theoretical payout obligations
+state contribution logic
+unified normalized view for analysis 
+
+### Step 5.1 Create the file
+
+```bash
+nano /srv/stochos/jobs/ny_duckdb_refresh.py
+```
+
+Paste the full current script into that file.
+
+Save in nano:
+
+1. Press `Ctrl + O`
+2. Press `Enter`
+3. Press `Ctrl + X`
+
+### Step 5.2 Make it executable
+
+```bash
+chmod +x /srv/stochos/jobs/ny_duckdb_refresh.py
+```
+
+### Step 5.3 Confirm the file exists
+
+```bash
+ls -lah /srv/stochos/jobs
+```
+
+You should see:
+
+`ny_duckdb_refresh.py`
+
+---
+
+## Part 6. Confirm raw NY source file locations
+
+The normalization script expects the following raw files:
+
+Sales CSV:
+
+`/srv/stochos/data/raw/new_york/nylottery_data/xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024/data.csv`
+
+Retailer CSV:
+
+`/srv/stochos/data/raw/new_york/nylottery_data/2vvn-pdyi_nys-lottery-retailers/data.csv`
+
+Check both:
+
+```bash
+ls -lah /srv/stochos/data/raw/new_york/nylottery_data/xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024
+ls -lah /srv/stochos/data/raw/new_york/nylottery_data/2vvn-pdyi_nys-lottery-retailers
+```
+
+If these folders are missing, the raw NY refresh has not run yet and must be restored first.
+
+---
+
+## Part 7. Manual validation of the normalization script
+
+Before automating anything, run it manually.
+
+```bash
+python3 /srv/stochos/jobs/ny_duckdb_refresh.py
+```
+
+A successful current run should look broadly like this:
+
+`Normalizing NY (Absolute Truth Model v9)...`
+then category-level results, then final reconciliation numbers for revenue, theoretical prizes, commissions, and estimated state contribution 
+
+Your latest validated run reported:
+
+Total Ticket Volume: `$17,260,094,682.50`
+Total Estimated Retailer Commissions: `$1,035,605,680.95`
+Total Theoretical Prizes Owed: `$9,818,520,484.99`
+Pure Net Contribution to State: `$6,405,968,516.56` 
+
+Those numbers are your current reference checkpoint after rebuild.
+
+### Step 7.1 Confirm the database file exists
+
+```bash
+ls -lah /srv/stochos/data/duckdb
+```
+
+You should see:
+
+`stochos_lottery.duckdb`
+
+### Step 7.2 Ensure the DB file is group writable
+
+```bash
+chmod 664 /srv/stochos/data/duckdb/stochos_lottery.duckdb
+```
+
+---
+
+## Part 8. Create the raw NY refresh job
+
+You already have a raw NY refresh job in the environment. To reestablish it, the operator must ensure the raw data refresh script exists.
+
+If the script is already in place, confirm its path. Common location based on your current layout is something like:
+
+`/srv/stochos/jobs/ny_refresh.py`
+
+Check:
+
+```bash
+ls -lah /srv/stochos/jobs
+```
+
+If it exists, run it manually:
+
+```bash
+python3 /srv/stochos/jobs/ny_refresh.py
+```
+
+If that script is missing, restore it from the repository backup or prior server backup before continuing.
+
+### Manual success check for raw refresh
+
+After running it, confirm the raw NY folders exist:
+
+```bash
+ls -lah /srv/stochos/data/raw/new_york/nylottery_data
+```
+
+You should see dataset folders such as:
+
+`2vvn-pdyi_nys-lottery-retailers`
+`xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024`
+
+---
+
+## Part 9. Create logs folder and log files
+
+Create the log folder if needed:
+
+```bash
+mkdir -p /srv/stochos/logs
+chmod 2775 /srv/stochos/logs
+```
+
+Create placeholder log files:
+
+```bash
+touch /srv/stochos/logs/ny_refresh.log
+touch /srv/stochos/logs/ny_duckdb_refresh.log
+ls -lah /srv/stochos/logs
+```
+
+These logs will later prove automation is actually running.
+
+---
+
+## Part 10. Set up weekly cron automation
+
+This is the actual automation layer.
+
+### Step 10.1 Open root’s crontab
+
+```bash
+crontab -e
+```
+
+If you are asked for an editor, choose `nano` unless you prefer another editor.
+
+### Step 10.2 Add these lines
+
+Use this schedule as the baseline:
+
+```cron
+0 2 * * 1 /usr/bin/python3 /srv/stochos/jobs/ny_refresh.py >> /srv/stochos/logs/ny_refresh.log 2>&1
+30 2 * * 1 /usr/bin/python3 /srv/stochos/jobs/ny_duckdb_refresh.py >> /srv/stochos/logs/ny_duckdb_refresh.log 2>&1
+```
+
+What these mean:
+
+First line
+Every Monday at 2:00 AM, refresh raw NY data
+
+Second line
+Every Monday at 2:30 AM, run the DuckDB normalization refresh
+
+### Step 10.3 Save the crontab
+
+If using nano:
+
+1. Press `Ctrl + O`
+2. Press `Enter`
+3. Press `Ctrl + X`
+
+### Step 10.4 Confirm the cron jobs are installed
+
+```bash
+crontab -l
+```
+
+You should now see both entries.
+
+---
+
+## Part 11. Validate that automation is configured correctly
+
+### Step 11.1 Manually test the exact commands used by cron
+
+Run the exact commands from cron once manually:
+
+```bash
+/usr/bin/python3 /srv/stochos/jobs/ny_refresh.py
+/usr/bin/python3 /srv/stochos/jobs/ny_duckdb_refresh.py
+```
+
+This matters because cron uses a minimal environment. If the command works interactively but not with the full path, it may fail under automation.
+
+### Step 11.2 Check the logs
+
+```bash
+tail -n 50 /srv/stochos/logs/ny_refresh.log
+tail -n 50 /srv/stochos/logs/ny_duckdb_refresh.log
+```
+
+If the job has run successfully, these logs will show the output of the scripts.
+
+### Step 11.3 Validate normalized outputs after automated run
+
+After the scheduled job, rerun the normalization script manually only if troubleshooting is needed. Otherwise validate by querying the DuckDB file or by inspecting the latest script output in the log.
+
+---
+
+## Part 12. Important operational cautions
+
+### DuckDB lock conflicts
+
+DuckDB allows one writer at a time.
+
+If the Python refresh job fails with a lock error, it means something else has the database open for writing. In your environment this happened because an RStudio `rsession` was holding the DuckDB file open.
+
+If needed, close the connection in R:
+
+```r
+dbDisconnect(con, shutdown = TRUE)
+rm(con)
+gc()
+```
+
+Best practice:
+
+Python is the canonical writer
+R is a read-only consumer whenever possible
+
+### RStudio memory issue
+
+You originally discovered that large NY transforms could crash RStudio due to out-of-memory conditions. The kernel explicitly killed `rsession` during large in-memory reshaping. That is why the ETL logic was moved to Python plus DuckDB. The warehouse script exists to avoid repeating that failure mode.
+
+### Date parsing
+
+During the build process, one major issue came from date format assumptions in `BUS_DAY`. The corrected pipeline now explicitly handles parsing so that fact rows are not silently filtered to zero. This was one of the most important debugging fixes in the rebuild history.
+
+### Quotes and SQL string safety
+
+Another major issue was unescaped apostrophes in SQL string generation, such as game names containing single quotes. The script now includes helper quoting functions to avoid SQL parser failures.
+
+---
+
+## Part 13. Recommended validation checklist after rebuild
+
+The operator should confirm each item below.
+
+### Raw refresh validation
+
+1. `ny_refresh.py` exists
+2. raw NY folders exist under `/srv/stochos/data/raw/new_york/nylottery_data`
+3. the daily retailer sales CSV exists
+4. the retailer master CSV exists
+
+### Warehouse validation
+
+1. `ny_duckdb_refresh.py` exists
+2. `/srv/stochos/data/duckdb/stochos_lottery.duckdb` exists
+3. manual script run completes
+4. the printed reconciliation appears sane
+5. log file is written successfully
+
+### Automation validation
+
+1. `crontab -l` shows both jobs
+2. `/srv/stochos/logs/ny_refresh.log` is present
+3. `/srv/stochos/logs/ny_duckdb_refresh.log` is present
+4. after the scheduled run, both logs show fresh timestamps and successful output
+
+---
+
+## Part 14. Recommended statement of current framework
+
+Once the above is completed, you can accurately say:
+
+New York raw data refresh is established.
+New York normalization into DuckDB is established.
+Both functions are automated through weekly cron scheduling.
+The warehouse contains a modeled normalized truth framework with explicit assumptions for commissions and theoretical payouts because absolute internal lottery accounting detail is not publicly available. 
+
+---
+
+## Part 15. Optional quality-of-life improvement
+
+To suppress the daily login message for root:
+
+```bash
+touch /root/.hushlogin
+```
+
+This is optional.
+
+---
+
+## Part 16. What should be committed to the repository
+
+I would store the following in the repository:
+
+`/docs/ny_pipeline_rebuild_runbook.md`
+This procedure
+
+`/docs/ny_pipeline_assumptions.md`
+Explicit modeling assumptions, including payout-rate and commission assumptions
+
+`/srv/stochos/jobs/ny_duckdb_refresh.py`
+Current warehouse script
+
+`/srv/stochos/jobs/ny_refresh.py`
+Raw refresh script
+
+And I would add one short operator file:
+
+`/docs/run_ny_pipeline.md`
+
+

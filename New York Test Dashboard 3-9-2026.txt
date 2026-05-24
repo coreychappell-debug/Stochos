@@ -1,0 +1,203 @@
+library(DBI)
+library(duckdb)
+
+# ===================================
+# PATHS
+# ===================================
+
+ny_path <- "/srv/stochos/data/raw/new_york/nylottery_data"
+
+sales_csv <- file.path(
+  ny_path,
+  "xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024",
+  "data.csv"
+)
+
+duckdb_file <- "/srv/stochos/data/duckdb/stochos_lottery.duckdb"
+
+# ===================================
+# CONNECT DUCKDB
+# ===================================
+
+con <- dbConnect(duckdb(), duckdb_file)
+
+# ===================================
+# LOAD RAW DAILY SALES
+# ===================================
+
+dbExecute(con, paste0("
+CREATE OR REPLACE TABLE ny_daily_sales_raw AS
+SELECT *
+FROM read_csv_auto('", sales_csv, "', header = true)
+"))
+
+# Check row count
+print(dbGetQuery(con, "
+SELECT COUNT(*) AS row_count
+FROM ny_daily_sales_raw
+"))
+
+# ===================================
+# NORMALIZE SALES (LONG FORMAT)
+# ===================================
+
+dbExecute(con, "
+
+CREATE OR REPLACE TABLE ny_daily_sales_long AS
+
+SELECT
+CAST(bus_day AS DATE) AS sales_date,
+agtno AS retailer_id,
+busnm AS retailer_name,
+buscity AS city,
+bustype AS business_type,
+'numbers_day' AS game_code,
+numbers_day AS sales_amount
+FROM ny_daily_sales_raw
+
+UNION ALL
+
+SELECT
+CAST(bus_day AS DATE),
+agtno,
+busnm,
+buscity,
+bustype,
+'numbers_eve',
+numbers_eve
+FROM ny_daily_sales_raw
+
+UNION ALL
+
+SELECT
+CAST(bus_day AS DATE),
+agtno,
+busnm,
+buscity,
+bustype,
+'win4_day',
+win4_day
+FROM ny_daily_sales_raw
+
+UNION ALL
+
+SELECT
+CAST(bus_day AS DATE),
+agtno,
+busnm,
+buscity,
+bustype,
+'win4_eve',
+win4_eve
+FROM ny_daily_sales_raw
+
+UNION ALL
+
+SELECT
+CAST(bus_day AS DATE),
+agtno,
+busnm,
+buscity,
+bustype,
+'mega',
+mega
+FROM ny_daily_sales_raw
+
+UNION ALL
+
+SELECT
+CAST(bus_day AS DATE),
+agtno,
+busnm,
+buscity,
+bustype,
+'powerball',
+powerball
+FROM ny_daily_sales_raw
+
+UNION ALL
+
+SELECT
+CAST(bus_day AS DATE),
+agtno,
+busnm,
+buscity,
+bustype,
+'lotto',
+lotto
+FROM ny_daily_sales_raw
+
+")
+
+# ===================================
+# REMOVE ZERO SALES
+# ===================================
+
+dbExecute(con, "
+
+CREATE OR REPLACE TABLE ny_daily_sales_fact AS
+SELECT *
+FROM ny_daily_sales_long
+WHERE sales_amount IS NOT NULL
+AND sales_amount <> 0
+
+")
+
+# ===================================
+# SUMMARY TABLES
+# ===================================
+
+dbExecute(con, "
+
+CREATE OR REPLACE TABLE ny_sales_by_game AS
+SELECT
+game_code,
+SUM(sales_amount) AS total_sales,
+COUNT(DISTINCT retailer_id) AS retailers
+FROM ny_daily_sales_fact
+GROUP BY game_code
+ORDER BY total_sales DESC
+
+")
+
+dbExecute(con, "
+
+CREATE OR REPLACE TABLE ny_sales_by_city AS
+SELECT
+city,
+SUM(sales_amount) AS total_sales
+FROM ny_daily_sales_fact
+GROUP BY city
+ORDER BY total_sales DESC
+
+")
+
+dbExecute(con, "
+
+CREATE OR REPLACE TABLE ny_top_retailers AS
+SELECT
+retailer_id,
+retailer_name,
+city,
+SUM(sales_amount) AS total_sales
+FROM ny_daily_sales_fact
+GROUP BY retailer_id, retailer_name, city
+ORDER BY total_sales DESC
+
+")
+
+# ===================================
+# QUICK CHECK
+# ===================================
+
+print(dbGetQuery(con, "
+SELECT *
+FROM ny_sales_by_game
+LIMIT 20
+"))
+
+# ===================================
+# CLOSE CONNECTION
+# ===================================
+
+dbDisconnect(con, shutdown = FALSE)

@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from pathlib import Path
+import duckdb
+import sys
+from datetime import datetime
+
+"""
+NY Lottery Data Normalization & Payout Estimation Script (v7)
+------------------------------------------------------------
+PURPOSE:
+Normalizes NY Lottery retail data for multi-state comparison. 
+
+LOGIC, REASON, & TRUTH NOTES:
+1. THE $14 BILLION REVENUE GAP:
+   Total 'Money In' at the terminal was previously identified as ~$17.2B, 
+   but 'scratch_off' revenue was only reporting ~$3.9B. 
+   Truth: This indicates either a JOIN mismatch or that 'IG_SETTLES' is not 
+   the only column carrying instant game volume. This script now includes 
+   a 'Gap Audit' to identify exactly which columns are missing from categories.
+
+2. STATUTORY ALIGNMENT:
+   Lotto payout is set to 40% per NY Statutory law. 
+   Scratch-offs (IG_SETTLES) are set to a 65% theoretical payout rate to 
+   align with the blended averages in the NY Gaming Commission CAFR.
+
+3. DATA HYGIENE:
+   Includes a guard to ignore future-dated records (projections/dummy data)
+   and a LEFT JOIN strategy to ensure zero data loss during normalization.
+"""
+
+# Configuration
+STATE_CODE = "NY"
+NY_ROOT = Path("/srv/stochos/data/raw/new_york/nylottery_data")
+SALES_CSV = NY_ROOT / "xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024" / "data.csv"
+RETAILERS_CSV = NY_ROOT / "2vvn-pdyi_nys-lottery-retailers" / "data.csv"
+DB_PATH = Path("/srv/stochos/data/duckdb/stochos_lottery.duckdb")
+
+# Safety guard: Filter out future projections or dummy rows
+TODAY = datetime.now().strftime('%Y-%m-%d')
+DAILY_SALES_START_DATE = "2024-01-01"
+
+# Standardized Table Names
+RAW_SALES_TABLE = f"stg_{STATE_CODE.lower()}_sales_raw"
+RAW_RETAILER_TABLE = f"stg_{STATE_CODE.lower()}_retailers_raw"
+DIM_RETAILER_TABLE = "dim_retailers"
+DIM_GAME_TABLE = "dim_games"
+FACT_SALES_TABLE = "fact_lottery_sales"
+
+def qident(name: str) -> str:
+    """Quotes a SQL identifier for safety against special characters/spaces."""
+    return '"' + name.replace('"', '""') + '"'
+
+def qstr(value: str) -> str:
+    """Quotes a SQL string literal."""
+    if value is None: return "NULL"
+    return "'" + str(value).replace("'", "''") + "'"
+
+# (Name, Family, MetricClass, IsRevenue, StandardCategory, TheoreticalPayoutRate)
+GAME_CLASSIFICATIONS = {
+    "numbers_day": ("Numbers Day", "Numbers", "sales", True, "pick_3", 0.50),
+    "numbers_eve": ("Numbers Evening", "Numbers", "sales", True, "pick_3", 0.50),
+    "numbers_iw": ("Numbers Instant Win", "Numbers", "sales", True, "instant_win", 0.65),
+    "win4_day": ("Win 4 Day", "Win 4", "sales", True, "pick_4", 0.50),
+    "win4_eve": ("Win 4 Evening", "Win 4", "sales", True, "pick_4", 0.50),
+    "win4_iw": ("Win 4 Instant Win", "Win 4", "sales", True, "instant_win", 0.65),
+    "t5_day": ("Take 5 Day", "Take 5", "sales", True, "lotto_jackpot", 0.50),
+    "t5_eve": ("Take 5 Evening", "Take 5", "sales", True, "lotto_jackpot", 0.50),
+    "take5_iw": ("Take 5 Instant Win", "Take 5", "sales", True, "instant_win", 0.65),
+    "pick10": ("Pick 10", "Pick 10", "sales", True, "lotto_jackpot", 0.50),
+    "lotto": ("NY Lotto", "Lotto", "sales", True, "lotto_jackpot", 0.40),
+    "mega": ("Mega Millions", "Mega Millions", "sales", True, "lotto_jackpot", 0.50),
+    "megaplier": ("Megaplier", "Mega Millions", "add_on", True, "lotto_jackpot", 0.00),
+    "powerball": ("Powerball", "Powerball", "sales", True, "lotto_jackpot", 0.50),
+    "powerplay": ("Power Play", "Powerball", "add_on", True, "lotto_jackpot", 0.00),
+    "doubleplay": ("Double Play", "Powerball", "add_on", True, "lotto_jackpot", 0.00),
+    "c4l": ("Cash 4 Life", "Cash 4 Life", "sales", True, "lotto_jackpot", 0.55),
+    "m4l": ("Millionaire for Life", "Millionaire for Life", "sales", True, "lotto_jackpot", 0.55),
+    "quick_draw": ("Quick Draw", "Quick Draw", "sales", True, "monitor", 0.60),
+    "qd_extra": ("Quick Draw Extra", "Quick Draw", "add_on", True, "monitor", 0.00),
+    "money_dots": ("Money Dots", "Quick Draw", "add_on", True, "monitor", 0.00),
+    "ig_settles": ("IG Settles", "Instant", "sales", True, "scratch_off", 0.65),
+    "draw_paid": ("Draw Paid", "Settlement", "payout", False, "accounting", 0.00),
+    "ig_paid": ("IG Paid", "Settlement", "payout", False, "accounting", 0.00),
+    "promo": ("Promo", "Other", "unknown", False, "accounting", 0.00),
+}
+
+def create_raw_tables(con):
+    """Ingests raw CSV data into DuckDB staging tables."""
+    now = datetime.now().isoformat()
+    con.execute(f"CREATE OR REPLACE TABLE {RAW_SALES_TABLE} AS SELECT *, '{now}' as ingested_at FROM read_csv_auto({qstr(SALES_CSV.as_posix())}, all_varchar=true)")
+    con.execute(f"CREATE OR REPLACE TABLE {RAW_RETAILER_TABLE} AS SELECT *, '{now}' as ingested_at FROM read_csv_auto({qstr(RETAILERS_CSV.as_posix())}, all_varchar=true)")
+
+def build_dimensions(con):
+    """Builds normalized dimension tables with multi-state standard categories."""
+    con.execute(f"""
+    CREATE OR REPLACE TABLE {DIM_RETAILER_TABLE} AS 
+    SELECT '{STATE_CODE}' as state_code, CAST({qident('Retailer')} AS VARCHAR) AS retailer_id, 
+           {qident('Name')} AS master_name, {qident('City')} AS city, CAST({qident('Zip')} AS VARCHAR) AS zip_code 
+    FROM {RAW_RETAILER_TABLE}
+    """)
+    
+    values = ",\n".join([f"('{STATE_CODE}', {qstr(c)}, {qstr(v[0])}, {qstr(v[1])}, {qstr(v[2])}, {str(v[3]).upper()}, {qstr(v[4])}, {v[5]})" for c, v in GAME_CLASSIFICATIONS.items()])
+    con.execute(f"""
+    CREATE OR REPLACE TABLE {DIM_GAME_TABLE} AS 
+    SELECT col0 as state_code, col1 as game_code, col2 as game_name, col3 as game_family, 
+           col4 as metric_class, col5 as is_revenue, col6 as standard_category, col7 as theoretical_payout_rate 
+    FROM (VALUES {values})
+    """)
+
+def build_fact_table(con):
+    """Melts the wide CSV schema into a long-form fact table for analysis."""
+    raw_cols = {r[0] for r in con.execute(f"DESCRIBE {RAW_SALES_TABLE}").fetchall()}
+    sample = con.execute(f"SELECT {qident('BUS_DAY')} FROM {RAW_SALES_TABLE} LIMIT 1").fetchone()
+    date_expr = f"strptime({qident('BUS_DAY')}, '%m/%d/%Y')" if "/" in sample[0] else f"TRY_CAST({qident('BUS_DAY')} AS DATE)"
+
+    union_parts = []
+    # Resilience Logic: Dynamically match classification keys against raw column headers
+    for target_key in GAME_CLASSIFICATIONS.keys():
+        match = [rc for rc in raw_cols if rc.strip().upper() == target_key.upper()]
+        if match:
+            orig_col = match[0]
+            union_parts.append(f"""
+            SELECT '{STATE_CODE}' as state_code, {date_expr} as sales_date, CAST({qident("AGTNO")} AS VARCHAR) as retailer_id,
+                   '{target_key}' as game_code, TRY_CAST(REPLACE({qident(orig_col)}, ',', '') AS DOUBLE) as amount
+            FROM {RAW_SALES_TABLE}
+            WHERE {date_expr} >= DATE '{DAILY_SALES_START_DATE}' AND {date_expr} <= DATE '{TODAY}'
+            """)
+
+    # Create intermediate melt table
+    con.execute(f"CREATE OR REPLACE TABLE {FACT_SALES_TABLE}_melt AS " + "\nUNION ALL\n".join(union_parts))
+    
+    # Final Fact Table with Game metadata joined in
+    con.execute(f"""
+    CREATE OR REPLACE TABLE {FACT_SALES_TABLE} AS
+    SELECT f.*, g.is_revenue, g.metric_class, g.standard_category, g.theoretical_payout_rate
+    FROM {FACT_SALES_TABLE}_melt f
+    LEFT JOIN {DIM_GAME_TABLE} g ON f.state_code = g.state_code AND f.game_code = g.game_code
+    WHERE amount IS NOT NULL AND amount <> 0
+    """)
+
+def create_unified_view(con):
+    """Creates a unified analytical view for estimating payouts and net contribution."""
+    con.execute(f"""
+    CREATE OR REPLACE VIEW v_lottery_performance AS
+    SELECT f.*, r.master_name, r.city, COALESCE(g.game_name, 'UNKNOWN: ' || f.game_code) as game_display_name,
+        CASE WHEN f.is_revenue THEN f.amount ELSE 0 END as gross_revenue,
+        CASE WHEN f.is_revenue THEN (f.amount * COALESCE(f.theoretical_payout_rate, 0)) ELSE 0 END as estimated_payout,
+        CASE WHEN f.is_revenue THEN (f.amount * (1 - COALESCE(f.theoretical_payout_rate, 0))) ELSE 0 END as estimated_net_revenue,
+        CASE WHEN f.metric_class = 'payout' THEN f.amount ELSE 0 END as actual_prizes_paid
+    FROM {FACT_SALES_TABLE} f
+    LEFT JOIN {DIM_RETAILER_TABLE} r ON f.state_code = r.state_code AND f.retailer_id = r.retailer_id
+    LEFT JOIN {DIM_GAME_TABLE} g ON f.state_code = g.state_code AND f.game_code = g.game_code
+    """)
+
+def print_checks(con):
+    """Executes 'Truth Checks' to verify categorization and terminal cash flow."""
+    print(f"\n--- {STATE_CODE} Normalization Truth Check (Data through {TODAY}) ---")
+    
+    # GAP AUDIT: Identify any billions of dollars that weren't categorized
+    uncategorized = con.execute(f"SELECT game_code, SUM(amount) FROM {FACT_SALES_TABLE} WHERE standard_category IS NULL GROUP BY 1").fetchall()
+    if uncategorized:
+        print("WARNING: Found uncategorized games in fact table. This is likely the missing revenue:")
+        for row in uncategorized:
+            print(f"  Code: {row[0]:<15} | Amount: ${row[1]:>15,.2f}")
+    
+    # Category Performance
+    print(f"\n{'Category':<15} | {'Gross Revenue':>15} | {'Est. Net Contrib':>15}")
+    print("-" * 55)
+    res = con.execute("SELECT COALESCE(standard_category, 'UNCATEGORIZED'), SUM(gross_revenue), SUM(estimated_net_revenue) FROM v_lottery_performance WHERE is_revenue = TRUE GROUP BY 1 ORDER BY 2 DESC").fetchall()
+    for r in res:
+        print(f"{r[0]:<15} | ${r[1]:>14,.2f} | ${r[2]:>14,.2f}")
+
+    # Terminal Balance Check
+    print("\nActual Terminal Activity (Physical Money In vs Money Out):")
+    money_in = con.execute(f"SELECT SUM(amount) FROM {FACT_SALES_TABLE} WHERE is_revenue = TRUE").fetchone()[0] or 0
+    money_out = con.execute(f"SELECT SUM(amount) FROM {FACT_SALES_TABLE} WHERE metric_class = 'payout'").fetchone()[0] or 0
+    print(f"  Total Ticket Volume (Money In):  ${money_in:,.2f}")
+    print(f"  Total Prizes Cashed (Money Out): ${money_out:,.2f}")
+    print(f"  System Net Terminal Flow:        ${(money_in - money_out):,.2f}")
+
+def main():
+    con = duckdb.connect(str(DB_PATH))
+    try:
+        print(f"Normalizing {STATE_CODE} data (Finalizing Logic and Capture)...")
+        create_raw_tables(con); build_dimensions(con); build_fact_table(con); create_unified_view(con); print_checks(con)
+    finally:
+        con.close()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,366 @@
+// =============================================================================
+// Stochos Platform — Prisma Schema
+// =============================================================================
+// Lottery-agnostic data model for contract management, shared dimensions,
+// and user authentication.
+//
+// Design principles:
+//   - UUIDs as primary keys (portable, no sequence conflicts)
+//   - Stochos-owned identifiers; external codes are optional mappings
+//   - Every mutation logged in AuditLog
+//   - JSONB for flexible terms/metadata without schema churn
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// SHARED DIMENSIONS
+// ─────────────────────────────────────────────
+
+model Jurisdiction {
+  id                   String   @id @default(uuid())
+  name                 String   // "New York Lottery"
+  abbreviation         String   @unique // "NY"
+  currency             String   @default("USD")
+  fiscalYearStartMonth Int      @default(4) @map("fiscal_year_start_month")
+  timezone             String   @default("America/New_York")
+  status               String   @default("active")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  products  Product[]
+  vendors   Vendor[]
+  contracts Contract[]
+  users     User[]
+  campaigns Campaign[]
+
+  @@map("jurisdictions")
+}
+
+model Product {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  name           String       // "Mega Millions", "Cash4Life", etc.
+  category       String       // 'draw_game', 'instant', 'monitor', 'marketing_campaign'
+  type           String?      // 'lotto_jackpot', 'pick_3', 'scratch_off', etc.
+  price          Decimal?     @db.Decimal(10, 2)
+  status         String       @default("active")
+  externalCode   String?      @map("external_code")   // e.g., 'mega', 'powerball'
+  externalSource String?      @map("external_source")  // e.g., 'ny_game_dim'
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  lineItems ContractLineItem[]
+  campaigns Campaign[]       @relation("CampaignProducts")
+
+  @@map("products")
+}
+
+model Vendor {
+  id             String        @id @default(uuid())
+  jurisdictionId String?       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+  name           String
+  type           String        // 'lead_agency', 'media_buyer', 'printer', 'specialty', 'research'
+  status         String        @default("active")
+  contactName    String?       @map("contact_name")
+  contactEmail   String?       @map("contact_email")
+  contactPhone   String?       @map("contact_phone")
+  address        String?
+  certifications String[]      @default([])
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  contracts Contract[]
+  campaigns Campaign[]
+  channels  CampaignChannel[]
+  assets    CampaignAsset[]
+
+  @@map("vendors")
+}
+
+// ─────────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────────
+
+model Role {
+  id          String @id @default(uuid())
+  name        String @unique // 'admin', 'marketing_manager', 'procurement_officer', 'analyst'
+  permissions Json   @default("{}") // {"contracts": "write", "analytics": "read"}
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  name           String
+  passwordHash   String        @map("password_hash")
+  roleId         String        @map("role_id")
+  role           Role          @relation(fields: [roleId], references: [id])
+  jurisdictionId String?       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+  lastLogin      DateTime?     @map("last_login")
+  status         String        @default("active")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  contractsCreated Contract[] @relation("ContractCreatedBy")
+  invoicesApproved Invoice[]  @relation("InvoiceApprovedBy")
+  approvals        Approval[] @relation("ApprovalApprover")
+  auditLogs        AuditLog[]
+  campaignsCreated Campaign[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// CONTRACT MANAGEMENT
+// ─────────────────────────────────────────────
+
+model Contract {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  vendorId       String       @map("vendor_id")
+  vendor         Vendor       @relation(fields: [vendorId], references: [id])
+  parentId       String?      @map("parent_id")
+  parent         Contract?    @relation("ContractHierarchy", fields: [parentId], references: [id])
+  children       Contract[]   @relation("ContractHierarchy")
+  title          String
+  type           String       // 'lead_agency', 'media_buying', 'instant_ticket', 'specialty', 'zero_base'
+  status         String       @default("draft") // 'draft', 'pending_approval', 'active', 'expired', 'terminated'
+  startDate      DateTime?    @map("start_date") @db.Date
+  endDate        DateTime?    @map("end_date") @db.Date
+  noticeDate     DateTime?    @map("notice_date") @db.Date
+  totalValue     Decimal?     @map("total_value") @db.Decimal(14, 2)
+  budgetCap      Decimal?     @map("budget_cap") @db.Decimal(14, 2)
+  terms          Json?        @default("{}") // flexible key-value
+  createdById    String       @map("created_by")
+  createdBy      User         @relation("ContractCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  lineItems  ContractLineItem[]
+  amendments ContractAmendment[]
+  compliance ContractCompliance[]
+  invoices   Invoice[]
+  campaigns  Campaign[]
+
+  @@map("contracts")
+}
+
+model ContractLineItem {
+  id              String   @id @default(uuid())
+  contractId      String   @map("contract_id")
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  productId       String?  @map("product_id")
+  product         Product? @relation(fields: [productId], references: [id])
+  description     String
+  deliverableType String?  @map("deliverable_type") // 'media_placement', 'print_signage', 'creative', etc.
+  budgetAmount    Decimal? @map("budget_amount") @db.Decimal(14, 2)
+  spentAmount     Decimal  @default(0) @map("spent_amount") @db.Decimal(14, 2)
+  quantity        Int?
+  unitCost        Decimal? @map("unit_cost") @db.Decimal(10, 4)
+  dueDate         DateTime? @map("due_date") @db.Date
+  status          String   @default("pending") // 'pending', 'in_progress', 'delivered', 'invoiced', 'closed'
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  invoices Invoice[]
+
+  @@map("contract_line_items")
+}
+
+model ContractAmendment {
+  id              String   @id @default(uuid())
+  contractId      String   @map("contract_id")
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  amendmentNumber Int      @map("amendment_number")
+  description     String?
+  valueChange     Decimal  @default(0) @map("value_change") @db.Decimal(14, 2)
+  newEndDate      DateTime? @map("new_end_date") @db.Date
+  effectiveDate   DateTime? @map("effective_date") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("contract_amendments")
+}
+
+model ContractCompliance {
+  id             String   @id @default(uuid())
+  contractId     String   @map("contract_id")
+  contract       Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  documentType   String   @map("document_type") // 'bond', 'insurance', 'nda', 'background_check', 'license'
+  description    String?
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  status         String   @default("pending") // 'pending', 'received', 'expired', 'waived'
+  fileReference  String?  @map("file_reference")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("contract_compliance")
+}
+
+model Invoice {
+  id            String            @id @default(uuid())
+  contractId    String            @map("contract_id")
+  contract      Contract          @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  lineItemId    String?           @map("line_item_id")
+  lineItem      ContractLineItem? @relation(fields: [lineItemId], references: [id])
+  invoiceNumber String?           @map("invoice_number")
+  amount        Decimal           @db.Decimal(14, 2)
+  description   String?
+  submittedAt   DateTime?         @map("submitted_at") @db.Date
+  approvedAt    DateTime?         @map("approved_at") @db.Date
+  paidAt        DateTime?         @map("paid_at") @db.Date
+  status        String            @default("submitted") // 'submitted', 'approved', 'rejected', 'paid'
+  approvedById  String?           @map("approved_by")
+  approvedBy    User?             @relation("InvoiceApprovedBy", fields: [approvedById], references: [id])
+  notes         String?
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  @@map("invoices")
+}
+
+// ─────────────────────────────────────────────
+// WORKFLOW
+// ─────────────────────────────────────────────
+
+model Approval {
+  id         String    @id @default(uuid())
+  entityType String    @map("entity_type") // 'contract', 'invoice', 'purchase_order'
+  entityId   String    @map("entity_id")
+  approverId String    @map("approver_id")
+  approver   User      @relation("ApprovalApprover", fields: [approverId], references: [id])
+  status     String    // 'pending', 'approved', 'rejected'
+  comment    String?
+  decidedAt  DateTime? @map("decided_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("approvals")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id])
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  action     String   // 'create', 'update', 'delete', 'approve', 'reject'
+  changes    Json?    @default("{}") // before/after diff
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_log")
+}
+
+// ─────────────────────────────────────────────
+// MARKETING CAMPAIGNS (MRM)
+// ─────────────────────────────────────────────
+
+model Campaign {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  vendorId       String       @map("vendor_id")
+  vendor         Vendor       @relation(fields: [vendorId], references: [id])
+  contractId     String?      @map("contract_id")
+  contract       Contract?    @relation(fields: [contractId], references: [id])
+  name           String
+  objective      String?      @db.Text
+  status         String       @default("planning") // 'planning', 'briefed', 'in_production', 'live', 'completed', 'cancelled'
+  campaignType   String?      @map("campaign_type") // 'jackpot_awareness', 'new_game_launch', 'seasonal', 'brand', 'retail_activation', 'digital'
+  totalBudget    Decimal?     @map("total_budget") @db.Decimal(14, 2)
+  startDate      DateTime?    @map("start_date") @db.Date
+  endDate        DateTime?    @map("end_date") @db.Date
+  notes          String?      @db.Text
+  createdById    String       @map("created_by")
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  channels   CampaignChannel[]
+  assets     CampaignAsset[]
+  milestones CampaignMilestone[]
+  products   Product[]         @relation("CampaignProducts")
+
+  @@map("campaigns")
+}
+
+model CampaignChannel {
+  id           String    @id @default(uuid())
+  campaignId   String    @map("campaign_id")
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  vendorId     String?   @map("vendor_id")
+  vendor       Vendor?   @relation(fields: [vendorId], references: [id])
+  channel      String    // 'tv', 'radio', 'digital_display', 'social_media', 'outdoor', 'pos_retail', 'print', 'events', 'sponsorship'
+  description  String?
+  status       String    @default("planned") // 'planned', 'active', 'paused', 'completed', 'cancelled'
+  plannedSpend Decimal?  @map("planned_spend") @db.Decimal(14, 2)
+  actualSpend  Decimal   @default(0) @map("actual_spend") @db.Decimal(14, 2)
+  startDate    DateTime? @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  targetMarket String?   @map("target_market")
+  kpiGoal      String?   @map("kpi_goal")
+  impressions  BigInt?
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  assets       CampaignAsset[]
+
+  @@map("campaign_channels")
+}
+
+model CampaignAsset {
+  id                    String           @id @default(uuid())
+  campaignId            String           @map("campaign_id")
+  campaign              Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  channelId             String?          @map("channel_id")
+  channel               CampaignChannel? @relation(fields: [channelId], references: [id])
+  vendorId              String?          @map("vendor_id")
+  vendor                Vendor?          @relation(fields: [vendorId], references: [id])
+  
+  name                  String           // renamed from assetName internally, or keep as name since it was name
+  assetType             String           @map("asset_type") // 'video', 'static_image', 'html5', 'audio', 'copy'
+  formatSpecs           String?          @map("format_specs") // e.g. 1920x1080, MP4, 30s
+  language              String?          @default("English")
+  
+  status                String           @default("draft") // draft, in_review, approved, in_production, live, retired
+  approvalStatus        String?          @map("approval_status") // e.g. pending_legal, approved, rejected
+  reviewOwner           String?          @map("review_owner")
+  
+  dueDate               DateTime?        @map("due_date") @db.Date
+  launchDate            DateTime?        @map("launch_date") @db.Date
+  expirationDate        DateTime?        @map("expiration_date") @db.Date
+  usageRightsExpiration DateTime?        @map("usage_rights_expiration") @db.Date
+  
+  assetUrl              String?          @map("asset_url")
+  version               String           @default("v1")
+  
+  complianceNotes       String?          @map("compliance_notes") @db.Text
+  notes                 String?          @db.Text
+  
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  @@map("campaign_assets")
+}
+
+model CampaignMilestone {
+  id            String   @id @default(uuid())
+  campaignId    String   @map("campaign_id")
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name          String
+  dueDate       DateTime? @map("due_date") @db.Date
+  completedDate DateTime? @map("completed_date") @db.Date
+  status        String   @default("pending") // 'pending', 'completed', 'overdue', 'cancelled'
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("campaign_milestones")
+}

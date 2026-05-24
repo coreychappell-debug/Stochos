@@ -1,0 +1,554 @@
+## Stochos Lottery Data Warehouse
+
+### New York Implementation – Canonical Schema Documentation v2
+
+**System:** Stochos Lottery Analytics Platform
+**State Module:** New York Lottery
+**Database Engine:** DuckDB
+**Primary Database File:** `/srv/stochos/data/duckdb/stochos_lottery.duckdb`
+
+---
+
+## Purpose
+
+This document defines the canonical New York warehouse structure used by Stochos for ingestion, normalization, enrichment, modeled economics, geospatial reporting, and downstream dashboards.
+
+The New York module is not a single-report pipeline. It is a reusable analytical warehouse designed to support a portfolio of reporting products, including retailer maps, retailer performance reporting, modeled ROI-style reporting, game performance dashboards, and county-level geographic summaries.
+
+This design follows the broader Stochos principle of database first, dashboards second.
+
+---
+
+## Operating Model
+
+The New York pipeline uses three coordinated layers:
+
+### 1. Data Acquisition Layer
+
+Python refresh jobs download and preserve raw New York Lottery open datasets under the raw storage path.
+
+### 2. Warehouse Build Layer
+
+DuckDB transformations normalize the raw files into dimensions, facts, enriched facts, and reporting marts.
+
+### 3. Analytics and Reporting Layer
+
+R and Shiny query prepared warehouse tables and views in read-only mode. Reporting tools should not perform heavy ETL logic.
+
+---
+
+## Raw Storage and Refresh
+
+**Raw storage root:**
+`/srv/stochos/data/raw/new_york/nylottery_data`
+
+**Primary warehouse build script:**
+`/srv/stochos/jobs/ny_duckdb_refresh.py`
+
+**Primary warehouse file:**
+`/srv/stochos/data/duckdb/stochos_lottery.duckdb`
+
+Each dataset is preserved by source dataset ID and should retain:
+
+* `data.csv`
+* manifest metadata
+* refresh logs
+
+This raw layer is retained for provenance, traceability, and rebuild reproducibility.
+
+---
+
+## Canonical Warehouse Layers
+
+The New York warehouse is organized into five logical layers:
+
+1. Raw staging layer
+2. Dimension layer
+3. Normalized fact layer
+4. Enriched analytical layer
+5. Reporting mart layer
+
+---
+
+# 1. Raw Staging Layer
+
+These tables preserve source structure with minimal transformation.
+
+## Table: `ny_daily_sales_raw`
+
+**Purpose**
+Direct ingestion of the New York daily retailer sales dataset in wide format.
+
+**Grain**
+One row per retailer per business day.
+
+**Key source fields**
+
+* `BUS_DAY`
+* `AGTNO`
+* `BUSNM`
+* `BUSCITY`
+* `BUSTYPE`
+* game-specific sales columns such as `NUMBERS_DAY`, `WIN4_EVE`, `POWERBALL`, `QUICK_DRAW`, `QD_EXTRA`, `IG_SETTLES`, and others
+
+**Notes**
+
+* This table is ingestion-oriented, not analytics-oriented.
+* Wide format is preserved here intentionally.
+* No business logic should depend directly on this table unless the purpose is raw validation.
+
+---
+
+## Table: `ny_retailers_raw`
+
+**Purpose**
+Direct ingestion of the New York retailer location and metadata dataset.
+
+**Grain**
+One row per retailer record as published by source.
+
+**Key source fields**
+
+* `Retailer`
+* `Name`
+* `Street`
+* `City`
+* `State`
+* `Zip`
+* `Quick Draw`
+* `Latitude`
+* `Longitude`
+* `Georeference`
+
+**Notes**
+
+* This table is the source of geographic and retailer identity metadata.
+* It should be preserved before any coordinate cleansing or exception filtering.
+
+---
+
+# 2. Dimension Layer
+
+Dimension tables define stable reference entities for enrichment and cross-report consistency.
+
+## Table: `ny_retailer_dim`
+
+**Purpose**
+Provides the canonical retailer identity and geographic reference layer for New York reporting.
+
+**Primary key**
+`retailer_id`
+
+**Core fields**
+
+* `state_code`
+* `retailer_id`
+* `retailer_name`
+* `street`
+* `city`
+* `state`
+* `zip`
+* `quick_draw`
+* `latitude`
+* `longitude`
+* `georeference`
+* optional license or status fields if available from source
+
+**Notes**
+
+* This is the authoritative retailer layer for New York reports.
+* Invalid or out-of-state geocodes should not be deleted silently. They should flow into a geospatial exception mart.
+
+---
+
+## Table: `ny_game_dim`
+
+**Purpose**
+Maps raw New York game columns into standardized analytical categories.
+
+**Primary key**
+`game_code`
+
+**Core fields**
+
+* `state_code`
+* `game_code`
+* `game_name`
+* `game_family`
+* `metric_class`
+* `is_revenue`
+* `standard_category`
+* `theoretical_payout_rate`
+* `retailer_commission_rate` when modeled explicitly
+
+**Metric class values**
+
+* `sales`
+* `add_on`
+* `payout`
+* `settlement`
+* `unknown`
+
+**Notes**
+
+* This dimension prevents accounting or payout fields from being confused with retail sales.
+* This table is a critical control surface for every downstream report.
+
+---
+
+## Global dimensions: `dim_retailers`, `dim_games`
+
+**Purpose**
+Support future cross-state rollups and harmonized multi-jurisdiction reporting.
+
+**Rule**
+Local New York reporting should read from New York-specific dimensions first. Global dimensions exist to support multi-state integration, not to replace local operational detail.
+
+---
+
+# 3. Normalized Fact Layer
+
+These tables reshape source data into a reusable analytical structure.
+
+## Table: `fact_lottery_sales_melt`
+
+**Purpose**
+Converts the wide daily sales feed into an atomic long-format transaction fact.
+
+**Grain**
+One row per state, retailer, date, and game code.
+
+**Core fields**
+
+* `state_code`
+* `sales_date`
+* `retailer_id`
+* `game_code`
+* `amount`
+
+**Notes**
+
+* This is the foundational transaction fact for New York reporting.
+* It should include only valid, non-zero atomic records after normalization.
+* This table is expected to be substantially larger than the raw source because each wide row is expanded into multiple game rows.
+
+---
+
+## Table: `ny_daily_sales_fact`
+
+**Purpose**
+Operational New York fact table used for direct analysis and summary builds.
+
+**Grain**
+One row per retailer, date, and game code.
+
+**Core fields**
+
+* `sales_date`
+* `retailer_id`
+* `retailer_name` when retained operationally
+* `city`
+* `business_type`
+* `game_code`
+* `sales_amount`
+
+**Notes**
+
+* This table is acceptable as an operational fact for reporting performance summaries.
+* If both `fact_lottery_sales_melt` and `ny_daily_sales_fact` are retained, their relationship should be documented explicitly so they do not drift into duplicate truth tables.
+
+---
+
+# 4. Enriched Analytical Layer
+
+These tables and views join facts to dimensions and compute modeled business meaning.
+
+## Table: `ny_daily_sales_fact_enriched`
+
+**Purpose**
+Primary reporting-ready transaction table created by joining normalized sales records to retailer and game dimensions.
+
+**Grain**
+One row per retailer, date, and game code.
+
+**Core fields**
+
+* `state_code`
+* `sales_date`
+* `retailer_id`
+* `retailer_name`
+* `city`
+* `county` when available
+* `business_type`
+* `quick_draw`
+* `game_code`
+* `game_name`
+* `game_family`
+* `metric_class`
+* `standard_category`
+* `amount`
+* `is_revenue`
+* `theoretical_payout_rate`
+* `retailer_commission_rate`
+
+**Notes**
+
+* This is the main transaction table for downstream marts.
+* Most dashboard and summary logic should read from this layer rather than from raw staging.
+
+---
+
+## View: `v_unified_lottery_truth`
+
+**Purpose**
+Provides a business-facing analytical view that converts terminal activity into modeled economic meaning.
+
+**Core fields**
+
+* `state_code`
+* `sales_date`
+* `retailer_id`
+* `retailer_name`
+* `city`
+* `county`
+* `game_code`
+* `game_name`
+* `game_family`
+* `metric_class`
+* `standard_category`
+* `amount`
+* `gross_revenue`
+* `estimated_payout`
+* `retailer_commission`
+* `net_contribution`
+
+**Logic definitions**
+
+* `gross_revenue` = revenue-class amount
+* `estimated_payout` = revenue-class amount × theoretical payout rate
+* `retailer_commission` = revenue-class amount × retailer commission rate
+* `net_contribution` = gross revenue − estimated payout − retailer commission
+
+**Important note**
+
+This is a modeled economics view. It does not represent a full audited accounting ledger. It is appropriate for analytical reporting and scenario interpretation, but it must be labeled as modeled where necessary.
+
+---
+
+# 5. Reporting Mart Layer
+
+This layer exists to serve user-facing products. These marts should be lightweight, stable, and purpose-built.
+
+## Table or view: `ny_retailer_map_v2`
+
+**Purpose**
+Clean geocoded retailer display layer for New York map products.
+
+**Grain**
+One row per retailer.
+
+**Core fields**
+
+* retailer identity and address fields
+* latitude and longitude
+* total sales
+* average daily sales
+* active days
+* game count
+* top game
+* quick_draw flag
+
+**Rule**
+This table should include only records that satisfy New York display geography rules.
+
+---
+
+## Table or view: `ny_retailer_geo_exceptions`
+
+**Purpose**
+Tracks retailer records with invalid, missing, or out-of-state coordinates.
+
+**Grain**
+One row per retailer exception.
+
+**Use**
+
+* data quality review
+* geocoding validation
+* exception reporting
+
+---
+
+## Table or view: `ny_county_summary_v1`
+
+**Purpose**
+County-level geographic summary mart for statewide dashboards and choropleth maps.
+
+**Grain**
+One row per county.
+
+**Suggested fields**
+
+* county
+* retailer_count
+* total_sales
+* avg_sales_per_retailer
+* quick_draw_retailer_count
+* quick_draw_share
+* later enrichment fields such as population or income
+
+---
+
+## Table or view: `ny_retailer_performance_v1`
+
+**Purpose**
+Retailer-focused summary mart for ranking, segmentation, and performance dashboards.
+
+**Grain**
+One row per retailer.
+
+**Suggested fields**
+
+* retailer_id
+* retailer_name
+* city
+* county
+* business_type
+* total_sales
+* avg_daily_sales
+* active_days
+* game_count
+* top_game
+* quick_draw flag
+
+---
+
+## Table or view: `ny_game_performance_v1`
+
+**Purpose**
+Game-focused performance mart for sales mix and retailer penetration reporting.
+
+**Grain**
+One row per game or game-family summary.
+
+**Suggested fields**
+
+* game_code
+* game_name
+* game_family
+* standard_category
+* total_sales
+* retailer_count
+* active_days
+* geographic concentration metrics
+
+---
+
+## Table or view: `ny_retailer_roi_v1`
+
+**Purpose**
+Modeled retailer-level economics mart for contribution-style reporting.
+
+**Grain**
+One row per retailer or retailer-period, depending on use case.
+
+**Suggested fields**
+
+* retailer_id
+* retailer_name
+* total_gross_revenue
+* estimated_payout
+* estimated_retailer_commission
+* estimated_net_contribution
+* optional normalized measures such as contribution per day or contribution per active game
+
+**Important note**
+
+This is a modeled economics mart and should be presented accordingly.
+
+---
+
+# Geospatial Rules
+
+The New York retailer reporting layer should follow explicit geospatial quality rules.
+
+## Rule 1: New York display constraint
+
+Retailer points shown in New York map products must fall within the approved New York display geography.
+
+## Rule 2: Exceptions are preserved
+
+Records outside the approved display geography must be retained in `ny_retailer_geo_exceptions`, not silently discarded.
+
+## Rule 3: Statewide views should summarize before plotting all points
+
+At statewide zoom, county summaries or retailer clusters should be favored over raw point clouds.
+
+---
+
+# Data Flow Summary
+
+1. Socrata refresh downloads source files to raw storage
+2. Raw source files are loaded into staging tables
+3. Raw sales are normalized into long-form fact records
+4. Retailer and game dimensions are built or refreshed
+5. Facts are enriched with dimensions and modeled economics
+6. Reporting marts are generated from enriched analytical tables
+7. R and Shiny query marts and views in read-only mode
+
+---
+
+# Intended Consumer Rules
+
+## Python / warehouse build scripts
+
+Should write raw, dimension, fact, enriched, and mart tables.
+
+## R / Shiny analytics layer
+
+Should consume prepared tables and views only.
+
+## Ad hoc validation work
+
+May inspect raw staging tables for QA, but should not redefine truth outside the warehouse build layer.
+
+---
+
+# Immediate Build Priorities
+
+## Must build now
+
+* `ny_daily_sales_raw`
+* `ny_retailers_raw`
+* `ny_retailer_dim`
+* `ny_game_dim`
+* `fact_lottery_sales_melt`
+* `ny_daily_sales_fact_enriched`
+* `v_unified_lottery_truth`
+* `ny_retailer_map_v2`
+* `ny_retailer_geo_exceptions`
+* `ny_county_summary_v1`
+
+## Next wave
+
+* `ny_retailer_performance_v1`
+* `ny_game_performance_v1`
+* `ny_retailer_roi_v1`
+* county enrichment tables for population, land area, and income
+
+## Later
+
+* cross-state harmonization views
+* additional state modules
+* regional economic enrichment including GDP where geography supports it cleanly
+
+---
+
+# Closing Principle
+
+The New York warehouse is a reporting platform, not a single dashboard backend.
+
+The map is one consumer.
+ROI reporting is one consumer.
+County summaries are one consumer.
+Future dashboards should read from the same canonical warehouse truth.

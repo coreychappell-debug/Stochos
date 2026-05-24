@@ -1,0 +1,9 @@
+
+Open the file #####
+
+nano /srv/stochos/jobs/ny_duckdb_refresh.py
+
+
+Run the script #####
+
+python3 /srv/stochos/jobs/ny_duckdb_refresh.py

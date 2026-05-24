@@ -1,0 +1,234 @@
+Title: New York Lottery Data Pipeline Architecture (DuckDB + Python)
+
+Purpose
+
+This document describes the architecture and operational workflow used to ingest, normalize, and analyze New York Lottery datasets within the Stochos analytics environment.
+
+The pipeline was redesigned after encountering memory limitations when attempting to process large datasets directly within RStudio. The revised architecture separates extraction, transformation, and analysis responsibilities across Python, DuckDB, and R.
+
+System Architecture
+
+The Stochos pipeline uses three layers.
+
+1. Data Acquisition Layer (Python)
+
+Python scripts are responsible for downloading and refreshing public datasets from the New York Lottery open data portal. These scripts run on the Ubuntu analytics server and store the raw datasets locally.
+
+Example raw storage path:
+
+/srv/stochos/data/raw/new_york/nylottery_data
+
+Datasets are downloaded and stored by Socrata dataset ID.
+
+Examples:
+
+2vvn-pdyi_nys-lottery-retailers
+5xaw-6ayf_lottery-mega-millions-winning-numbers-beginning-2002
+xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024
+
+Each dataset directory contains:
+
+data.csv
+manifest metadata
+refresh logs
+
+Python is used for ingestion because it is stable for automation and integrates cleanly with system scheduling tools.
+
+2. Data Warehouse Layer (DuckDB)
+
+DuckDB serves as the analytical warehouse engine.
+
+Database location:
+
+/srv/stochos/data/duckdb/stochos_lottery.duckdb
+
+DuckDB was selected because it provides:
+
+fast columnar analytics
+direct CSV ingestion
+SQL transformations without loading data fully into memory
+no server infrastructure requirement
+
+The warehouse stores several logical tables.
+
+Raw staging tables
+
+ny_daily_sales_raw
+
+These tables contain minimally processed data loaded directly from CSV sources.
+
+Normalized fact tables
+
+ny_daily_sales_fact
+
+These tables convert wide lottery reporting formats into normalized event records.
+
+Each record contains:
+
+sales_date
+retailer_id
+retailer_name
+city
+business_type
+game_code
+sales_amount
+
+Game classification dimension
+
+ny_game_dim
+
+This dimension classifies each game_code into analytical categories.
+
+Fields include:
+
+game_name
+game_family
+metric_class
+
+metric_class identifies the role of the metric:
+
+sales
+add_on
+settlement
+unknown
+
+This separation prevents settlement accounting data from distorting retail sales dashboards.
+
+Analytical summary tables
+
+ny_sales_by_game
+ny_sales_by_game_sales_only
+ny_sales_by_city
+ny_sales_by_city_sales_only
+ny_top_retailers
+ny_top_retailers_sales_only
+
+These tables power dashboards and reporting.
+
+3. Analytics Layer (R / Shiny)
+
+R is used strictly as an analytics and visualization layer.
+
+R connects to DuckDB and queries prepared tables rather than performing heavy ETL transformations.
+
+Example connection pattern:
+
+library(DBI)
+library(duckdb)
+
+con <- dbConnect(
+duckdb(),
+"/srv/stochos/data/duckdb/stochos_lottery.duckdb",
+read_only = TRUE
+)
+
+Using DuckDB in read-only mode avoids database locking conflicts with scheduled refresh jobs.
+
+Pipeline Execution
+
+The NY pipeline operates in the following order.
+
+Step 1: Data refresh
+
+Python refresh job downloads the latest dataset versions.
+
+Step 2: Warehouse refresh
+
+The script
+
+/srv/stochos/jobs/ny_duckdb_refresh.py
+
+is executed.
+
+This script performs the following operations.
+
+1. Reads the raw CSV dataset
+2. Creates or replaces the raw staging table
+3. Normalizes the dataset into a long-format fact table
+4. Joins the fact table with the game classification dimension
+5. Generates analytical summary tables
+
+Step 3: Analytics
+
+Dashboards and analysis tools query the prepared tables.
+
+Memory Issue Resolution
+
+Initial attempts to reshape the NY Daily Retailer Sales dataset in R resulted in the R session being terminated by the Linux Out Of Memory (OOM) killer.
+
+Example kernel message:
+
+Out of memory: Killed process rsession
+
+The dataset contained over ten million rows and dozens of wide columns. Converting this structure to long format created large intermediate objects that exceeded available memory.
+
+The solution was to shift the transformation work into DuckDB SQL executed through Python.
+
+DuckDB performs the pivot internally using its columnar engine without constructing large R objects in memory.
+
+Filesystem Permissions
+
+The DuckDB database resides in a shared analytics directory:
+
+/srv/stochos/data/duckdb
+
+Permissions were configured to allow write access from the RStudio container environment.
+
+Key commands used:
+
+chmod 2775 /srv/stochos/data/duckdb
+
+ACL permissions were added so the container user (uid 1000) could write to the directory.
+
+This resolved permission errors encountered during database creation.
+
+Database Locking Considerations
+
+DuckDB allows a single writer at a time.
+
+If RStudio holds an open connection to the database, Python refresh jobs may fail with:
+
+IO Error: Could not set lock on file
+
+Best practice is:
+
+Python refresh job writes to the database
+R analytics sessions open the database in read-only mode
+
+This prevents lock conflicts.
+
+Future Enhancements
+
+Planned improvements include:
+
+additional state lottery ingestion pipelines
+automated cron scheduling for weekly refresh jobs
+dashboard deployment via Shiny or Posit Connect
+DuckDB partitioning strategies for multi-state data
+retailer segmentation models
+
+Repository Structure
+
+Recommended project layout:
+
+/srv/stochos
+/data
+/raw
+/duckdb
+/manifests
+/jobs
+ny_duckdb_refresh.py
+/logs
+/docs
+
+This structure separates raw data, warehouse assets, and pipeline code.
+
+Conclusion
+
+The Stochos architecture now uses a robust three-layer pipeline:
+
+Python for ingestion and orchestration
+DuckDB for transformation and storage
+R for analytics and visualization
+
+This design avoids memory limitations, supports automation, and provides a scalable framework for multi-state lottery analytics.
