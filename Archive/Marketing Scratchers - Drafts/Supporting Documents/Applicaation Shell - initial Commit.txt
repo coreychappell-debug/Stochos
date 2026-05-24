@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Contract & Fiscal Year Planning Tool</title>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app-container">
+
+        <header id="top-bar">
+            <p>Fiscal Year Planner</p>
+        </header>
+
+        <main id="main-content">
+            <aside id="left-panel">
+                <h3>Denominations</h3>
+                </aside>
+
+            <section id="center-panel">
+                <h2>Fiscal Year Plan</h2>
+                </section>
+
+            <aside id="right-panel">
+                <h3>Vendor Pricing & Analysis</h3>
+                </aside>
+        </main>
+        
+        <footer id="footer">
+            <h4>Audit Trail</h4>
+            </footer>
+
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+</html>

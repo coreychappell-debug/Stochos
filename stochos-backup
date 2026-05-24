@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOCAL_BACKUP=/srv/stochos/backups
+CLOUD_BACKUP=/mnt/c/Users/corey/OneDrive/STOCHOS_BACKUPS
+
+ARCHIVE_LOCAL="$LOCAL_BACKUP/stochos_backup_latest.tar.gz"
+ARCHIVE_CLOUD="$CLOUD_BACKUP/stochos_backup_latest.tar.gz"
+
+mkdir -p "$LOCAL_BACKUP"
+mkdir -p "$CLOUD_BACKUP"
+
+# 1. Back up the PostgreSQL database if the container is running
+PG_DUMP_FILE="/srv/stochos/data/stochos_platform_postgres.sql"
+if docker ps --filter name=stochos_postgres --format '{{.Names}}' | grep -q "stochos_postgres"; then
+  echo "Backing up PostgreSQL database..."
+  # Run pg_dump inside the container and save it to the local /srv/stochos/data directory
+  docker exec stochos_postgres pg_dump -U stochos stochos_platform > "$PG_DUMP_FILE"
+  echo "PostgreSQL database dump completed: $PG_DUMP_FILE"
+else
+  echo "Warning: stochos_postgres container is not running. PostgreSQL backup skipped!"
+fi
+
+# 2. Gather items to back up
+BACKUP_ITEMS=()
+
+[ -e /srv/stochos/data ] && BACKUP_ITEMS+=("/srv/stochos/data")
+[ -e /home/analyst1/analyst_lab ] && BACKUP_ITEMS+=("/home/analyst1/analyst_lab")
+[ -e /home/rstudio/projects ] && BACKUP_ITEMS+=("/home/rstudio/projects")
+
+if [ ${#BACKUP_ITEMS[@]} -eq 0 ]; then
+  echo "No backup source paths were found. Exiting."
+  exit 1
+fi
+
+TMP_ARCHIVE="$LOCAL_BACKUP/stochos_backup_latest.tmp.tar.gz"
+
+# Create compressed tarball
+tar -czf "$TMP_ARCHIVE" "${BACKUP_ITEMS[@]}"
+
+mv -f "$TMP_ARCHIVE" "$ARCHIVE_LOCAL"
+cp -f "$ARCHIVE_LOCAL" "$ARCHIVE_CLOUD"
+
+# 3. Clean up temporary pg_dump file to avoid duplicating data on disk
+if [ -f "$PG_DUMP_FILE" ]; then
+  rm -f "$PG_DUMP_FILE"
+  echo "Temporary SQL dump file cleaned up."
+fi
+
+echo "Backup completed successfully: $ARCHIVE_LOCAL"
+echo "Copied to cloud sync folder: $ARCHIVE_CLOUD"
+echo "Included paths:"
+printf '  %s\n' "${BACKUP_ITEMS[@]}"

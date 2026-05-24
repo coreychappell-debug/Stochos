@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marketing Contract & Fiscal Year Planning Tool</title>
+  <meta name="theme-color" content="#0f172a" />
+  <style>
+    :root{
+      --bg:#0b1020;--panel:#111834;--muted:#8aa0c8;--text:#e6ecff;--accent:#6ee7b7;--danger:#fca5a5;--warn:#fde68a;--border:#233057;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b1020 0%,#0d1430 100%);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    #app{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
+    header,footer{background:#0a1230;border-bottom:1px solid var(--border)}
+    header{display:flex;gap:.75rem;align-items:center;justify-content:space-between;padding:.75rem 1rem;position:sticky;top:0;z-index:5}
+    header h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.3px}
+    header .actions{display:flex;gap:.5rem;align-items:center}
+    .btn{appearance:none;border:1px solid var(--border);background:#0e1736;color:var(--text);padding:.45rem .65rem;border-radius:.6rem;cursor:pointer}
+    .btn:hover{border-color:#3a4b7d}
+    main{display:grid;grid-template-columns:280px 1fr 380px;gap:12px;padding:12px}
+    aside,section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:200px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    h2,h3{margin:.25rem 0 .75rem}
+    .row{display:flex;gap:8px;align-items:center}
+    .field{display:flex;flex-direction:column;gap:6px;margin-right:8px}
+    input[type="number"],input[type="text"],select{background:#0c1430;border:1px solid var(--border);border-radius:10px;padding:.5rem .6rem;color:var(--text)}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:.25rem .5rem;border-radius:999px;border:1px solid var(--border);background:#0c1534}
+    .ok{color:var(--accent)}.warn{color:var(--warn)}.bad{color:var(--danger)}
+    table{width:100%;border-collapse:separate;border-spacing:0 6px}
+    thead th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:#bcd0ff;text-align:left;padding:.25rem .5rem}
+    tbody td{background:#0d1638;border:1px solid var(--border);padding:.45rem .6rem}
+    tbody tr td:first-child{border-radius:10px 0 0 10px}
+    tbody tr td:last-child{border-radius:0 10px 10px 0}
+    .tag{font-size:.7rem;border:1px solid var(--border);padding:.1rem .4rem;border-radius:999px;background:#0a1330;color:#cfe1ff}
+    footer{border-top:1px solid var(--border);border-bottom:none}
+    #audit{max-height:140px;overflow:auto;padding:10px}
+    #audit .item{font-size:.85rem;color:#c7d7ff;opacity:.9}
+    #progress{height:8px;background:#0a1230;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+    #progress>div{height:100%;background:linear-gradient(90deg,#60a5fa,#34d399);width:0%}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Fiscal Year Planner</h1>
+    <div class="actions">
+      <div class="field">
+        <label class="muted" for="fy">Fiscal Year</label>
+        <input id="fy" type="number" value="2026" min="2000" max="2100" />
+      </div>
+      <div class="field">
+        <label class="muted" for="sales">Total Sales Target ($)</label>
+        <input id="sales" type="text" placeholder="4,800,000,000" />
+      </div>
+      <button id="btnSave" class="btn">Save Plan</button>
+      <button id="btnLoad" class="btn">Load Plan</button>
+      <button id="btnExportFeatures" class="btn">Export Features CSV</button>
+    </div>
+  </header>
+  <main>
+    <aside id="left-panel">
+      <h3>Denominations</h3>
+      <div id="denoms"></div>
+      <div class="muted" style="margin-top:8px">(Editable list coming next. Live mix bars will appear here.)</div>
+    </aside>
+    <section id="center-panel">
+      <h2>Fiscal Year Plan</h2>
+      <div class="muted">Games table will render here as we add planning controls.</div>
+      <div style="margin-top:10px">
+        <div id="progress"><div id="progressFill"></div></div>
+        <div class="muted" id="progressText" style="margin-top:6px">Allocated: 0% of sales target</div>
+      </div>
+    </section>
+    <aside id="right-panel">
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <h3>Vendor Feature Database</h3>
+        <span class="pill"><span class="sr-only">rows:</span><span id="featCount">0</span> rows</span>
+      </div>
+      <div id="featureTableWrap"></div>
+    </aside>
+  </main>
+  <footer>
+    <h3 style="margin:10px 12px">Audit Trail</h3>
+    <div id="audit"></div>
+  </footer>
+</div>
+
+<!-- Embedded Master Feature CSV so the app is fully offline and loads at startup. -->
+<script type="text/csv" id="features-csv">
+"Generic Feature","SG Brand Name","PB Brand Name","BS Brand Name","SG (Y/N)","PB (Y/N)","BS (Y/N)","SG Price","PB Price","BS Price","SG One-Time Cost","PB One-Time Cost","BS One-Time Cost","SG Discount Notes","PB Discount Notes","BS Discount Notes","MOQ (units)","Lead Time (weeks)","Compatible Price Points","Exclusivity Notes","Green Compliant (Y/N)","Requires Pre-Approval (Y/N)"
+"Standard 4-Color Print","Process Printing","HD Games™","Four-Color Process","Y","Y","Y","","","","","","","","","","100000","0","$1, $2, $3, $5, $10, $20, $30, $50","","Y","N"
+"Holographic Foil","HoloFoil™","Scratch FX® Holographic","Holographic Substrate","Y","Y","Y","","","","","","","","","","500000","2","$5, $10, $20, $30, $50","","N","Y"
+"Sparkle/Glitter Coating","Glitter Ink","Sparkle®","Metallic Sparkle","Y","Y","N","","","","","","","","","","250000","1","$2, $3, $5, $10, $20","PB Sparkle® is a flagship brand","N","N"
+"Scented Ink","Scent™","Scratch & Sniff®","Aroma Ink","Y","Y","Y","","","","","","","","","","500000","2","$1, $2, $5","","N","Y"
+"Metallic Ink","Metallic Inks","Metallic Inks","Metallic FX","Y","Y","Y","","","","","","","","","","250000","1","$2, $3, $5, $10, $20","","Y","N"
+"Die-Cut Ticket","Custom Die-Cut","Die-Cut","Custom Shape","Y","Y","Y","","","","","","","","","","1000000","3","$5, $10, $20, $30","Requires custom tooling setup","N","Y"
+"Oversized Format","Jumbo Ticket","Big Ticket™","Oversized Format","Y","Y","Y","","","","","","","","","","250000","1","$10, $20, $30, $50","","N","N"
+"Extended Play (Crossword/Bingo)","Extended Play","Crossword/Bingo","Extended Play","Y","Y","Y","","","","","","","","","","100000","0","$3, $5, $10, $20","","Y","N"
+"Licensed Property Usage","Licensed Brands","Licensed Portfolio","","Y","Y","N","","","","","","","","","","Varies","4","Varies","SG/PB have large portfolios; BS is limited","N","Y"
+"Recycled Substrate","Eco-Stock","Recycled Content Paper","","Y","Y","N","","","","","","","","","","250000","1","All","Meets CA recycled content standards","Y","N"
+"Secure Barcoding","Secure Code™","SecureValidate™","Secure Barcode","Y","Y","Y","","","","","","","","","","100000","0","All","","Y","N"
+</script>
+
+<script>
+(function(){
+  'use strict';
+
+  const state = {
+    fiscalYear: 2026,
+    totalSalesTarget: 0,
+    denominations: [],
+    games: [],
+    vendorPricing: {},
+    featureMasterList: []
+  };
+
+  // --- Utilities ------------------------------------------------------------
+  function logAudit(msg){
+    const wrap = document.getElementById('audit');
+    if(!wrap) return;
+    const when = new Date().toLocaleString();
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.textContent = `${when} — ${msg}`;
+    wrap.prepend(el);
+  }
+
+  // Robust CSV parser (handles quoted fields and commas/newlines inside quotes)
+  function parseCSV(text){
+    const rows = [];
+    let i=0, field='', row=[], inQuotes=false;
+    const pushField=()=>{ row.push(field); field=''; };
+    const pushRow=()=>{ rows.push(row); row=[]; };
+    while(i<text.length){
+      const c=text[i];
+      if(inQuotes){
+        if(c==='"'){
+          if(text[i+1]==='"'){ field+='"'; i++; } else { inQuotes=false; }
+        } else { field+=c; }
+      } else {
+        if(c==='"'){ inQuotes=true; }
+        else if(c===','){ pushField(); }
+        else if(c==='
+'){ pushField(); pushRow(); }
+        else if(c==='
+'){ /* ignore */ }
+        else { field+=c; }
+      }
+      i++;
+    }
+    if(field!==''||row.length){ pushField(); pushRow(); }
+    const headers = rows.shift().map(h=>h.trim());
+    return rows.filter(r=>r.length&&r.some(v=>v!==''))
+               .map(r=>Object.fromEntries(headers.map((h,idx)=>[h, (r[idx]??'').trim()])));
+  }
+
+  function toCSV(arr){
+    if(!arr.length) return '';
+    const headers = Object.keys(arr[0]);
+    const esc=v=>{
+      if(v==null) return '';
+      const s=String(v);
+      return /[",
+]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+    };
+    const lines=[headers.map(esc).join(',')];
+    for(const row of arr){ lines.push(headers.map(h=>esc(row[h])).join(',')); }
+    return lines.join('
+');
+  }
+
+  // --- Rendering ------------------------------------------------------------
+  function renderFeatures(){
+    const wrap = document.getElementById('featureTableWrap');
+    const count = document.getElementById('featCount');
+    if(!wrap||!count) return;
+    count.textContent = state.featureMasterList.length.toString();
+
+    if(!state.featureMasterList.length){ wrap.innerHTML = '<div class="muted">No features loaded.</div>'; return; }
+
+    const cols = [
+      'Generic Feature','SG (Y/N)','PB (Y/N)','BS (Y/N)',
+      'MOQ (units)','Lead Time (weeks)','Compatible Price Points','Exclusivity Notes','Green Compliant (Y/N)','Requires Pre-Approval (Y/N)'
+    ];
+
+    let html = '<div style="overflow:auto;max-height:58vh">';
+    html += '<table><thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+    for(const f of state.featureMasterList){
+      html += '<tr>' + cols.map(c=>`<td>${(f[c]||'').toString()}</td>`).join('') + '</tr>';
+    }
+    html += '</tbody></table></div>';
+    wrap.innerHTML = html;
+  }
+
+  function renderDenoms(){
+    const mount = document.getElementById('denoms');
+    if(!mount) return;
+    if(!state.denominations.length){
+      mount.innerHTML = '<div class="muted">No denominations yet. (Add UI in next step.)</div>';
+      return;
+    }
+  }
+
+  function renderProgress(){
+    const fill = document.getElementById('progressFill');
+    const txt = document.getElementById('progressText');
+    if(!fill||!txt) return;
+    const pct = 0; // placeholder until allocations exist
+    fill.style.width = pct + '%';
+    txt.textContent = `Allocated: ${pct}% of sales target`;
+  }
+
+  function render(){
+    renderFeatures();
+    renderDenoms();
+    renderProgress();
+  }
+
+  // --- IO: Save/Load Plan (JSON) -------------------------------------------
+  async function savePlan(){
+    try{
+      const handle = await window.showSaveFilePicker({suggestedName:`fy-plan-${state.fiscalYear}.json`,types:[{description:'Plan JSON',accept:{'application/json':['.json']}}]});
+      const writable = await handle.createWritable();
+      await writable.write(JSON.stringify(state,null,2));
+      await writable.close();
+      logAudit('Saved plan to disk.');
+    }catch(err){ if(err&&err.name!=="AbortError") console.error(err); }
+  }
+
+  async function loadPlan(){
+    try{
+      const [handle] = await window.showOpenFilePicker({types:[{description:'Plan JSON',accept:{'application/json':['.json']}}]});
+      const file = await handle.getFile();
+      const json = JSON.parse(await file.text());
+      Object.assign(state, json);
+      document.getElementById('fy').value = state.fiscalYear;
+      const salesEl = document.getElementById('sales');
+      if(salesEl) salesEl.value = formatNumber(state.totalSalesTarget||0);
+      render();
+      logAudit('Loaded plan from disk.');
+    }catch(err){ if(err&&err.name!=="AbortError") console.error(err); }
+  }
+
+  // --- Number formatting for Total Sales Target ----------------------------
+  function formatNumber(num){
+    const n = Number(num);
+    if(!isFinite(n) || n<=0) return '';
+    return n.toLocaleString('en-US');
+  }
+
+  function parseNumber(str){
+    return Number(String(str||'').replace(/,/g, '')) || 0;
+  }
+
+  // --- Bootstrap ------------------------------------------------------------
+  function init(){
+    // Seed header fields
+    const fyEl = document.getElementById('fy');
+    const salesEl = document.getElementById('sales');
+    if(fyEl) fyEl.value = state.fiscalYear;
+
+    if(salesEl){
+      const formatAndSet = (el) => {
+        const caret = el.selectionStart ?? el.value.length;
+        const beforeLen = el.value.length;
+        const raw = parseNumber(el.value);
+        el.value = formatNumber(raw);
+        const afterLen = el.value.length;
+        const offset = afterLen - beforeLen;
+        try { el.setSelectionRange(Math.max(0, caret + offset), Math.max(0, caret + offset)); } catch(_){/* noop */}
+      };
+
+      // Live format while typing
+      salesEl.addEventListener('input', (e)=>{ formatAndSet(e.target); });
+      // Commit on blur
+      salesEl.addEventListener('blur', (e)=>{
+        formatAndSet(e.target);
+        state.totalSalesTarget = parseNumber(e.target.value);
+        logAudit(`Updated Total Sales Target to $${formatNumber(state.totalSalesTarget)}`);
+        renderProgress();
+      });
+      // Enter commits
+      salesEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); salesEl.blur(); }});
+
+      // Format initial placeholder value if user pre-fills
+      if(salesEl.value){ salesEl.value = formatNumber(parseNumber(salesEl.value)); }
+    }
+
+    document.getElementById('btnSave')?.addEventListener('click', savePlan);
+    document.getElementById('btnLoad')?.addEventListener('click', loadPlan);
+    document.getElementById('btnExportFeatures')?.addEventListener('click', ()=>{
+      const csv = toCSV(state.featureMasterList);
+      const blob = new Blob([csv],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'),{href:url,download:'vendor_features.csv'});
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      logAudit('Exported feature database as CSV.');
+    });
+
+    // Load embedded CSV
+    const csvEl = document.getElementById('features-csv');
+    if(csvEl){
+      try{
+        state.featureMasterList = parseCSV(csvEl.textContent.trim());
+        logAudit(`Loaded ${state.featureMasterList.length} vendor features from embedded CSV.`);
+      }catch(err){ console.error('Failed to parse embedded CSV', err); }
+    }
+
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>

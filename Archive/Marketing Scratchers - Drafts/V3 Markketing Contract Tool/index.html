@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Marketing Contract & Fiscal Year Planning Tool</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+
+  <!-- Styles (exact case matters for SW caching) -->
+  <link rel="stylesheet" href="Style.css"/>
+
+  <!-- XLSX export (SheetJS) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Header -->
+    <header id="top-bar" role="banner" aria-label="Fiscal Year Controls">
+      <div class="header-title">Fiscal Year Planner</div>
+      <div class="header-controls" role="group" aria-label="Primary Controls">
+        <button id="undo-btn" aria-label="Undo last action">Undo</button>
+        <button id="redo-btn" aria-label="Redo last action">Redo</button>
+
+        <div class="control-group">
+          <label for="fiscal-year">Fiscal Year:</label>
+          <input type="number" id="fiscal-year" size="4" inputmode="numeric" />
+        </div>
+
+        <div class="control-group">
+          <label for="total-sales-target">Total Sales Target: $</label>
+          <input type="text" id="total-sales-target" placeholder="e.g., 4,800,000,000" inputmode="numeric" />
+        </div>
+
+        <!-- Vendor view filter -->
+        <div class="control-group">
+          <label for="vendor-filter">View:</label>
+          <select id="vendor-filter" aria-label="Filter plan by vendor">
+            <option value="all">All Vendors</option>
+            <option value="sg">Scientific Games</option>
+            <option value="pb">Pollard Banknote</option>
+            <option value="bs">Brightstar</option>
+          </select>
+        </div>
+
+        <input type="file" id="load-plan-input" style="display:none" accept=".json" />
+        <button id="load-plan-btn">Load Plan</button>
+        <button id="save-plan-btn">Save Plan</button>
+
+        <div class="dropdown" role="navigation" aria-label="Export">
+          <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Export</button>
+          <div class="dropdown-content" role="menu" aria-label="Export options">
+            <a href="#" id="export-summary-csv" role="menuitem">Executive Summary (CSV)</a>
+            <a href="#" id="export-summary-xlsx" role="menuitem">Executive Summary (XLSX)</a>
+            <a href="#" id="export-detail-csv" role="menuitem">Detailed Build (CSV)</a>
+            <a href="#" id="export-detail-xlsx" role="menuitem">Detailed Build (XLSX)</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main: three‑column grid (left/center/right) -->
+    <main id="main-content" role="main">
+      <aside id="left-panel" aria-label="Denominations"></aside>
+      <section id="center-panel" aria-label="Fiscal Year Plan"></section>
+      <aside id="right-panel" aria-label="Vendor Pricing"></aside>
+    </main>
+
+    <!-- Footer -->
+    <footer id="footer" aria-live="polite" aria-label="Audit Trail"></footer>
+  </div>
+
+  <!-- Feature selection modal -->
+  <div id="feature-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-game-name">
+    <div class="modal-content">
+      <h3>Edit Features for <span id="modal-game-name"></span></h3>
+      <div id="feature-checklist"></div>
+      <div class="modal-actions">
+        <button id="modal-save-btn">Save</button>
+        <button id="modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature management modal -->
+  <div id="feature-management-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Manage Special Features">
+    <div class="modal-content">
+      <h3>Manage Special Features</h3>
+      <div id="feature-management-list"></div>
+      <div class="add-feature-form">
+        <h4>Add New Feature</h4>
+        <input type="text" id="new-feature-name" placeholder="New feature name"/>
+        <button id="add-feature-btn">Add</button>
+      </div>
+      <div class="modal-actions">
+        <button id="modal-done-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <script src="app.js"></script>
+
+  <!-- Service worker (relative path so it works from file:// or any subpath) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

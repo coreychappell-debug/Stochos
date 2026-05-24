@@ -1,0 +1,58 @@
+<script>
+if(salesEl){
+      const formatAndSet = (el) => {
+        const caret = el.selectionStart ?? 0;
+        const beforeLen = el.value.length;
+        const raw = parseNumber(el.value);
+        el.value = formatNumber(raw);
+        const afterLen = el.value.length;
+        const offset = afterLen - beforeLen;
+        try { el.setSelectionRange(Math.max(0, caret + offset), Math.max(0, caret + offset)); } catch(_){}
+      };
+
+      // Live format while typing
+      salesEl.addEventListener('input', (e)=>{
+        formatAndSet(e.target);
+      });
+
+      // Commit on blur and update state/audit
+      salesEl.addEventListener('blur', (e)=>{
+        formatAndSet(e.target);
+        state.totalSalesTarget = parseNumber(e.target.value);
+        logAudit(`Updated Total Sales Target to $${formatNumber(state.totalSalesTarget)}`);
+        renderProgress();
+      });
+
+      // Also handle Enter key as commit
+      salesEl.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          salesEl.blur();
+        }
+      });
+
+      // Format initial value if present
+      if(salesEl.value){
+        salesEl.value = formatNumber(parseNumber(salesEl.value));
+      }
+    };
+
+  // Format on input
+  salesEl.addEventListener('input', (e)=>{
+    formatAndSet(e.target);
+  });
+
+  // Also format and commit on blur
+  salesEl.addEventListener('blur', (e)=>{
+    formatAndSet(e.target);
+    state.totalSalesTarget = parseNumber(e.target.value);
+    logAudit(`Updated Total Sales Target to $${formatNumber(state.totalSalesTarget)}`);
+    renderProgress();
+  });
+
+  // Format initial value if any
+  if(salesEl.value){
+    salesEl.value = formatNumber(parseNumber(salesEl.value));
+  }
+}
+</script>

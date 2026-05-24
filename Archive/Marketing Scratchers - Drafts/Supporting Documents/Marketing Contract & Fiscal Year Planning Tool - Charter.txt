@@ -1,0 +1,90 @@
+# Marketing Contract & Fiscal Year Planning Tool – Updated Charter
+
+## Purpose
+
+A self-contained, offline-capable HTML/JavaScript/CSS application to manage post-award scratcher game contract planning. Enables Contract Managers to:
+
+* Build and adjust annual fiscal year plans by price point.
+* Compare vendor capabilities and pricing.
+* Track costs, margins, and allocations in real time.
+* Export reports for executives, finance, and budget teams.
+
+## Core Goals
+
+1. **No-Install, Portable Application**
+
+   * Single HTML file, runs in any modern browser.
+   * Optional PWA “install” for desktop-like use.
+
+2. **Vendor Capability & Pricing Management**
+
+   * Preloaded vendor feature database (Scientific Games, Pollard Banknote, Brightstar).
+   * Cross-vendor feature mapping to generic categories.
+   * Fields for base price, one-time costs, discount notes, MOQ, lead time, compatibility, exclusivity, compliance.
+
+3. **Plan Building & Tracking**
+
+   * Grouped by price point with sales % targets.
+   * Game-by-game planning with vendor assignments and selected features.
+   * Live recalculation of revenue, units, COGS, and margins.
+   * Alerts for allocation over/under, missing data, or negative margins.
+
+4. **Export & Save**
+
+   * Save/load full plans via JSON.
+   * Export CSV/XLSX summary and detailed cost reports.
+
+## Refinements Added to Phase 1
+
+Built in from the start to prevent re-work:
+
+1. **Mutually Exclusive Feature Logic** – Flag or block combinations of incompatible features.
+2. **Per-Year vs. Per-Game One-Time Cost Flag** – In CSV and JSON schema to allow correct cost allocation.
+3. **Mid-Year Denomination Changes** – Editable denomination list without breaking existing plan totals.
+
+## Phase 2 Enhancements
+
+To be added after the core tool is fully functional:
+
+1. **Structured Discount Table** – Quantity thresholds and % off with automated calculations.
+2. **Lead Time Launch Date Warnings** – Planned launch date field + auto-check against lead time.
+3. **Audit Trail Export/Archive** – Save year-end history separately to keep tool fast.
+4. **Advanced Scheduling View** – Optional timeline visualizations for planned game launches.
+
+## Additional Planning Data Fields
+
+Integrated for better post-award management:
+
+* **MOQ per Feature**
+* **Lead Time / Production Time Estimates**
+* **Compatible Price Points / Ticket Sizes**
+* **Vendor-Specific Limitations or Exclusives**
+* **Sustainability/Compliance Indicators**
+* **Testing / Approval Requirements**
+
+## Milestones
+
+1. **Core Shell & Data Engine (1–2 weeks)**
+
+   * Build HTML/JS/CSS structure.
+   * Load master vendor feature CSV.
+   * Save/load plan as JSON.
+   * IndexedDB for autosave.
+
+2. **Planning & Calculation Engine (2–3 weeks)**
+
+   * UI for denominations & games.
+   * Live calculation formulas for revenue, units, and margins.
+   * Progress bars and allocation targets.
+
+3. **Vendor Costing & Reporting (2 weeks)**
+
+   * Right-panel vendor cost inputs linked to calculations.
+   * Export CSV/XLSX (summary & detailed reports).
+
+4. **UX Polish & Finalization (1 week)**
+
+   * Undo/redo.
+   * Audit trail display.
+   * Confirmation dialogs.
+   * PWA manifest and testing.

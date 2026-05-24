@@ -1,0 +1,154 @@
+
+<style>
+  * { box-sizing: border-box; }
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: .06em; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 8px; }
+  .flow-row { display: flex; align-items: stretch; gap: 0; margin-bottom: 24px; }
+  .flow-source { background: #185FA5; color: #B5D4F4; border-radius: 8px 0 0 8px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: center; min-width: 148px; }
+  .flow-source .amount { font-size: 22px; font-weight: 500; color: #fff; line-height: 1; }
+  .flow-source .label { font-size: 12px; color: #85B7EB; margin-top: 4px; }
+  .flow-arrow { width: 32px; background: linear-gradient(to right, #185FA5 0%, #185FA5 40%, transparent 100%); display: flex; align-items: center; justify-content: center; position: relative; }
+  .flow-arrow::after { content: ''; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 14px solid #185FA5; position: absolute; right: 0; }
+  .flow-bands { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .band { display: flex; align-items: center; padding: 0 14px; border-radius: 4px; cursor: pointer; transition: filter .15s; position: relative; }
+  .band:hover { filter: brightness(1.08); }
+  .band-label { font-size: 13px; font-weight: 500; flex: 1; }
+  .band-pct { font-size: 12px; opacity: .8; margin-left: 8px; }
+  .band-amt { font-size: 12px; font-weight: 500; margin-left: 6px; white-space: nowrap; }
+  .band-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.3); margin-top: 2px; }
+  .band-prizes   { background: #3266AD; color: #dce9fa; min-height: 64px; }
+  .band-education{ background: #0F6E56; color: #9FE1CB; min-height: 56px; }
+  .band-retail   { background: #854F0B; color: #FAC775; min-height: 40px; }
+  .band-ops      { background: #5F5E5A; color: #D3D1C7; min-height: 36px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 24px; }
+  .stat-card { background: var(--color-background-secondary); border-radius: 8px; padding: 12px 14px; }
+  .stat-card .num { font-size: 20px; font-weight: 500; color: var(--color-text-primary); line-height: 1.1; }
+  .stat-card .lbl { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
+
+  .edu-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .edu-panel { background: var(--color-background-secondary); border-radius: 10px; padding: 14px 16px; }
+  .use-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+  .use-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .use-label { font-size: 13px; color: var(--color-text-primary); }
+
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .bar-name { font-size: 12px; color: var(--color-text-secondary); min-width: 90px; text-align: right; }
+  .bar-track { flex: 1; height: 14px; background: var(--color-background-primary); border-radius: 4px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; background: #0F6E56; transition: width .6s ease; }
+  .bar-pct { font-size: 11px; color: var(--color-text-secondary); min-width: 32px; }
+
+  .law-pill { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 12px; margin: 2px; background: var(--color-background-info); color: var(--color-text-info); }
+
+  h3.widget-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+  p.widget-sub { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 20px; }
+</style>
+
+<div style="padding: 1rem 0;">
+  <h3 class="widget-title">California State Lottery — revenue &amp; education funding flow</h3>
+  <p class="widget-sub">How every dollar of ticket sales is allocated · FY 2024–25</p>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="num">$9B+</div>
+      <div class="lbl">Annual ticket sales</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">$1.9B</div>
+      <div class="lbl">To education FY24–25</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">$48B+</div>
+      <div class="lbl">Total since 1985</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">25 yrs</div>
+      <div class="lbl">Consecutive $1B+ transfers</div>
+    </div>
+  </div>
+
+  <!-- Flow diagram -->
+  <div class="section-label">Where every dollar goes</div>
+  <div class="flow-row">
+    <div class="flow-source">
+      <div class="amount">$1.00</div>
+      <div class="label">Ticket sales revenue</div>
+      <div style="font-size: 11px; color: #5DCAA5; margin-top: 8px;">Scratchers · Powerball · Mega Millions · SuperLotto+</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-bands">
+      <div class="band band-prizes" onclick="sendPrompt('How does the California Lottery set prize payout rates to maximize player engagement?')">
+        <div style="flex:1">
+          <div class="band-label">Prize payouts</div>
+          <div class="band-bar" style="width:68%"></div>
+        </div>
+        <div class="band-pct">~68¢</div>
+        <div class="band-amt">of every $1</div>
+      </div>
+      <div class="band band-education" onclick="sendPrompt('How are California Lottery education funds distributed to schools?')">
+        <div style="flex:1">
+          <div class="band-label">Public education</div>
+          <div class="band-bar" style="width:25%"></div>
+        </div>
+        <div class="band-pct">~20¢</div>
+        <div class="band-amt">of every $1</div>
+      </div>
+      <div class="band band-retail" onclick="sendPrompt('How much do California Lottery retailers earn in commission?')">
+        <div style="flex:1">
+          <div class="band-label">Retailer compensation</div>
+          <div class="band-bar" style="width:7%"></div>
+        </div>
+        <div class="band-pct">~7¢</div>
+        <div class="band-amt">of every $1</div>
+      </div>
+      <div class="band band-ops" onclick="sendPrompt('What does the California Lottery spend on operations and administration?')">
+        <div style="flex:1">
+          <div class="band-label">Operations &amp; administration</div>
+          <div class="band-bar" style="width:5%"></div>
+        </div>
+        <div class="band-pct">~5¢</div>
+        <div class="band-amt">of every $1 (max 13% by law)</div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:11px; color: var(--color-text-tertiary); margin: -16px 0 22px; padding-left: 180px;">Click any row to explore · 95¢ of every $1 returns to the community</div>
+
+  <!-- Legal framework pills -->
+  <div class="section-label">Legal framework (Prop 37, 1984 · amended 2010)</div>
+  <div style="margin-bottom: 22px;">
+    <span class="law-pill">≥50% to prizes (can exceed with 2010 amendment)</span>
+    <span class="law-pill">≥34% minimum to education</span>
+    <span class="law-pill">≤13% for operations (down from 16%)</span>
+    <span class="law-pill">Funds distributed quarterly by State Controller</span>
+    <span class="law-pill">Prop 20: 50% of growth above FY97–98 for instructional materials</span>
+  </div>
+
+  <!-- Education detail split -->
+  <div class="edu-section">
+    <div class="edu-panel">
+      <div class="section-label" style="margin-bottom:12px">Education beneficiaries (cumulative %)</div>
+      <div class="bar-row"><div class="bar-name">K–12 schools</div><div class="bar-track"><div class="bar-fill" style="width:79%"></div></div><div class="bar-pct">~79%</div></div>
+      <div class="bar-row"><div class="bar-name">Community colleges</div><div class="bar-track"><div class="bar-fill" style="width:11%; background:#185FA5"></div></div><div class="bar-pct">~11%</div></div>
+      <div class="bar-row"><div class="bar-name">Cal State (CSU)</div><div class="bar-track"><div class="bar-fill" style="width:5%; background:#854F0B"></div></div><div class="bar-pct">~5%</div></div>
+      <div class="bar-row"><div class="bar-name">UC system</div><div class="bar-track"><div class="bar-fill" style="width:3%; background:#A32D2D"></div></div><div class="bar-pct">~3%</div></div>
+      <div class="bar-row"><div class="bar-name">Other (specialized)</div><div class="bar-track"><div class="bar-fill" style="width:2%; background:#5F5E5A"></div></div><div class="bar-pct">~2%</div></div>
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:10px">K–12 &amp; community college funding based on Average Daily Attendance (ADA) · Higher ed based on full-time enrollment</div>
+    </div>
+    <div class="edu-panel">
+      <div class="section-label" style="margin-bottom:12px">How schools use lottery funds</div>
+      <div class="use-item"><div class="use-dot" style="background:#0F6E56"></div><div class="use-label">Teacher salaries, recruitment &amp; retention</div></div>
+      <div class="use-item"><div class="use-dot" style="background:#185FA5"></div><div class="use-label">Technology &amp; computer labs</div></div>
+      <div class="use-item"><div class="use-dot" style="background:#854F0B"></div><div class="use-label">Arts, music &amp; science programs</div></div>
+      <div class="use-item"><div class="use-dot" style="background:#3B6D11"></div><div class="use-label">After-school programs &amp; athletics</div></div>
+      <div class="use-item"><div class="use-dot" style="background:#993556"></div><div class="use-label">Instructional materials (Prop 20 share)</div></div>
+      <div class="use-item"><div class="use-dot" style="background:#5F5E5A"></div><div class="use-label">Equipment upgrades &amp; learning environments</div></div>
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:8px">Funds are discretionary — local school boards &amp; administrators decide all spending. Lottery is never involved in these decisions.</div>
+    </div>
+  </div>
+
+  <!-- Context note -->
+  <div style="margin-top:18px; padding: 10px 14px; border-left: 2px solid var(--color-border-info); background: var(--color-background-info); border-radius: 0 6px 6px 0;">
+    <div style="font-size:13px; color:var(--color-text-info); font-weight:500">Context: supplemental, not primary</div>
+    <div style="font-size:12px; color:var(--color-text-secondary); margin-top:3px">Lottery funds represent less than 1.5% of all K–12 education funding in California. They are designed to <em>supplement</em> — not replace — state and local appropriations. The high prize payout rate is the primary strategy to maximize ticket sales volume, which in turn maximizes the education contribution.</div>
+  </div>
+</div>

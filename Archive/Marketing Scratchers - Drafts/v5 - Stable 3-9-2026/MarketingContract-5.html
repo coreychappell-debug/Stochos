@@ -1,0 +1,2047 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marketing Contract Manager</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        :root {
+            --bg-main: #111827;
+            --bg-panel: #1f2937;
+            --bg-input: #374151;
+            --border-color: #4b5563;
+            --text-light: #d1d5db;
+            --text-dark: #9ca3af;
+            --accent-color: #3b82f6;
+            --danger-color: #ef4444;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-light);
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 12px;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+
+        #top-bar {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: #1f2937;
+            /* bg-panel */
+            border-radius: 0.5rem;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 12px;
+            overflow: hidden;
+            transition: grid-template-columns 0.3s ease;
+        }
+
+        #footer {
+            flex-shrink: 0;
+            background-color: var(--bg-panel);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-y: auto;
+            max-height: 150px;
+        }
+
+        .panel {
+            background-color: var(--bg-panel);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        #left-panel,
+        #right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        h2,
+        h3,
+        h4 {
+            font-weight: 600;
+        }
+
+        h3 {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        button,
+        select {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: var(--text-light);
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #4b5563;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"] {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 10px;
+            width: auto;
+            color: var(--text-light);
+        }
+
+        .denom-item {
+            display: grid;
+            grid-template-columns: auto auto 1fr auto;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .denom-details {
+            grid-column: 1 / -1;
+            margin-top: 4px;
+        }
+
+        #denom-total.total-error {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        .game-group {
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .game-group-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background-color: #2b3649;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+        }
+
+        .game-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .game-table th,
+        .game-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9em;
+        }
+
+        .game-table th {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .game-table input,
+        .game-table select {
+            max-width: 150px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--bg-panel);
+            padding: 24px;
+            border-radius: 8px;
+            min-width: 400px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #374151;
+            min-width: 220px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            border-radius: 6px;
+        }
+
+        .dropdown-content a {
+            color: var(--text-light);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #4b5563;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        #scenario-bar {
+            display: flex;
+            align-items: center;
+            background-color: var(--bg-panel);
+            padding: 0 1rem;
+            border-radius: 0.5rem;
+            gap: 1rem;
+            overflow-x: auto;
+        }
+
+        .scenario-tab {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+
+        .scenario-tab:hover {
+            color: var(--text-light);
+        }
+
+        .scenario-tab.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .scenario-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-container">
+        <header id="top-bar" role="banner" aria-label="Fiscal Year Controls">
+            <div class="header-title">Marketing Contract Manager</div>
+            <div class="header-controls" role="group" aria-label="Primary Controls">
+                <button id="undo-btn" aria-label="Undo last action" disabled>Undo</button>
+                <button id="redo-btn" aria-label="Redo last action" disabled>Redo</button>
+                <div class="control-group">
+                    <label for="fiscal-year">Fiscal Year:</label>
+                    <input type="number" id="fiscal-year" size="4" inputmode="numeric" />
+                </div>
+                <div class="control-group">
+                    <label for="total-sales-target">Total Sales Target: $</label>
+                    <input type="text" id="total-sales-target" placeholder="e.g., 4,800,000,000" inputmode="numeric" />
+                </div>
+                <div class="control-group">
+                    <label for="retailer-comm">Ret Comp %:</label>
+                    <input type="number" id="retailer-comm" step="0.1" min="0" max="100" style="width: 60px;" />
+                </div>
+                <div class="control-group">
+                    <label for="admin-expense">Admin Expense %:</label>
+                    <input type="number" id="admin-expense" step="0.1" min="0" max="100" style="width: 60px;" />
+                </div>
+                <div class="control-group">
+                    <label for="sell-through">Sell-through %:</label>
+                    <input type="number" id="sell-through" step="0.1" min="0" max="100" style="width: 60px;" />
+                </div>
+                <div class="control-group">
+                    <label for="vendor-filter">View:</label>
+                    <select id="vendor-filter" aria-label="Filter plan by vendor">
+                        <option value="all">All Vendors</option>
+                        <option value="sg">Scientific Games</option>
+                        <option value="pb">Pollard Banknote</option>
+                        <option value="bs">Brightstar</option>
+                    </select>
+                </div>
+                <input type="file" id="load-plan-input" style="display:none" accept=".json" />
+                <button id="load-plan-btn">Load Plan</button>
+                <button id="save-plan-btn">Save Plan</button>
+                <div class="dropdown" role="navigation" aria-label="Export">
+                    <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Export</button>
+                    <div class="dropdown-content" role="menu" aria-label="Export options">
+                        <a href="#" id="export-summary-csv" role="menuitem">Executive Summary (CSV)</a>
+                        <a href="#" id="export-summary-xlsx" role="menuitem">Executive Summary (XLSX)</a>
+                        <a href="#" id="export-detail-csv" role="menuitem">Detailed Build (CSV)</a>
+                        <a href="#" id="export-detail-xlsx" role="menuitem">Detailed Build (XLSX)</a>
+                        <div style="border-top: 1px solid var(--border-color); margin: 4px 0;"></div>
+                        <a href="#" id="export-po-csv" role="menuitem">Procurement / PO (CSV)</a>
+                        <a href="#" id="export-po-xlsx" role="menuitem">Procurement / PO (XLSX)</a>
+                        <div style="border-top: 1px solid var(--border-color); margin: 4px 0;"></div>
+                        <a href="#" id="export-vendor-csv" role="menuitem">Vendor Pricing Matrix (CSV)</a>
+                        <a href="#" id="export-vendor-xlsx" role="menuitem">Vendor Pricing Matrix (XLSX)</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="scenario-bar" role="navigation" aria-label="Scenarios">
+            <!-- Scenario tabs injected here by renderScenarioBar() -->
+        </div>
+
+        <main id="main-content" role="main">
+            <aside id="left-panel" class="panel" aria-label="Denominations"></aside>
+            <section id="center-panel" class="panel" aria-label="Fiscal Year Plan"></section>
+            <aside id="right-panel" class="panel" aria-label="Vendor Pricing"></aside>
+        </main>
+
+        <footer id="footer" class="panel" aria-live="polite" aria-label="Audit Trail"></footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="feature-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-game-name">
+        <div class="modal-content">
+            <h3>Edit Features for <span id="modal-game-name"></span></h3>
+            <div id="feature-checklist" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;"></div>
+            <div class="modal-actions">
+                <button id="modal-save-btn">Save</button>
+                <button id="modal-cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="feature-management-modal" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-label="Manage Special Features">
+        <div class="modal-content">
+            <h3>Manage Special Features</h3>
+            <div id="feature-management-list" style="max-height:300px;overflow:auto;margin:12px 0;"></div>
+            <div class="add-feature-form">
+                <h4>Add New Feature</h4>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="new-feature-name" placeholder="New feature name" />
+                    <button id="add-feature-btn">Add</button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="modal-done-btn">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-vendor-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Add New Vendor">
+        <div class="modal-content">
+            <h3>Add New Vendor</h3>
+            <div style="margin: 12px 0;">
+                <label for="new-vendor-name-input">Vendor Name:</label>
+                <input type="text" id="new-vendor-name-input" style="width: 100%; margin-top: 4px;"
+                    placeholder="e.g., IGT" />
+            </div>
+            <div class="modal-actions">
+                <button id="add-vendor-save-btn">Save</button>
+                <button id="add-vendor-cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="confirm-title">Confirmation</h3>
+            <p id="confirm-message" class="my-4"></p>
+            <div class="modal-actions">
+                <button id="confirm-cancel-btn">Cancel</button>
+                <button id="confirm-ok-btn" style="background-color: var(--danger-color);">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // --- CONSTANTS & STATE ---
+            const FEATURES_CSV_DATA = `"Generic Feature","SG Brand Name","PB Brand Name","BS Brand Name","SG (Y/N)","PB (Y/N)","BS (Y/N)"
+"Holographic Foil","HoloFoilâ„¢","Scratch FXÂ® Holographic","Holographic Substrate","Y","Y","Y"
+"Sparkle/Glitter Coating","Glitter Ink","SparkleÂ®","Metallic Sparkle","Y","Y","N"
+"Scented Ink","Scentâ„¢","Scratch & SniffÂ®","Aroma Ink","Y","Y","Y"
+"Metallic Ink","Metallic Inks","Metallic Inks","Metallic FX","Y","Y","Y"
+"Die-Cut Ticket","Custom Die-Cut","Die-Cut","Custom Shape","Y","Y","Y"
+"Oversized Format","Jumbo Ticket","Big Ticketâ„¢","Oversized Format","Y","Y","Y"
+"Extended Play (Crossword/Bingo)","Extended Play","Crossword/Bingo","Extended Play","Y","Y","Y"
+"Licensed Property Usage","Licensed Brands","Licensed Portfolio","","Y","Y","N"
+"Recycled Substrate","Eco-Stock","Recycled Content Paper","","Y","Y","N"
+"Secure Barcoding","Secure Codeâ„¢","SecureValidateâ„¢","Secure Barcode","Y","Y","Y"`;
+
+            const CONTRACT_UNIT_PRESETS = {
+                1: [12000000, 18000000, 24000000], 2: [12000000, 18000000, 24000000],
+                3: [12000000, 18000000, 24000000], 5: [12000000, 18000000, 24000000],
+                10: [12000000, 18000000], 20: [12000000], 30: [12000000], default: [10000000]
+            };
+
+            const STANDARD_DENOMINATIONS = [1, 2, 3, 5, 10, 20, 25, 30, 50];
+
+            let state = {};
+            const initialState = {
+                fiscalYear: new Date().getFullYear() + 1,
+                totalSalesTarget: 5_000_000_000,
+                retailerCommissionPercent: 5.0,
+                administrativeExpensePercent: 0.0,
+                sellThroughPercent: 98.0,
+                activeScenarioId: 's1',
+                vendors: [
+                    { id: 'sg', name: 'Scientific Games' },
+                    { id: 'pb', name: 'Pollard Banknote' },
+                    { id: 'bs', name: 'Brightstar' }
+                ],
+                scenarios: [
+                    {
+                        id: 's1',
+                        name: 'Base Plan',
+                        denominations: [
+                            { price: 1, mixPercent: 10, isActive: true, isCollapsed: false }, { price: 2, mixPercent: 15, isActive: true, isCollapsed: false },
+                            { price: 3, mixPercent: 10, isActive: true, isCollapsed: false }, { price: 5, mixPercent: 25, isActive: true, isCollapsed: false },
+                            { price: 10, mixPercent: 20, isActive: true, isCollapsed: false }, { price: 20, mixPercent: 15, isActive: true, isCollapsed: false },
+                            { price: 25, mixPercent: 0, isActive: true, isCollapsed: false }, { price: 30, mixPercent: 5, isActive: true, isCollapsed: false },
+                            { price: 50, mixPercent: 0, isActive: false, isCollapsed: false }
+                        ],
+                        games: [
+                            { id: 'g1', gameNumber: '1234', denominationPrice: 5, name: 'Lucky 7s #123', vendorId: 'sg', units: 12000000, payoutPercent: 68.5, featureIds: [], poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned' },
+                            { id: 'g2', gameNumber: '5678', denominationPrice: 10, name: 'Ultimate Cash #234', vendorId: 'pb', units: 18000000, payoutPercent: 71.0, featureIds: ["Holographic Foil"], poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned' }
+                        ],
+                        nonScratcherItems: []
+                    }
+                ],
+                vendorPricing: {
+                    sg: { costModel: 'percentOfSales', baseCosts: { 1: 1.5, 2: 1.5, 3: 1.5, 5: 1.5, 10: 1.5, 20: 1.5, 25: 1.5, 30: 1.5, 50: 1.5 }, features: {} },
+                    pb: { costModel: 'perThousand', baseCosts: { 1: 21.8, 2: 21.8, 3: 21.8, 5: 21.8, 10: 21.8, 20: 21.8, 25: 21.8, 30: 21.8, 50: 21.8 }, features: {} },
+                    bs: { costModel: 'perThousand', baseCosts: { 1: 23.1, 2: 23.1, 3: 23.1, 5: 23.1, 10: 23.1, 20: 23.1, 25: 23.1, 30: 23.1, 50: 23.1 }, features: {} }
+                },
+                featureMasterList: [], auditLog: [],
+                ui: { activeVendorTab: 'sg', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false }
+            };
+
+            let history = [];
+            let historyIndex = -1;
+            let db;
+            const DB_NAME = 'PlanDB';
+            const STORE_NAME = 'PlanStore';
+
+            // --- INIT ---
+            document.addEventListener('DOMContentLoaded', boot);
+
+            async function boot() {
+                try {
+                    await openDBSafe();
+                    const restored = await restoreFromAutosaveSafe();
+                    if (!restored) {
+                        setState(JSON.parse(JSON.stringify(initialState)));
+                    }
+                } catch (e) {
+                    console.warn('[init] Non-fatal init error:', e);
+                    setState(JSON.parse(JSON.stringify(initialState)));
+                }
+
+                try {
+                    setupEventListeners();
+                    initializeVendorPricing();
+                    loadFeatures();
+                    recordHistory(true);
+                    render();
+                } catch (e) {
+                    console.error('[render] Failed to render:', e);
+                    byId('center-panel').innerHTML = `<div class="p-3 text-red-400">Startup error — see details:</div><pre style="color:red;font-size:12px;overflow:auto;max-height:400px;background:#111;padding:8px;">${e.stack || e.message || e}</pre>`;
+                }
+            }
+
+            // --- EVENTS ---
+            function setupEventListeners() {
+                byId('undo-btn').addEventListener('click', undo);
+                byId('redo-btn').addEventListener('click', redo);
+                byId('fiscal-year').addEventListener('change', handleGlobalChange);
+                byId('total-sales-target').addEventListener('change', handleGlobalChange);
+                byId('retailer-comm').addEventListener('change', handleGlobalChange);
+                byId('admin-expense').addEventListener('change', handleGlobalChange);
+                byId('sell-through').addEventListener('change', handleGlobalChange);
+                byId('vendor-filter').addEventListener('change', handleGlobalChange);
+                byId('load-plan-btn').addEventListener('click', () => byId('load-plan-input').click());
+                byId('load-plan-input').addEventListener('change', loadPlan);
+                byId('save-plan-btn').addEventListener('click', savePlan);
+
+                byId('left-panel').addEventListener('change', handleLeftPanelChange);
+                byId('left-panel').addEventListener('click', handleLeftPanelClick);
+
+                const centerPanel = byId('center-panel');
+                centerPanel.addEventListener('focus', handleCenterPanelFocus, true); // Use capture phase for focus
+                centerPanel.addEventListener('input', (e) => {
+                    const nsRow = e.target.closest('tr[data-ns-item-id]');
+                    if (nsRow) {
+                        handleNonScratcherInput(e);
+                        return;
+                    }
+                    handleCenterPanelInput(e);
+                });
+                centerPanel.addEventListener('change', (e) => {
+                    const nsRow = e.target.closest('tr[data-ns-item-id]');
+                    if (nsRow) {
+                        handleNonScratcherChange(e);
+                        return;
+                    }
+                    handleCenterPanelChange(e);
+                });
+                centerPanel.addEventListener('click', handleCenterPanelClick);
+
+                byId('right-panel').addEventListener('click', handleRightPanelClick);
+                byId('right-panel').addEventListener('change', handleRightPanelChange);
+
+                byId('feature-modal').addEventListener('click', handleModalEvents);
+                byId('feature-management-modal').addEventListener('click', handleFeatureManagementModalEvents);
+                byId('add-vendor-modal').addEventListener('click', handleAddVendorModalEvents);
+                byId('confirm-modal').addEventListener('click', (e) => {
+                    if (!e.target.closest('.modal-content') || e.target.id === 'confirm-cancel-btn') {
+                        closeConfirm();
+                    }
+                });
+
+                byId('footer').addEventListener('click', handleFooterEvents);
+
+                // Scenario actions
+                const scenarioBar = byId('scenario-bar');
+                if (scenarioBar) {
+                    scenarioBar.addEventListener('click', handleScenarioClick);
+                }
+
+                // Exports
+                byId('export-summary-csv').addEventListener('click', e => { e.preventDefault(); exportReport('summary', 'csv'); });
+                byId('export-summary-xlsx').addEventListener('click', e => { e.preventDefault(); exportReport('summary', 'xlsx'); });
+                byId('export-detail-csv').addEventListener('click', e => { e.preventDefault(); exportReport('detail', 'csv'); });
+                byId('export-detail-xlsx').addEventListener('click', e => { e.preventDefault(); exportReport('detail', 'xlsx'); });
+                byId('export-po-csv').addEventListener('click', e => { e.preventDefault(); exportPOReport('csv'); });
+                byId('export-po-xlsx').addEventListener('click', e => { e.preventDefault(); exportPOReport('xlsx'); });
+                byId('export-vendor-csv').addEventListener('click', e => { e.preventDefault(); exportVendorMatrix('csv'); });
+                byId('export-vendor-xlsx').addEventListener('click', e => { e.preventDefault(); exportVendorMatrix('xlsx'); });
+            }
+
+            function handleScenarioClick(e) {
+                const target = e.target;
+
+                // Switch Tabs
+                const tab = target.closest('.scenario-tab');
+                if (tab && !tab.classList.contains('active')) {
+                    const id = tab.dataset.scenarioId;
+                    commit(s => { s.activeScenarioId = id; }, `Switched to scenario ${id}`);
+                    return;
+                }
+
+                // Actions
+                if (target.id === 'add-scenario-btn') {
+                    commit(s => {
+                        const newId = `s${Date.now()}`;
+                        s.scenarios.push({
+                            id: newId,
+                            name: `Scenario ${s.scenarios.length + 1}`,
+                            games: [],
+                            denominations: JSON.parse(JSON.stringify(s.scenarios[0]?.denominations || [])),
+                            nonScratcherItems: []
+                        });
+                        s.activeScenarioId = newId;
+                    }, 'Created new scenario');
+                } else if (target.id === 'duplicate-scenario-btn') {
+                    commit(s => {
+                        const current = s.scenarios.find(sc => sc.id === s.activeScenarioId);
+                        if (!current) return;
+                        const newId = `s${Date.now()}`;
+                        const duplicate = JSON.parse(JSON.stringify(current));
+                        duplicate.id = newId;
+                        duplicate.name = `${current.name} (Copy)`;
+                        duplicate.games.forEach(g => g.id = `g${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+                        s.scenarios.push(duplicate);
+                        s.activeScenarioId = newId;
+                    }, 'Duplicated scenario');
+                } else if (target.id === 'delete-scenario-btn') {
+                    if (state.scenarios.length <= 1) return;
+                    const current = state.scenarios.find(sc => sc.id === state.activeScenarioId);
+
+                    showConfirm(`Are you sure you want to delete scenario "${current?.name}"?`, () => {
+                        commit(s => {
+                            const idx = s.scenarios.findIndex(sc => sc.id === s.activeScenarioId);
+                            if (idx > -1) {
+                                s.scenarios.splice(idx, 1);
+                                s.activeScenarioId = s.scenarios[0].id;
+                            }
+                        }, 'Deleted scenario');
+                    });
+                }
+            }
+
+            // --- RENDER ---
+            function render() {
+                const vf = byId('vendor-filter');
+                vf.innerHTML = '<option value="all">All Vendors</option>' + state.vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+
+                byId('fiscal-year').value = state.fiscalYear;
+                byId('total-sales-target').value = state.totalSalesTarget.toLocaleString('en-US');
+                byId('retailer-comm').value = state.retailerCommissionPercent;
+                byId('admin-expense').value = state.administrativeExpensePercent;
+                byId('sell-through').value = state.sellThroughPercent;
+                byId('vendor-filter').value = state.ui.vendorFilter;
+
+                renderScenarioBar();
+                renderDenominations();
+                renderCenterPanel();
+                renderRightPanel();
+                renderAuditTrail();
+                updateUndoRedoButtons();
+                applyLayout();
+            }
+
+            function applyLayout() {
+                const main = byId('main-content');
+                const leftW = state.ui.leftCollapsed ? '48px' : '280px';
+                const rightW = state.ui.rightCollapsed ? '48px' : '320px';
+                main.style.gridTemplateColumns = `${leftW} 1fr ${rightW}`;
+
+                byId('left-panel').style.display = 'flex';
+                byId('right-panel').style.display = 'flex';
+                byId('footer').style.display = 'block';
+            }
+
+            function renderScenarioBar() {
+                const container = byId('scenario-bar');
+                if (!container) return;
+
+                let html = '';
+                state.scenarios.forEach(sc => {
+                    const isActive = sc.id === state.activeScenarioId ? 'active' : '';
+                    html += `<div class="scenario-tab ${isActive}" data-scenario-id="${sc.id}">${sc.name}</div>`;
+                });
+
+                html += `
+                    <div class="scenario-actions">
+                        <button id="add-scenario-btn" title="Create new scenario">New</button>
+                        <button id="duplicate-scenario-btn" title="Duplicate current scenario">Duplicate</button>
+                        <button id="delete-scenario-btn" style="background-color: var(--danger-color);" ${state.scenarios.length === 1 ? 'disabled title="Cannot delete last scenario"' : 'title="Delete scenario"'}>Delete</button>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            }
+
+            function renderDenominations() {
+                const container = byId('left-panel');
+
+                if (state.ui.leftCollapsed) {
+                    container.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; height: 100%; cursor: pointer; padding-top: 8px;" data-action="toggle-left" title="Expand Denominations">
+                            <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; color: var(--text-light);">▶</button>
+                            <div style="writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 1rem; font-weight: 600; color: var(--text-dark);">Denominations</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                    <h3 style="border: none; margin: 0; padding: 0;">Denominations</h3>
+                    <button data-action="toggle-left" title="Fold Denominations" style="padding: 2px 6px; font-size: 0.8rem;">◀</button>
+                </div>`;
+
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+
+                let totalMixPercent = scenario.denominations.reduce((sum, d) => sum + (d.isActive ? d.mixPercent : 0), 0);
+
+                scenario.denominations.forEach(denom => {
+                    const gamesInDenom = scenario.games.filter(g => g.denominationPrice === denom.price);
+                    const actualSalesInDenom = gamesInDenom.reduce((sum, g) => sum + calculateGameMetrics(g).revenue, 0);
+                    const actualSalesPercent = state.totalSalesTarget > 0 ? (actualSalesInDenom / state.totalSalesTarget) * 100 : 0;
+                    const progressPercent = denom.mixPercent > 0 ? Math.min(100, (actualSalesPercent / denom.mixPercent) * 100) : 0;
+
+                    const el = document.createElement('div');
+                    el.className = 'denom-item';
+                    el.dataset.price = denom.price;
+                    el.innerHTML = `
+                    <input type="checkbox" id="denom-active-${denom.price}" data-prop="isActive" ${denom.isActive ? 'checked' : ''}>
+                    <label for="denom-active-${denom.price}">$${denom.price}</label>
+                    <input type="number" value="${denom.mixPercent}" min="0" max="100" step="0.1" data-prop="mixPercent">
+                    <span>%</span>
+                    <div class="denom-details">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: var(--text-dark);">
+                            <span>Actual: ${actualSalesPercent.toFixed(1)}%</span>
+                            <span>Target: ${denom.mixPercent}%</span>
+                        </div>
+                        <div style="background: var(--bg-input); border-radius: 99px; height: 8px; margin-top: 2px;">
+                             <div style="height: 100%; background: var(--accent-color); border-radius: 99px; width:${progressPercent}%"></div>
+                        </div>
+                    </div>`;
+                    container.appendChild(el);
+                });
+
+                const totalDiv = document.createElement('div');
+                totalDiv.id = 'denom-total';
+                totalDiv.textContent = `Total Mix: ${totalMixPercent.toFixed(1)}%`;
+                if (totalMixPercent.toFixed(1) != 100.0) {
+                    totalDiv.classList.add('total-error');
+                    totalDiv.textContent += ' (Should be 100%)';
+                }
+                container.appendChild(totalDiv);
+
+                const addForm = document.createElement('div');
+                addForm.className = 'add-denom-form';
+                addForm.style.marginTop = '1rem';
+                addForm.innerHTML = `
+                <h4>Add New Price Point</h4>
+                <div style="display: flex; gap: 8px;"><input type="number" id="new-denom-price" placeholder="e.g., 4"><button id="add-denom-btn">Add</button></div>`;
+                container.appendChild(addForm);
+            }
+
+            function renderCenterPanel() {
+                const container = byId('center-panel');
+                const vendorView = state.ui.vendorFilter;
+                const scenario = getActiveScenario();
+                const gamesForView = vendorView === 'all' ? scenario.games : scenario.games.filter(g => g.vendorId === vendorView);
+
+                let totalPlannedSales = gamesForView.reduce((sum, g) => sum + calculateGameMetrics(g).revenue, 0);
+
+                // Add Non-Scratcher costs to the total contract budget expectations
+                let gameContractCost = gamesForView.reduce((sum, g) => sum + calculateGameMetrics(g).contractCost, 0);
+                let nonScratcherCost = (scenario.nonScratcherItems || []).reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+                let totalPlannedContractCost = gameContractCost + nonScratcherCost;
+
+                const salesGoalPercent = state.totalSalesTarget ? (totalPlannedSales / state.totalSalesTarget * 100).toFixed(2) : 0;
+
+                container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <h2 style="font-size: 1.5rem; margin: 0;">FY${state.fiscalYear} Plan</h2>
+                </div>
+                <div style="padding: 0.75rem; margin-bottom: 1rem; text-align: center; background-color: #111827; border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div><strong>Total Planned Sales (${vendorView === 'all' ? 'All Vendors' : vendorLabel(vendorView)}):</strong> ${formatCurrency(totalPlannedSales)} of ${formatCurrency(state.totalSalesTarget)} (${salesGoalPercent}%)</div>
+                    <div style="font-size: 0.9em; color: var(--text-dark);"><strong>Expected Contract Cost:</strong> ${formatCurrency(totalPlannedContractCost)}</div>
+                </div>
+            `;
+
+                scenario.denominations.filter(d => d.isActive).forEach(denom => {
+                    const group = document.createElement('div');
+                    group.className = 'game-group';
+                    group.dataset.price = denom.price;
+
+                    const gamesInGroup = gamesForView.filter(g => g.denominationPrice === denom.price).sort((a, b) => a.name.localeCompare(b.name));
+
+                    const toggleIcon = denom.isCollapsed ? '►' : '▼';
+                    const tableDisplay = denom.isCollapsed ? 'display:none;' : '';
+
+                    group.innerHTML = `
+                    <div class="game-group-header" data-action="toggle-collapse">
+                        <span class="toggle-icon">${toggleIcon}</span>
+                        <h3>$${denom.price} Games</h3>
+                        <button style="margin-left: auto;" data-action="add-game">+ Add Game</button>
+                    </div>
+                    <div style="${tableDisplay}">
+                    <table class="game-table">
+                        <thead>
+                            <tr>
+                                <th>Game #</th><th>Game Name</th><th>Vendor</th><th>Cost Model</th>
+                                <th>Units</th><th>Payout %</th><th>Features</th>
+                                <th>Contract Cost</th><th>Prize Expense</th><th>Total COGS</th><th>Gross Margin</th>
+                                <th>PO #</th><th>PO Date</th><th>Receipt Date</th><th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${gamesInGroup.map(game => renderGameRow(game)).join('')}
+                        </tbody>
+                    </table>
+                    </div>`;
+                    container.appendChild(group);
+                });
+
+                // --- NON-SCRATCHER ITEMS SECTION ---
+                if (scenario.nonScratcherItems) {
+                    const nsGroup = document.createElement('div');
+                    nsGroup.className = 'game-group';
+                    nsGroup.style.marginTop = '2rem';
+                    nsGroup.dataset.isNonScratcher = "true";
+
+                    const isNsCollapsed = state.ui.nonScratcherCollapsed || false;
+                    const toggleNsIcon = isNsCollapsed ? '►' : '▼';
+                    const tableNsDisplay = isNsCollapsed ? 'display:none;' : '';
+
+                    nsGroup.innerHTML = `
+                        <div class="game-group-header" data-action="toggle-ns-collapse" style="background-color: #2D3748; border-color: #4A5568;">
+                            <span class="toggle-icon">${toggleNsIcon}</span>
+                            <h3>Non-Scratcher / Marketing Items</h3>
+                            <button style="margin-left: auto; background-color: var(--accent-light); color: #fff;" data-action="add-ns-item">+ Add Item</button>
+                        </div>
+                        <div style="${tableNsDisplay}">
+                        <table class="game-table" style="background-color: #1A202C;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 25%">Item Name</th>
+                                    <th style="width: 20%">Vendor</th>
+                                    <th style="width: 20%">Associated Holiday / Campaign</th>
+                                    <th style="width: 15%">Total Cost</th>
+                                    <th>PO #</th><th>PO Date</th><th>Receipt Date</th><th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${(scenario.nonScratcherItems.length === 0)
+                            ? `<tr><td colspan="9" style="text-align:center; padding: 1rem; color: #718096;">No non-scratcher items planned for this scenario.</td></tr>`
+                            : scenario.nonScratcherItems.map(item => renderNonScratcherRow(item)).join('')}
+                            </tbody>
+                        </table>
+                        </div>`;
+                    container.appendChild(nsGroup);
+                }
+            }
+
+            function renderNonScratcherRow(item) {
+                return `
+                    <tr data-ns-item-id="${item.id}" style="background-color: rgba(255, 255, 255, 0.02);">
+                        <td><input type="text" value="${item.name || ''}" data-ns-prop="name" placeholder="E.g., Pack Inserts"></td>
+                        <td>
+                            <select data-ns-prop="vendorId">
+                                <option value="">None / Internal</option>
+                                ${state.vendors.map(v => `<option value="${v.id}" ${item.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="text" value="${item.associatedHoliday || ''}" data-ns-prop="associatedHoliday" placeholder="E.g., Winter 2027"></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="color: var(--text-dark);">$</span>
+                                <input type="text" class="ns-cost-input" value="${(item.cost || 0).toLocaleString('en-US')}" inputmode="numeric" data-ns-prop="cost" style="width: 100px;">
+                            </div>
+                        </td>
+                        <td><input type="text" value="${item.poNumber || ''}" placeholder="PO #" data-ns-prop="poNumber" size="10"></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <input type="date" value="${item.poDate || ''}" data-ns-prop="poDate">
+                                <button title="Pick date" data-action="open-date">📅</button>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <input type="date" value="${item.receiptDate || ''}" data-ns-prop="receiptDate">
+                                <button title="Pick date" data-action="open-date">📅</button>
+                            </div>
+                        </td>
+                        <td>
+                            <select data-ns-prop="status">
+                                ${['Planned', 'Ordered', 'Delivered', 'Cancelled'].map(s => `<option value="${s}" ${item.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><button data-action="delete-ns-item">🗑️</button></td>
+                    </tr>`;
+            }
+
+            function renderGameRow(game) {
+                const metrics = calculateGameMetrics(game);
+                const presets = CONTRACT_UNIT_PRESETS[game.denominationPrice] || CONTRACT_UNIT_PRESETS.default;
+                const presetOptions = presets.map(n => `<option value="${n}">${n.toLocaleString('en-US')}</option>`).join('');
+                const model = state.vendorPricing[game.vendorId]?.costModel || 'percentOfSales';
+                const modelLabel = model === 'percentOfSales' ? '% of Sales' : 'Per Thousand';
+
+                return `
+                    <tr data-game-id="${game.id}">
+                    <td><input type="text" value="${game.gameNumber || ''}" data-prop="gameNumber" maxlength="4" size="4"></td>
+                    <td><input type="text" value="${game.name}" data-prop="name"></td>
+                    <td>
+                        <select data-prop="vendorId">
+                            ${state.vendors.map(v => `<option value="${v.id}" ${game.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>${modelLabel}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <select class="units-preset">
+                                <option value="">Presets…</option>
+                                ${presetOptions}
+                                <option value="custom">Custom…</option>
+                            </select>
+                            <input type="text" class="units-input" value="${game.units.toLocaleString('en-US')}" inputmode="numeric" data-prop="units">
+                        </div>
+                    </td>
+                    <td><input type="number" value="${game.payoutPercent}" step="0.1" data-prop="payoutPercent"></td>
+                    <td>${(game.featureIds && game.featureIds.length) ? game.featureIds.join(', ') : 'None'} <button style="font-size: 0.75rem;" data-action="edit-features">Edit</button></td>
+                    <td data-metric="contractCost">${formatCurrency(metrics.contractCost)}</td>
+                    <td data-metric="prizeExpense">${formatCurrency(metrics.prizeExpense)}</td>
+                    <td data-metric="cogs">${formatCurrency(metrics.cogs)}</td>
+                    <td data-metric="grossMargin" style="color:${metrics.grossMargin < 0 ? 'var(--danger-color)' : '#22c55e'}">${formatCurrency(metrics.grossMargin)}</td>
+                    <td><input type="text" value="${game.poNumber || ''}" placeholder="PO #" data-prop="poNumber"></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:4px;">
+                            <input type="date" value="${game.poDate || ''}" data-prop="poDate">
+                            <button title="Pick date" data-action="open-date">📅</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:4px;">
+                            <input type="date" value="${game.receiptDate || ''}" data-prop="receiptDate">
+                            <button title="Pick date" data-action="open-date">📅</button>
+                        </div>
+                    </td>
+                    <td>
+                        <select data-prop="deliveryStatus">
+                            ${['Planned', 'Ordered', 'Delivered', 'Cancelled'].map(s => `<option value="${s}" ${game.deliveryStatus === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><button data-action="delete-game">🗑️</button></td>
+                </tr>`;
+            }
+
+            function renderRightPanel() {
+                const container = byId('right-panel');
+
+                if (state.ui.rightCollapsed) {
+                    container.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; height: 100%; cursor: pointer; padding-top: 8px;" data-action="toggle-right" title="Expand Vendor Pricing">
+                            <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; color: var(--text-light);">◀</button>
+                            <div style="writing-mode: vertical-rl; margin-top: 1rem; font-weight: 600; color: var(--text-dark);">Vendor Pricing</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const vendors = state.vendors;
+                const header = `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <h3 style="border: none; margin: 0; padding: 0;">Vendor Pricing</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="add-vendor-btn" style="padding: 4px 8px; font-size: 0.8rem;">Vendor</button>
+                        <button id="manage-features-btn" style="padding: 4px 8px; font-size: 0.8rem;">Features</button>
+                        <button data-action="toggle-right" title="Fold Vendor Pricing" style="padding: 2px 6px; font-size: 0.8rem;">▶</button>
+                    </div>
+                </div>`;
+                const tabs = `<div style="display: flex; border-bottom: 1px solid var(--border-color);">${vendors.map(v => `<button class="tab-btn" style="padding: 0.5rem 1rem; margin-bottom: -1px; border: 2px solid transparent; ${state.ui.activeVendorTab === v.id ? 'border-bottom-color: var(--accent-color); color: var(--accent-color);' : ''}" data-vendor-id="${v.id}">${v.name}</button>`).join('')}</div>`;
+
+                let content = vendors.map(v => {
+                    const vd = state.vendorPricing[v.id] || {};
+                    const costModel = vd.costModel || 'percentOfSales';
+
+                    const baseCostRows = STANDARD_DENOMINATIONS.map(price => {
+                        const val = vd.baseCosts?.[price] ?? 0;
+                        return `<tr><td style="padding: 0.25rem 0;">$${price} Base Cost</td><td><input type="number" value="${val}" step="0.01" class="base-cost-input" data-denom-price="${price}"></td></tr>`;
+                    }).join('');
+                    const featureRows = state.featureMasterList.map(f => {
+                        const name = f['Generic Feature'];
+
+                        let isSupported = true;
+                        if (vd.supportedFeatures && typeof vd.supportedFeatures[name] !== 'undefined') {
+                            isSupported = vd.supportedFeatures[name];
+                        } else if (f[`${v.id.toUpperCase()} (Y / N)`]) {
+                            isSupported = f[`${v.id.toUpperCase()} (Y / N)`] === 'Y';
+                        }
+
+                        const saved = vd.features?.[name] ?? '';
+                        return `<tr>
+                            <td style="padding: 0.25rem 0;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                                    <input type="checkbox" data-vendor-feature-toggle="${name}" ${isSupported ? 'checked' : ''}>
+                                    ${name}
+                                </label>
+                            </td>
+                            <td><input type="number" value="${saved}" placeholder="0.00" step="0.01" data-feature-name="${name}" ${!isSupported ? 'disabled style="opacity: 0.5;"' : ''}></td>
+                        </tr>`;
+                    }).join('');
+
+                    return `
+                    <div class="tab-content" style="margin-top: 1rem; ${state.ui.activeVendorTab === v.id ? 'display:block;' : ''}" id="tab-${v.id}">
+                        <h4>Pricing for ${v.name}</h4>
+                        <div style="margin: 0.5rem 0;">
+                            <strong>Cost Model:</strong>
+                            <label style="margin-left: 1rem;"><input type="radio" name="costModel-${v.id}" value="percentOfSales" ${costModel === 'percentOfSales' ? 'checked' : ''}> % of Sales</label>
+                            <label style="margin-left: 0.5rem;"><input type="radio" name="costModel-${v.id}" value="perThousand" ${costModel === 'perThousand' ? 'checked' : ''}> Per Thousand</label>
+                        </div>
+                        <table style="width: 100%; font-size: 0.875rem;">
+                            <thead><tr><th style="text-align: left;">Feature (Check to offer)</th><th style="text-align: left;">Cost</th></tr></thead>
+                            <tbody>
+                                <tr><td colspan="2" style="font-weight: 600; padding-top: 0.5rem; background: var(--bg-light); border-bottom: 1px solid var(--border-color);">Base Costs</td></tr>
+                                ${baseCostRows}
+                                <tr><td colspan="2" style="font-weight: 600; padding-top: 0.5rem; background: var(--bg-light); border-bottom: 1px solid var(--border-color);">Feature Costs (Per Thousand)</td></tr>
+                                ${featureRows}
+                            </tbody>
+                        </table>
+                    </div>`;
+                }).join('');
+                container.innerHTML = header + tabs + content;
+            }
+
+            function renderAuditTrail() {
+                const container = byId('footer');
+
+                if (state.ui.bottomCollapsed) {
+                    container.innerHTML = `
+                    < div style = "display: flex; align-items: center; justify-content: space-between; cursor: pointer;" data - action="toggle-bottom" title = "Expand Audit Trail" >
+                            <h4 style="margin: 0; color: var(--text-dark);">Audit Trail</h4>
+                            <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; color: var(--text-light);">▲</button>
+                        </div >
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    < div style = "display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;" >
+                    <h4 style="margin: 0;">Audit Trail</h4>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="clear-log-btn" style="padding: 4px 8px; font-size: 0.75rem;">Clear Log</button>
+                        <button data-action="toggle-bottom" title="Fold Audit Trail" style="padding: 2px 6px; font-size: 0.8rem;">▼</button>
+                    </div>
+                </div >
+                    <div id="log-entries" style="font-size: 0.75rem; color: #9ca3af; space-y: 0.25rem;">
+                        ${state.auditLog.slice(0, 5).map(log => `<p>[${log.timestamp}] ${log.message}</p>`).join('')}
+                    </div>
+                `;
+            }
+
+            function refreshGameRow(gameId) {
+                const scenario = getActiveScenario();
+                const game = scenario.games.find(g => g.id === gameId);
+                if (!game) return;
+                const row = document.querySelector(`tr[data - game - id= "${gameId}"]`);
+                if (!row) return;
+
+                const metrics = calculateGameMetrics(game);
+                row.querySelector('[data-metric="contractCost"]').textContent = formatCurrency(metrics.contractCost);
+                row.querySelector('[data-metric="prizeExpense"]').textContent = formatCurrency(metrics.prizeExpense);
+                row.querySelector('[data-metric="cogs"]').textContent = formatCurrency(metrics.cogs);
+                const grossMarginCell = row.querySelector('[data-metric="grossMargin"]');
+                grossMarginCell.textContent = formatCurrency(metrics.grossMargin);
+                grossMarginCell.style.color = metrics.grossMargin < 0 ? 'var(--danger-color)' : '#22c55e';
+            }
+
+            // --- HANDLERS ---
+            function handleGlobalChange(e) {
+                const { id, value } = e.target;
+                let msg = '';
+                const mutation = s => {
+                    if (id === 'fiscal-year') {
+                        const newYear = parseInt(value, 10);
+                        if (newYear && String(newYear).length === 4) {
+                            s.fiscalYear = newYear;
+                            msg = `Fiscal Year changed to ${newYear}.`;
+                        }
+                    } else if (id === 'total-sales-target') {
+                        const newTarget = parseFloat(value.replace(/,/g, '')) || 0;
+                        s.totalSalesTarget = newTarget;
+                        msg = `Total Sales Target changed to ${formatCurrency(newTarget)}.`;
+                    } else if (id === 'retailer-comm') {
+                        const newVal = parseFloat(value) || 0;
+                        s.retailerCommissionPercent = newVal;
+                        msg = `Retailer Commission changed to ${newVal}%.`;
+                    } else if (id === 'admin-expense') {
+                        const newVal = parseFloat(value) || 0;
+                        s.administrativeExpensePercent = newVal;
+                        msg = `Administrative Expense changed to ${newVal}%.`;
+                    } else if (id === 'sell-through') {
+                        const newVal = parseFloat(value) || 0;
+                        s.sellThroughPercent = newVal;
+                        msg = `Sell - through Rate changed to ${newVal}%.`;
+                    } else if (id === 'vendor-filter') {
+                        s.ui.vendorFilter = value;
+                        msg = `Vendor view changed to '${value}'.`;
+                    }
+                };
+                commit(mutation, msg);
+            }
+
+            function handleLeftPanelChange(e) {
+                const denomDiv = e.target.closest('.denom-item');
+                if (!denomDiv) return;
+                const price = parseInt(denomDiv.dataset.price, 10);
+                const prop = e.target.dataset.prop;
+                const value = e.target.type === 'checkbox' ? e.target.checked : parseFloat(e.target.value) || 0;
+
+                commit(s => {
+                    const scenario = s.scenarios.find(sc => sc.id === s.activeScenarioId);
+                    if (!scenario) return;
+                    const denom = scenario.denominations.find(d => d.price === price);
+                    if (denom && prop) denom[prop] = value;
+                }, `Updated $${price} denomination.`);
+            }
+
+            function handleLeftPanelClick(e) {
+                const target = e.target;
+                if (target.closest('[data-action="toggle-left"]')) {
+                    commit(s => { s.ui.leftCollapsed = !s.ui.leftCollapsed; }, `Toggled Denominations panel ${state.ui.leftCollapsed ? 'open' : 'closed'}.`);
+                    return;
+                }
+
+                if (e.target.id === 'add-denom-btn') {
+                    const input = byId('new-denom-price');
+                    const price = parseFloat(input.value);
+                    if (!price || price <= 0) return showError("Please enter a valid price.");
+                    const scenario = getActiveScenario();
+                    if (scenario.denominations.some(d => d.price === price)) return showError(`$${price} already exists.`);
+
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        sc.denominations.push({ price, mixPercent: 0, isActive: true, isCollapsed: false });
+                        sc.denominations.sort((a, b) => a.price - b.price);
+                    }, `Added price point $${price}.`);
+                    input.value = '';
+                }
+            }
+
+            function handleCenterPanelFocus(e) {
+                const target = e.target;
+                // Unformat numbers with commas when focusing the input
+                if (target.dataset.prop === 'units') {
+                    target.value = target.value.replace(/,/g, '');
+                }
+            }
+
+            function handleCenterPanelInput(e) {
+                const row = e.target.closest('tr[data-game-id]');
+                if (!row) return;
+                const gameId = row.dataset.gameId;
+                const prop = e.target.dataset.prop;
+                if (!gameId || !prop) return;
+
+                const scenario = getActiveScenario();
+                const game = scenario.games.find(g => g.id === gameId);
+                if (!game) return;
+
+                let value;
+                if (prop === 'units') {
+                    value = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                } else {
+                    value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                }
+
+                game[prop] = value;
+
+                if (['units', 'payoutPercent', 'vendorId'].includes(prop)) {
+                    refreshGameRow(gameId);
+                }
+            }
+
+            function handleNonScratcherInput(e) {
+                const row = e.target.closest('tr[data-ns-item-id]');
+                if (!row) return;
+                const itemId = row.dataset.nsItemId;
+                const prop = e.target.dataset.nsProp;
+                if (!itemId || !prop) return;
+
+                const currentScenario = state.scenarios.find(sc => sc.id === state.activeScenarioId);
+                if (!currentScenario) return;
+
+                const item = currentScenario.nonScratcherItems.find(i => i.id === itemId);
+                if (!item) return;
+
+                let value;
+                if (prop === 'cost') {
+                    value = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                } else {
+                    value = e.target.value;
+                }
+
+                item[prop] = value;
+
+                if (prop === 'cost') {
+                    const centerPanel = byId('center-panel');
+                    if (centerPanel) {
+                        // Debounced re-render
+                        if (window.renderTimeout) clearTimeout(window.renderTimeout);
+                        window.renderTimeout = setTimeout(() => {
+                            renderApp();
+                        }, 500);
+                    }
+                }
+            }
+
+            function handleCenterPanelChange(e) {
+                const row = e.target.closest('tr[data-game-id]');
+                if (!row) return;
+                const gameId = row.dataset.gameId;
+
+                // Units presets dropdown
+                if (e.target.classList.contains('units-preset')) {
+                    const val = e.target.value;
+                    if (val && val !== 'custom') {
+                        const units = parseFloat(val) || 0;
+                        const unitsInput = row.querySelector('input[data-prop="units"]');
+                        if (unitsInput) unitsInput.value = units.toLocaleString('en-US');
+                        commit(s => {
+                            const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                            if (sc) {
+                                const g = sc.games.find(x => x.id === gameId);
+                                if (g) g.units = units;
+                            }
+                        }, `Set units preset to ${Number(val).toLocaleString('en-US')}.`);
+                    }
+                    return;
+                }
+
+                const prop = e.target.dataset.prop;
+                if (!gameId || !prop) return;
+
+                let value;
+                if (prop === 'units') {
+                    value = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                    // Re-format the blurred input immediately for better UX
+                    e.target.value = value.toLocaleString('en-US');
+                } else {
+                    value = e.target.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
+                }
+
+                commit(s => {
+                    const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                    if (!sc) return;
+                    const game = sc.games.find(g => g.id === gameId);
+                    if (game) game[prop] = value;
+                }, `Updated game ${gameId} property ${prop}.`);
+            }
+
+            function handleNonScratcherChange(e) {
+                const row = e.target.closest('tr[data-ns-item-id]');
+                if (!row) return;
+                const itemId = row.dataset.nsItemId;
+                const prop = e.target.dataset.nsProp;
+                if (!itemId || !prop) return;
+
+                let value = e.target.value;
+                if (prop === 'cost') {
+                    value = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                    e.target.value = value.toLocaleString('en-US');
+                }
+
+                commit(s => {
+                    const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                    if (!sc) return;
+                    const item = sc.nonScratcherItems.find(i => i.id === itemId);
+                    if (item) item[prop] = value;
+                }, `Updated Non-Scratcher item property ${prop}.`);
+            }
+
+            function handleCenterPanelClick(e) {
+                const target = e.target;
+                const action = target.dataset.action || target.closest('[data-action]')?.dataset.action;
+                if (!action) return;
+
+                const gameId = target.closest('tr[data-game-id]')?.dataset.gameId;
+                const nsItemId = target.closest('tr[data-ns-item-id]')?.dataset.nsItemId;
+                const price = parseInt(target.closest('.game-group')?.dataset.price, 10);
+                const isNsGroup = target.closest('.game-group')?.dataset.isNonScratcher === "true";
+
+                if (action === 'add-game') {
+                    const currentVendor = state.ui.vendorFilter;
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        const defaultVendor = (currentVendor && currentVendor !== 'all') ? currentVendor : (state.vendors[0]?.id || 'sg');
+                        const defaultUnits = (CONTRACT_UNIT_PRESETS[price] || CONTRACT_UNIT_PRESETS.default)[0];
+                        sc.games.push({
+                            id: `g${Date.now()} `, gameNumber: '', denominationPrice: price, name: 'New Game',
+                            vendorId: defaultVendor,
+                            units: defaultUnits, payoutPercent: 68.0, featureIds: [],
+                            poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned'
+                        });
+                        const denom = sc.denominations.find(d => d.price === price);
+                        if (denom) denom.isCollapsed = false;
+                    }, `Added new game to $${price}.`);
+                } else if (action === 'delete-game' && gameId) {
+                    const scenario = getActiveScenario();
+                    const game = scenario.games.find(g => g.id === gameId);
+                    if (game) {
+                        showConfirm(`Delete "${game.name}" ? `, () => {
+                            commit(s => {
+                                const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                                if (!sc) return;
+                                const idx = sc.games.findIndex(g => g.id === gameId);
+                                if (idx > -1) sc.games.splice(idx, 1);
+                            }, `Deleted game '${game.name}'.`);
+                        });
+                    }
+                } else if (action === 'edit-features' && gameId) {
+                    openFeatureModal(gameId);
+                } else if (action === 'toggle-collapse') {
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        const denom = sc.denominations.find(d => d.price === price);
+                        if (denom) denom.isCollapsed = !denom.isCollapsed;
+                    }, `Toggled $${price} group.`);
+                } else if (action === 'toggle-ns-collapse') {
+                    state.ui.nonScratcherCollapsed = !state.ui.nonScratcherCollapsed;
+                    renderApp();
+                } else if (action === 'add-ns-item') {
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        if (!sc.nonScratcherItems) sc.nonScratcherItems = [];
+                        sc.nonScratcherItems.push({
+                            id: `ns${Date.now()}`,
+                            name: 'New Item',
+                            vendorId: '',
+                            associatedHoliday: '',
+                            cost: 0,
+                            poNumber: '',
+                            poDate: '',
+                            receiptDate: '',
+                            status: 'Planned'
+                        });
+                    }, 'Added new Non-Scratcher item.');
+                } else if (action === 'delete-ns-item' && nsItemId) {
+                    const currentScenario = state.scenarios.find(sc => sc.id === state.activeScenarioId);
+                    if (!currentScenario) return;
+
+                    const item = currentScenario.nonScratcherItems.find(i => i.id === nsItemId);
+                    if (item) {
+                        showConfirm(`Delete "${item.name}"?`, () => {
+                            commit(s => {
+                                const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                                if (!sc) return;
+                                const idx = sc.nonScratcherItems.findIndex(i => i.id === nsItemId);
+                                if (idx > -1) sc.nonScratcherItems.splice(idx, 1);
+                            }, `Deleted Non-Scratcher item '${item.name}'.`);
+                        });
+                    }
+                } else if (action === 'open-date') {
+                    const input = target.previousElementSibling;
+                    if (input && typeof input.showPicker === 'function') input.showPicker();
+                    else if (input) input.focus();
+                }
+            }
+
+            function handleRightPanelClick(e) {
+                const target = e.target.closest('[data-vendor-id], #manage-features-btn, #add-vendor-btn, [data-action="toggle-right"]');
+                if (!target) return;
+
+                if (target.dataset.action === 'toggle-right') {
+                    commit(s => { s.ui.rightCollapsed = !s.ui.rightCollapsed; }, `Toggled Vendor Pricing panel ${state.ui.rightCollapsed ? 'open' : 'closed'}.`);
+                    return;
+                }
+
+                if (target.id === 'add-vendor-btn') {
+                    byId('new-vendor-name-input').value = '';
+                    byId('add-vendor-modal').style.display = 'flex';
+                } else if (target.id === 'manage-features-btn') {
+                    openFeatureManagementModal();
+                } else if (target.dataset.vendorId) {
+                    const vendorId = target.dataset.vendorId;
+                    if (vendorId !== state.ui.activeVendorTab) {
+                        commit(s => {
+                            s.ui.activeVendorTab = vendorId;
+                        }, `Switched to ${vendorLabel(vendorId)} pricing view.`);
+                    }
+                }
+            }
+
+            function handleRightPanelChange(e) {
+                const vendorId = state.ui.activeVendorTab;
+                const vendorData = state.vendorPricing[vendorId];
+                if (!vendorData) return;
+
+                if (e.target.name === `costModel - ${vendorId} `) {
+                    const newModel = e.target.value;
+                    commit(s => {
+                        s.vendorPricing[vendorId].costModel = newModel;
+                    }, `Updated ${vendorId} cost model to ${newModel}.`);
+                } else if (e.target.dataset.vendorFeatureToggle) {
+                    const featureName = e.target.dataset.vendorFeatureToggle;
+                    const isSupported = e.target.checked;
+                    commit(s => {
+                        s.vendorPricing[vendorId].supportedFeatures = s.vendorPricing[vendorId].supportedFeatures || {};
+                        s.vendorPricing[vendorId].supportedFeatures[featureName] = isSupported;
+
+                        if (!isSupported) {
+                            s.scenarios.forEach(sc => {
+                                sc.games.filter(g => g.vendorId === vendorId).forEach(g => {
+                                    if (g.featureIds) {
+                                        g.featureIds = g.featureIds.filter(f => f !== featureName);
+                                    }
+                                });
+                            });
+                        }
+                    }, `${isSupported ? 'Enabled' : 'Disabled'} feature '${featureName}' for ${vendorLabel(vendorId)}.`);
+                } else if (e.target.classList.contains('base-cost-input')) {
+                    const price = e.target.dataset.denomPrice;
+                    const cost = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].baseCosts[price] = cost;
+                    }, `Updated ${vendorId} base cost for $${price} game to ${cost}.`);
+                } else {
+                    const { featureName } = e.target.dataset || {};
+                    const cost = parseFloat(e.target.value) || 0;
+                    if (featureName) {
+                        commit(s => {
+                            s.vendorPricing[vendorId].features[featureName] = cost;
+                        }, `Updated ${vendorId} price for '${featureName}' to ${cost}.`);
+                    }
+                }
+            }
+
+            // --- MODALS (NO alert/confirm) ---
+            let confirmCallback = null;
+            function showConfirm(message, onConfirm) {
+                byId('confirm-message').textContent = message;
+                byId('confirm-modal').style.display = 'flex';
+                confirmCallback = onConfirm;
+            }
+            function closeConfirm() {
+                byId('confirm-modal').style.display = 'none';
+                confirmCallback = null;
+            }
+            byId('confirm-ok-btn').addEventListener('click', () => {
+                if (confirmCallback) confirmCallback();
+                closeConfirm();
+            });
+
+            function showError(message) {
+                // Non-blocking: fallback to alert to ensure user sees it in offline contexts
+                alert(message);
+            }
+
+            function openFeatureModal(gameId) {
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+                state.ui.editingFeaturesForGameId = gameId;
+                const game = scenario.games.find(g => g.id === gameId);
+                if (!game) return;
+                byId('modal-game-name').textContent = game.name;
+
+                const vendorId = game.vendorId;
+                const vd = state.vendorPricing[vendorId] || {};
+
+                const availableFeatures = state.featureMasterList.filter(f => {
+                    const name = f['Generic Feature'];
+                    if (vd.supportedFeatures && typeof vd.supportedFeatures[name] !== 'undefined') {
+                        return vd.supportedFeatures[name];
+                    }
+                    if (f[`${vendorId.toUpperCase()} (Y / N)`]) {
+                        return f[`${vendorId.toUpperCase()} (Y / N)`] === 'Y';
+                    }
+                    return true;
+                });
+
+                if (availableFeatures.length === 0) {
+                    byId('feature-checklist').innerHTML = '<div style="grid-column: 1 / -1; color: var(--text-dark);">No features available for this vendor.</div>';
+                } else {
+                    byId('feature-checklist').innerHTML = availableFeatures.map(f => {
+                        const name = f['Generic Feature'];
+                        const checked = game.featureIds?.includes(name) ? 'checked' : '';
+                        return `< label > <input type="checkbox" name="${name}" ${checked}> ${name}</label>`;
+                    }).join('');
+                }
+
+                byId('feature-modal').style.display = 'flex';
+            }
+
+            function openFeatureManagementModal() {
+                const list = byId('feature-management-list');
+                const renderList = () => {
+                    list.innerHTML = state.featureMasterList.map(f => {
+                        const name = f['Generic Feature'];
+                        return `< div data - name="${name}" style = "display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color);padding:6px 0;" >
+                        <span>${name}</span>
+                        <button data-action="delete-feature" data-name="${name}" style="background:var(--danger-color);">Delete</button>
+                    </div > `;
+                    }).join('');
+                };
+                renderList();
+                byId('feature-management-modal').style.display = 'flex';
+            }
+
+            function handleModalEvents(e) {
+                // Close if clicking outside content or Cancel
+                if (e.target.id === 'modal-cancel-btn' || !e.target.closest('.modal-content')) {
+                    byId('feature-modal').style.display = 'none';
+                    state.ui.editingFeaturesForGameId = null;
+                    return;
+                }
+                if (e.target.id === 'modal-save-btn') {
+                    const gameId = state.ui.editingFeaturesForGameId;
+                    const checks = Array.from(byId('feature-checklist').querySelectorAll('input[type="checkbox"]'));
+                    const selected = checks.filter(c => c.checked).map(c => c.name);
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (sc) {
+                            const g = sc.games.find(x => x.id === gameId);
+                            if (g) g.featureIds = selected;
+                        }
+                    }, 'Updated game features.');
+                    byId('feature-modal').style.display = 'none';
+                    state.ui.editingFeaturesForGameId = null;
+                }
+            }
+
+            function handleFeatureManagementModalEvents(e) {
+                // Close on 'Done' or click outside content
+                if (e.target.id === 'modal-done-btn' || !e.target.closest('.modal-content')) {
+                    byId('feature-management-modal').style.display = 'none';
+                    return;
+                }
+                if (e.target.id === 'add-feature-btn') {
+                    const input = byId('new-feature-name');
+                    const name = (input.value || '').trim();
+                    if (!name) return showError('Enter a feature name.');
+                    if (state.featureMasterList.some(f => f['Generic Feature'] === name)) return showError('Feature already exists.');
+                    commit(s => { s.featureMasterList.push({ 'Generic Feature': name }); }, `Added feature '${name}'.`);
+                    input.value = '';
+                    openFeatureManagementModal(); // re-render list
+                }
+                if (e.target.dataset.action === 'delete-feature') {
+                    const name = e.target.dataset.name;
+                    showConfirm(`Delete feature '${name}' from master list ? This will remove it from all games and vendor pricing.`, () => {
+                        commit(s => {
+                            s.featureMasterList = s.featureMasterList.filter(f => f['Generic Feature'] !== name);
+                            // Remove from all games
+                            s.scenarios.forEach(sc => {
+                                sc.games.forEach(g => g.featureIds = (g.featureIds || []).filter(x => x !== name));
+                            });
+                            // Remove from vendor pricing maps
+                            Object.values(s.vendorPricing).forEach(v => { if (v.features) delete v.features[name]; });
+                        }, `Deleted feature '${name}'.`);
+                        openFeatureManagementModal(); // re-render list
+                    });
+                }
+            }
+
+            function handleAddVendorModalEvents(e) {
+                if (e.target.id === 'add-vendor-cancel-btn' || (!e.target.closest('.modal-content') && e.target.classList.contains('modal-overlay'))) {
+                    byId('add-vendor-modal').style.display = 'none';
+                    return;
+                }
+                if (e.target.id === 'add-vendor-save-btn') {
+                    const name = byId('new-vendor-name-input').value.trim();
+                    if (!name) return showError('Please enter a vendor name.');
+                    if (state.vendors.some(v => v.name.toLowerCase() === name.toLowerCase())) {
+                        return showError('A vendor with this name already exists.');
+                    }
+                    const newId = 'v' + Date.now().toString(36);
+                    commit(s => {
+                        s.vendors.push({ id: newId, name });
+                        s.vendorPricing[newId] = { costModel: 'percentOfSales', baseCostValue: 0, features: {}, supportedFeatures: {} };
+                        s.ui.activeVendorTab = newId;
+                    }, `Added new vendor '${name}'.`);
+                    byId('add-vendor-modal').style.display = 'none';
+                }
+            }
+
+            function handleFooterEvents(e) {
+                const target = e.target.closest('#clear-log-btn, [data-action="toggle-bottom"]');
+                if (!target) return;
+
+                if (target.dataset.action === 'toggle-bottom') {
+                    commit(s => { s.ui.bottomCollapsed = !s.ui.bottomCollapsed; }, `Toggled Audit Trail panel ${state.ui.bottomCollapsed ? 'open' : 'closed'}.`);
+                    return;
+                }
+
+                if (target.id === 'clear-log-btn') {
+                    commit(s => s.auditLog = [], 'Audit log cleared.');
+                }
+            }
+
+            // --- MUTATIONS & STATE ---
+            function migrateStateToScenarios(stateData) {
+                if (stateData) {
+                    if (!stateData.ui) stateData.ui = {};
+                    if (typeof stateData.ui.leftCollapsed === 'undefined') stateData.ui.leftCollapsed = false;
+                    if (typeof stateData.ui.rightCollapsed === 'undefined') stateData.ui.rightCollapsed = false;
+                    if (typeof stateData.ui.bottomCollapsed === 'undefined') stateData.ui.bottomCollapsed = false;
+                }
+
+                if (stateData && !stateData.vendors) {
+                    stateData.vendors = [
+                        { id: 'sg', name: 'Scientific Games' },
+                        { id: 'pb', name: 'Pollard Banknote' },
+                        { id: 'bs', name: 'Brightstar' }
+                    ];
+                }
+
+                if (stateData && !stateData.scenarios) {
+                    const defaultDenoms = [
+                        { price: 1, mixPercent: 10, isActive: true, isCollapsed: false }, { price: 2, mixPercent: 15, isActive: true, isCollapsed: false },
+                        { price: 3, mixPercent: 10, isActive: true, isCollapsed: false }, { price: 5, mixPercent: 25, isActive: true, isCollapsed: false },
+                        { price: 10, mixPercent: 20, isActive: true, isCollapsed: false }, { price: 20, mixPercent: 15, isActive: true, isCollapsed: false },
+                        { price: 25, mixPercent: 0, isActive: true, isCollapsed: false }, { price: 30, mixPercent: 5, isActive: true, isCollapsed: false },
+                        { price: 50, mixPercent: 0, isActive: false, isCollapsed: false }
+                    ];
+
+                    stateData.scenarios = [
+                        {
+                            id: 's1',
+                            name: 'Base Plan',
+                            denominations: stateData.denominations || defaultDenoms,
+                            games: stateData.games || [],
+                            nonScratcherItems: stateData.nonScratcherItems || []
+                        }
+                    ];
+                    stateData.activeScenarioId = 's1';
+                    delete stateData.denominations;
+                    delete stateData.games;
+                    delete stateData.nonScratcherItems;
+                }
+
+                if (stateData.scenarios) {
+                    stateData.scenarios.forEach(sc => {
+                        if (!sc.nonScratcherItems) {
+                            sc.nonScratcherItems = [];
+                        }
+                    });
+                }
+
+                // Migrate vendor base costs
+                if (stateData.vendorPricing) {
+                    for (const vId in stateData.vendorPricing) {
+                        const vendor = stateData.vendorPricing[vId];
+                        if (vendor.baseCostValue !== undefined) {
+                            const val = vendor.baseCostValue;
+                            vendor.baseCosts = { 1: val, 2: val, 3: val, 5: val, 10: val, 20: val, 25: val, 30: val, 50: val };
+                            delete vendor.baseCostValue;
+                        }
+                    }
+                }
+
+                return stateData;
+            }
+
+            function setState(newState) { state = migrateStateToScenarios(newState); }
+
+            function commit(mutationFn, auditMsg) {
+                // Create a deep copy of the state *before* the change for the undo history.
+                const prevStateForHistory = JSON.parse(JSON.stringify(state));
+
+                // Apply the change to the current state.
+                mutationFn(state);
+
+                // Now that the state is updated, manage the history.
+                history = history.slice(0, historyIndex + 1);
+                history.push(prevStateForHistory);
+                historyIndex++;
+
+                if (auditMsg) logAudit(auditMsg);
+
+                render();
+                debouncedAutosave();
+            }
+
+            // --- HISTORY ---
+            let autosaveTimeout;
+            const debouncedAutosave = () => { clearTimeout(autosaveTimeout); autosaveTimeout = setTimeout(saveStateToDB, 1200); };
+
+            function recordHistory(isInitial = false) {
+                if (isInitial) {
+                    history = [JSON.parse(JSON.stringify(state))];
+                    historyIndex = 0;
+                }
+                updateUndoRedoButtons();
+            }
+            function updateUndoRedoButtons() {
+                byId('undo-btn').disabled = historyIndex <= 0;
+                byId('redo-btn').disabled = historyIndex >= history.length - 1;
+            }
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    setState(JSON.parse(JSON.stringify(history[historyIndex])));
+                    render();
+                    saveStateToDB();
+                    logAudit('Action: Undo.');
+                }
+            }
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    setState(JSON.parse(JSON.stringify(history[historyIndex])));
+                    render();
+                    saveStateToDB();
+                    logAudit('Action: Redo.');
+                }
+            }
+
+            // --- DB & AUTOSAVE ---
+            function restoreFromAutosaveSafe() {
+                return new Promise((resolve) => {
+                    if (!db) return resolve(false);
+                    const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get('autosavedPlan');
+                    req.onsuccess = (e) => {
+                        const saved = e.target.result;
+                        if (saved) {
+                            showConfirm('An autosaved plan was found. Restore it?', () => {
+                                setState(saved);
+                                logAudit('Plan restored from autosave.');
+                                resolve(true);
+                            });
+                        } else {
+                            resolve(false);
+                        }
+                    };
+                    req.onerror = () => resolve(false);
+                });
+            }
+            function openDBSafe() {
+                return new Promise((resolve) => {
+                    if (!('indexedDB' in window)) return resolve();
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onerror = () => resolve();
+                    req.onsuccess = (e) => { db = e.target.result; resolve(); };
+                    req.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+                });
+            }
+            function saveStateToDB() {
+                if (!db) return;
+                const shallow = JSON.parse(JSON.stringify(state));
+                shallow.auditLog = [];
+                db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(shallow, 'autosavedPlan');
+            }
+
+            // --- EXPORTS ---
+            function exportReport(kind, format) {
+                if (!window.XLSX) {
+                    return showError('Export library not loaded. Please check your connection and try again.');
+                }
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+
+                if (kind === 'summary') {
+                    const rows = [['Denomination', '$ Mix %', 'Revenue Target', 'Games', 'Contract Cost', 'Prize Expense', 'Total COGS', 'Gross Margin']];
+                    scenario.denominations.filter(d => d.isActive).forEach(d => {
+                        const games = scenario.games.filter(g => g.denominationPrice === d.price);
+                        const revenueTarget = state.totalSalesTarget * (d.mixPercent / 100);
+                        let contract = 0, prize = 0, cogs = 0, margin = 0;
+                        games.forEach(g => {
+                            const m = calculateGameMetrics(g);
+                            contract += m.contractCost; prize += m.prizeExpense; cogs += m.cogs; margin += m.grossMargin;
+                        });
+                        rows.push([`$${d.price}`, d.mixPercent, revenueTarget, games.length, contract, prize, cogs, margin]);
+                    });
+
+                    // Add Non-Scratchers to the summary
+                    if (scenario.nonScratcherItems && scenario.nonScratcherItems.length > 0) {
+                        let nsCost = scenario.nonScratcherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+                        rows.push(['Non-Scratchers', '-', '-', scenario.nonScratcherItems.length, nsCost, 0, nsCost, -nsCost]);
+                    }
+
+                    return downloadRows(rows, `FY${state.fiscalYear}_Executive_Summary`, format);
+                }
+
+                const rows = [['Game #', 'Game Name', '$', 'Vendor', 'Units', 'Payout %', 'Features', 'Cost Model', 'Base Cost', 'Contract Cost', 'Prize Expense', 'COGS', 'Gross Margin', 'PO #', 'PO Date', 'Receipt Date', 'Status']];
+                scenario.games.forEach(g => {
+                    const m = calculateGameMetrics(g);
+                    const v = state.vendorPricing[g.vendorId] || {};
+                    const model = v.costModel || 'percentOfSales';
+                    const features = (g.featureIds || []).join('; ');
+                    rows.push([
+                        g.gameNumber || '', g.name, g.denominationPrice, vendorLabel(g.vendorId) || '',
+                        g.units, g.payoutPercent, features, model, v.baseCostValue || 0,
+                        m.contractCost, m.prizeExpense, m.cogs, m.grossMargin,
+                        g.poNumber || '', g.poDate || '', g.receiptDate || '', g.deliveryStatus || ''
+                    ]);
+                });
+
+                if (scenario.nonScratcherItems && scenario.nonScratcherItems.length > 0) {
+                    scenario.nonScratcherItems.forEach(item => {
+                        const cost = parseFloat(item.cost) || 0;
+                        rows.push([
+                            'NS', item.name || 'Non-Scratcher Item', '', vendorLabel(item.vendorId) || 'None/Internal',
+                            '', '', item.associatedHoliday || '', 'Fixed Cost', '',
+                            cost, 0, cost, -cost,
+                            item.poNumber || '', item.poDate || '', item.receiptDate || '', item.status || ''
+                        ]);
+                    });
+                }
+
+                downloadRows(rows, `FY${state.fiscalYear}_Detailed_Build`, format);
+            }
+
+            function exportPOReport(format) {
+                if (!window.XLSX) {
+                    return showError('Export library not loaded. Please check your connection and try again.');
+                }
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+
+                const rows = [['Vendor', 'Game / Item Name', 'Denomination ($)', 'Units', 'PO #', 'PO Date', 'Receipt Date', 'Status']];
+
+                scenario.games.forEach(g => {
+                    rows.push([
+                        vendorLabel(g.vendorId) || '', g.name, g.denominationPrice, g.units,
+                        g.poNumber || '', g.poDate || '', g.receiptDate || '', g.deliveryStatus || ''
+                    ]);
+                });
+
+                if (scenario.nonScratcherItems && scenario.nonScratcherItems.length > 0) {
+                    scenario.nonScratcherItems.forEach(item => {
+                        rows.push([
+                            vendorLabel(item.vendorId) || 'None/Internal', item.name || 'Non-Scratcher Item', 'N/A', 'N/A',
+                            item.poNumber || '', item.poDate || '', item.receiptDate || '', item.status || ''
+                        ]);
+                    });
+                }
+
+                downloadRows(rows, `FY${state.fiscalYear}_Procurement_PO_Report`, format);
+            }
+
+            function exportVendorMatrix(format) {
+                if (!window.XLSX) {
+                    return showError('Export library not loaded. Please check your connection and try again.');
+                }
+                const rows = [['Vendor', 'Category', 'Item / Feature', 'Cost', 'Cost Model']];
+
+                state.vendors.forEach(v => {
+                    const vd = state.vendorPricing[v.id] || {};
+                    const model = vd.costModel === 'percentOfSales' ? '% of Sales' : 'Per Thousand';
+
+                    // Base Costs
+                    STANDARD_DENOMINATIONS.forEach(price => {
+                        const val = vd.baseCosts?.[price] ?? 0;
+                        rows.push([v.name, 'Base Cost', `$${price} Game`, val, model]);
+                    });
+
+                    // Feature Costs
+                    if (vd.features) {
+                        for (const [feat, cost] of Object.entries(vd.features)) {
+                            rows.push([v.name, 'Feature Cost', feat, cost, 'Per Thousand']);
+                        }
+                    }
+                });
+
+                downloadRows(rows, `FY${state.fiscalYear}_Vendor_Pricing_Matrix`, format);
+            }
+
+            async function downloadRows(rows, baseName, format) {
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Report');
+
+                let blob;
+                let ext = format === 'xlsx' ? '.xlsx' : '.csv';
+                let suggestedName = `${baseName}${ext}`;
+
+                if (format === 'xlsx') {
+                    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                } else {
+                    const csv = XLSX.utils.sheet_to_csv(ws);
+                    blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                }
+
+                if (window.showSaveFilePicker) {
+                    try {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: suggestedName,
+                            types: [{
+                                description: format === 'xlsx' ? 'Excel Spreadsheet' : 'CSV File',
+                                accept: format === 'xlsx' ? { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } : { 'text/csv': ['.csv'] }
+                            }]
+                        });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        logAudit(`Exported ${suggestedName} successfully.`);
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('File saving failed', err);
+                            showError('Error saving file. Falling back to default download.');
+                        } else {
+                            return; // User cancelled
+                        }
+                    }
+                }
+
+                // Fallback
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = suggestedName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logAudit(`Exported ${suggestedName} successfully.`);
+            }
+
+            // --- HELPERS ---
+            function byId(id) { return document.getElementById(id); }
+            function getActiveScenario() { return state?.scenarios?.find(s => s.id === state.activeScenarioId) || state?.scenarios?.[0] || null; }
+            function logAudit(msg) { const ts = new Date().toLocaleTimeString('en-US'); state.auditLog.unshift({ timestamp: ts, message: msg }); if (state.auditLog.length > 50) state.auditLog.pop(); renderAuditTrail(); }
+            function initializeVendorPricing() { state.vendors.forEach(v => { state.vendorPricing[v.id] ||= {}; state.vendorPricing[v.id].features ||= {}; state.vendorPricing[v.id].costModel ||= 'percentOfSales'; state.vendorPricing[v.id].supportedFeatures ||= {}; }); }
+            function formatCurrency(v) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0); }
+            function vendorLabel(id) { const v = state.vendors?.find(x => x.id === id); return v ? v.name : id; }
+            function loadFeatures() { state.featureMasterList = parseCSV(FEATURES_CSV_DATA); }
+            function parseCSV(text) {
+                const lines = text.trim().split('\n');
+                const headers = lines.shift().split(',').map(h => h.trim().replace(/"/g, ''));
+                return lines.map(line => {
+                    const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    return headers.reduce((o, h, i) => { o[h] = values[i] ? values[i].trim().replace(/"/g, '') : ''; return o; }, {});
+                });
+            }
+            async function savePlan() {
+                const json = JSON.stringify(state, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const suggestedName = `FY${state.fiscalYear}_Plan.json`;
+
+                if (window.showSaveFilePicker) {
+                    try {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: suggestedName,
+                            types: [{
+                                description: 'JSON File',
+                                accept: { 'application/json': ['.json'] }
+                            }]
+                        });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        logAudit(`Plan saved successfully as ${suggestedName}.`);
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('File saving failed', err);
+                            showError('Error saving plan file. Falling back to default download.');
+                        } else {
+                            return; // User cancelled
+                        }
+                    }
+                }
+
+                // Fallback
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = suggestedName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logAudit(`Plan saved successfully (auto-download).`);
+            }
+            function loadPlan(e) {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = evt => {
+                    try {
+                        const loaded = JSON.parse(evt.target.result);
+                        if (!loaded.hasOwnProperty('fiscalYear')) throw new Error('Invalid plan file.');
+                        setState(loaded);
+                        logAudit('Plan loaded from file.');
+                        history = []; historyIndex = -1; recordHistory(true); render();
+                    } catch { showError('Error: Could not load the selected file.'); }
+                };
+                reader.readAsText(file);
+            }
+
+            function calculateGameMetrics(game) {
+                const scenario = getActiveScenario();
+                const denom = scenario?.denominations.find(d => d.price === game.denominationPrice);
+                if (!denom) return { revenue: 0, contractCost: 0, prizeExpense: 0, cogs: 0, grossMargin: 0 };
+
+                // Apply Sell-through % to revenue
+                const sellThrough = (state.sellThroughPercent ?? 100) / 100;
+                const revenue = (game.units * sellThrough) * denom.price;
+
+                const vendor = state.vendorPricing[game.vendorId];
+                if (!vendor) return { revenue: 0, contractCost: 0, prizeExpense: 0, cogs: 0, grossMargin: 0 };
+
+                const baseCostValue = vendor.baseCosts?.[game.denominationPrice] ?? (vendor.baseCostValue ?? 0);
+
+                let manufacturing = 0;
+                // Manufacturing cost is based on TOTAL units, not sell-through units
+                if (vendor.costModel === 'perThousand') manufacturing = (game.units / 1000) * baseCostValue;
+                else manufacturing = revenue * (baseCostValue / 100);
+
+                let featureCost = (game.featureIds || []).reduce((sum, name) => {
+                    return sum + (game.units / 1000) * (vendor.features[name] || 0);
+                }, 0);
+
+                const contractCost = manufacturing + featureCost;
+                const prizeExpense = revenue * (game.payoutPercent / 100);
+
+                // Add Retailer Commission and Admin Expense to COGS
+                const retailerCommission = revenue * ((state.retailerCommissionPercent ?? 0) / 100);
+                const adminExpense = revenue * ((state.administrativeExpensePercent ?? 0) / 100);
+                const cogs = contractCost + prizeExpense + retailerCommission + adminExpense;
+                const grossMargin = revenue - cogs;
+
+                return { revenue, contractCost, prizeExpense, cogs, grossMargin };
+            }
+
+        })();
+    </script>
+</body>
+
+</html>

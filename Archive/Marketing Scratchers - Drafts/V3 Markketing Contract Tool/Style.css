@@ -1,0 +1,147 @@
+/* base */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f4f7f9;
+  color: #333;
+  margin: 0;
+}
+
+/* outer grid: header / main / footer */
+#app-container {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 100%;
+  grid-template-areas:
+    "header"
+    "main"
+    "footer";
+  height: 100vh;
+  overflow: hidden;
+}
+
+header {
+  grid-area: header;
+  background: #fff;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.header-title { font-size: 1.2em; font-weight: 600; }
+.header-controls { display: flex; align-items: center; gap: .75rem; }
+.header-controls button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #f8f9fa; cursor: pointer; }
+.header-controls button:hover { background: #e9ecef; }
+.control-group { display: flex; align-items: center; gap: .4rem; }
+.control-group label { font-weight: 600; }
+.control-group input, .control-group select { border: 1px solid #ccc; padding: 7px; border-radius: 4px; }
+
+/* inner three-column grid lives inside #main-content */
+#main-content {
+  grid-area: main;
+  display: grid;
+  grid-template-columns: 320px 1fr 360px; /* left / center / right */
+  gap: 0;
+  height: 100%;
+  overflow: hidden; /* panels scroll individually */
+}
+
+/* panels */
+#left-panel, #center-panel, #right-panel {
+  background: #fff;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+#left-panel { border-right: 1px solid #ddd; }
+#right-panel { background: #f8f9fa; border-left: 1px solid #ddd; }
+
+footer {
+  grid-area: footer;
+  background: #333;
+  color: #ccc;
+  padding: 10px 20px;
+  font-size: .85em;
+  height: 120px;
+  overflow-y: auto;
+}
+footer p { margin: 4px 0; }
+
+/* denominations */
+.denom-item {
+  display: grid;
+  grid-template-columns: auto 80px 70px 20px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.denom-item label { font-weight: 600; }
+.denom-item input[type="number"] { width: 100%; text-align: right; border: 1px solid #ccc; border-radius: 4px; padding: 5px; }
+.denom-details { text-align: right; font-size: .9em; color: #555; }
+.progress-bar { background: #e9ecef; border-radius: .25rem; height: 8px; margin-top: 4px; overflow: hidden; }
+.progress-bar-inner { background: #0d6efd; height: 100%; border-radius: .25rem; transition: width .2s ease-in-out; }
+#denom-total { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-weight: 700; }
+.total-error { color: #d9534f; }
+
+.add-denom-form { margin-top: 20px; padding-top: 15px; border-top: 2px solid #0d6efd; }
+.add-denom-form h4 { margin-top: 0; }
+.add-denom-form div { display: flex; gap: 10px; }
+.add-denom-form input { flex: 1; }
+
+/* game tables */
+.game-group { margin-bottom: 2rem; }
+.game-group-header {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 2px solid #0d6efd; padding-bottom: .5rem; margin-bottom: 1rem;
+}
+.game-group-header h3 { margin: 0; display: flex; align-items: center; gap: .5rem; }
+.game-table { width: 100%; border-collapse: collapse; }
+.game-table th, .game-table td { border: 1px solid #ddd; padding: .5rem; vertical-align: middle; }
+.game-table th { background: #f8f9fa; }
+.game-table input, .game-table select { width: 98%; box-sizing: border-box; border: 1px solid #ccc; padding: 4px; border-radius: 4px; }
+.game-group-header .toggle-icon { margin-right: 8px; font-size: .8em; display: inline-block; }
+.edit-features-btn { font-size: .8em; padding: 2px 6px; }
+
+/* delete button */
+.delete-game-btn {
+  background: #fbeaeae8; color: #c52626; border: 1px solid #e1b1b1; border-radius: 4px;
+  padding: 4px 8px; cursor: pointer; font-size: 1em;
+}
+.delete-game-btn:hover { background: #c52626; color: #fff; }
+
+/* tabs / pricing */
+.tab-container { display: flex; border-bottom: 1px solid #ccc; }
+.tab-btn { padding: 10px 15px; cursor: pointer; border: 1px solid transparent; border-bottom: 0; background: #eee; }
+.tab-btn.active { background: #fff; border-color: #ccc; border-bottom: 1px solid #fff; position: relative; top: 1px; }
+.tab-content { display: none; padding-top: 1rem; }
+.tab-content.active { display: block; }
+.pricing-table { width: 100%; font-size: .9em; }
+.cost-model-group { margin-bottom: 1rem; }
+.cost-input-row { display: none; }
+.cost-input-row.active { display: table-row; }
+
+/* modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: #fff; padding: 2rem; border-radius: 8px; width: 420px; box-shadow: 0 5px 15px rgba(0,0,0,.3); }
+#feature-checklist, #feature-management-list { max-height: 300px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #eee; padding: 1rem; }
+.feature-checklist-item { display: block; margin-bottom: .5rem; }
+.feature-management-item { display: flex; justify-content: space-between; align-items: center; padding: .5rem; border-bottom: 1px solid #f0f0f0; }
+.feature-management-item:last-child { border-bottom: 0; }
+.delete-feature-btn { background: #d9534f; color: #fff; border: 0; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+.add-feature-form { display: flex; gap: 10px; margin-top: 1rem; }
+
+/* export dropdown */
+.dropdown { position: relative; display: inline-block; }
+.dropdown-content { display: none; position: absolute; right: 0; background: #f9f9f9; min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,.2); z-index: 20; }
+.dropdown-content a { color: #000; padding: 10px 14px; text-decoration: none; display: block; font-size: .9em; }
+.dropdown-content a:hover { background: #f1f1f1; }
+.dropdown:hover .dropdown-content { display: block; }
+
+/* small additions for new controls */
+.units-cell { display:flex; gap:6px; align-items:center; }
+.units-cell select { width: 130px; }
+.units-cell input[type="number"] { width: 130px; }
+.table-date { width: 145px; }
+.table-po { width: 130px; }
+.status-select { width: 130px; }

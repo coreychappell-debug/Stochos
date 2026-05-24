@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Contract & Fiscal Year Planning Tool</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div id="app-container">
+
+        <header id="top-bar">
+            <div class="header-title">Fiscal Year Planner</div>
+            <div class="header-controls">
+                <button id="undo-btn">Undo</button>
+                <button id="redo-btn">Redo</button>
+                <div class="control-group">
+                    <label for="total-sales-target">Total Sales Target: $</label>
+                    <input type="text" id="total-sales-target" placeholder="e.g., 4,800,000,000">
+                </div>
+                <input type="file" id="load-plan-input" style="display: none;" accept=".json">
+                <button id="load-plan-btn">Load Plan</button>
+                <button id="save-plan-btn">Save Plan</button>
+                <div class="dropdown">
+                    <button class="dropdown-btn">Export</button>
+                    <div class="dropdown-content">
+                        <a href="#" id="export-summary-csv">Executive Summary (CSV)</a>
+                        <a href="#" id="export-summary-xlsx">Executive Summary (XLSX)</a>
+                        <a href="#" id="export-detail-csv">Detailed Build (CSV)</a>
+                        <a href="#" id="export-detail-xlsx">Detailed Build (XLSX)</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content">
+            <aside id="left-panel">
+                <h3>Denominations</h3>
+            </aside>
+
+            <section id="center-panel">
+                <h2>Fiscal Year Plan</h2>
+            </section>
+
+            <aside id="right-panel">
+                <h3>Vendor Pricing</h3>
+            </aside>
+        </main>
+        
+        <footer id="footer">
+            <h4>Audit Trail</h4>
+        </footer>
+
+    </div>
+
+    <div id="feature-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Edit Features for <span id="modal-game-name"></span></h3>
+            <div id="feature-checklist">
+                </div>
+            <div class="modal-actions">
+                <button id="modal-save-btn">Save</button>
+                <button id="modal-cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="feature-management-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Manage Special Features</h3>
+            <div id="feature-management-list">
+                </div>
+            <div class="add-feature-form">
+                <h4>Add New Feature</h4>
+                <input type="text" id="new-feature-name" placeholder="New feature name">
+                <button id="add-feature-btn">Add</button>
+            </div>
+            <div class="modal-actions">
+                <button id="modal-done-btn">Done</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="app.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('✅ ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('❌ ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

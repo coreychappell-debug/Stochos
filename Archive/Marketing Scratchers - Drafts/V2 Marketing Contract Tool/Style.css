@@ -1,0 +1,130 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f7f9;
+    color: #333;
+    margin: 0;
+}
+
+#app-container {
+    display: grid;
+    grid-template-areas:
+        "header header"
+        "left-panel main-content"
+        "footer footer";
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    overflow: hidden;
+}
+
+header { 
+    grid-area: header; 
+    background: #fff; 
+    padding: 10px 20px; 
+    border-bottom: 1px solid #ddd; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    gap: 1rem;
+}
+.header-title { font-size: 1.2em; font-weight: bold; }
+.header-controls { display: flex; align-items: center; gap: 0.75rem; }
+.header-controls button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background: #f8f9fa; cursor: pointer; }
+.header-controls button:hover { background: #e9ecef; }
+.control-group input { border: 1px solid #ccc; padding: 7px; border-radius: 4px; }
+
+#left-panel { grid-area: left-panel; padding: 20px; border-right: 1px solid #ddd; background: #fff; overflow-y: auto; }
+#main-content { grid-area: main-content; padding: 20px; overflow-y: auto; }
+#right-panel { grid-area: right-panel; padding: 20px; background: #f8f9fa; border-left: 1px solid #ddd; overflow-y: auto; }
+footer { grid-area: footer; background: #333; color: #ccc; padding: 10px 20px; font-size: 0.8em; height: 120px; overflow-y: auto; }
+footer p { margin: 4px 0; }
+
+.denom-item { display: grid; grid-template-columns: auto 80px 70px 20px 1fr; align-items: center; gap: 10px; margin-bottom: 15px; }
+.denom-item label { font-weight: bold; }
+.denom-item input[type="number"] { width: 100%; box-sizing: border-box; text-align: right; border: 1px solid #ccc; border-radius: 4px; padding: 5px; }
+.denom-details { text-align: right; font-size: 0.9em; color: #555; }
+.progress-bar { background-color: #e9ecef; border-radius: .25rem; height: 8px; margin-top: 4px; overflow: hidden; }
+.progress-bar-inner { background-color: #0d6efd; height: 100%; border-radius: .25rem; transition: width 0.2s ease-in-out; }
+#denom-total { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-weight: bold; }
+.total-error { color: #d9534f; }
+
+.add-denom-form {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid #0d6efd;
+}
+.add-denom-form h4 {
+    margin-top: 0;
+}
+.add-denom-form div {
+    display: flex;
+    gap: 10px;
+}
+.add-denom-form input {
+    flex-grow: 1;
+}
+
+.game-group { margin-bottom: 2rem; }
+.game-group-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0d6efd; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+.game-table { width: 100%; border-collapse: collapse; }
+.game-table th, .game-table td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; vertical-align: middle; }
+.game-table th { background-color: #f8f9fa; }
+.game-table input, .game-table select { width: 98%; box-sizing: border-box; border: 1px solid #ccc; padding: 4px; border-radius: 4px; }
+.game-group-header .toggle-icon {
+    margin-right: 8px;
+    font-size: 0.8em;
+    display: inline-block;
+}
+.edit-features-btn { font-size: 0.8em; padding: 2px 6px; }
+
+.tab-container { display: flex; border-bottom: 1px solid #ccc; }
+.tab-btn { padding: 10px 15px; cursor: pointer; border: 1px solid transparent; border-bottom: 0; background: #eee; }
+.tab-btn.active { background: #fff; border-color: #ccc; border-bottom: 1px solid #fff; position: relative; top: 1px; }
+.tab-content { display: none; padding-top: 1rem; }
+.tab-content.active { display: block; }
+.pricing-table { width: 100%; font-size: 0.9em; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: white; padding: 2rem; border-radius: 8px; width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+#feature-checklist { max-height: 300px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #eee; padding: 1rem; }
+.feature-checklist-item { display: block; margin-bottom: 0.5rem; }
+.modal-actions { text-align: right; margin-top: 1rem; }
+
+#feature-management-list { max-height: 250px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #eee; padding: 1rem; }
+.feature-management-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #f0f0f0; }
+.feature-management-item:last-child { border-bottom: none; }
+.delete-feature-btn { background-color: #d9534f; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+.add-feature-form { display: flex; gap: 10px; margin-top: 1rem; }
+
+
+.dropdown { position: relative; display: inline-block; }
+.dropdown-content { display: none; position: absolute; background-color: #f9f9f9; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; right: 0; }
+.dropdown-content a { color: black; padding: 12px 16px; text-decoration: none; display: block; font-size: 0.9em; }
+.dropdown-content a:hover { background-color: #f1f1f1; }
+.dropdown:hover .dropdown-content { display: block; }
+
+
+/* ... at the end of the file */
+.delete-game-btn {
+    background-color: #fbeaeae8;
+    color: #c52626;
+    border: 1px solid #e1b1b1;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 1em;
+}
+.delete-game-btn:hover {
+    background-color: #c52626;
+    color: white;
+}
+/* ... at the end of the file */
+.cost-model-group {
+    margin-bottom: 1rem;
+}
+.cost-input-row {
+    display: none; /* Hide by default */
+}
+.cost-input-row.active {
+    display: table-row; /* Show only the active one */
+}

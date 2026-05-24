@@ -1,0 +1,54 @@
+###  This script will be responsible for managing the application's state, handling data, and rendering the user interface.
+
+Here is the initial structure for app.js:
+
+// Self-invoking function to encapsulate the application and avoid polluting the global scope.
+(function() {
+    'use strict';
+
+    // The central 'state' object will hold all application data.
+    // This mirrors the JSON structure we defined.
+    const state = {
+        fiscalYear: 2026,
+        totalSalesTarget: 0,
+        denominations: [],
+        games: [],
+        vendorPricing: {},
+        featureMasterList: [] // Will be populated from the CSV
+    };
+
+    /**
+     * Initializes the application.
+     */
+    function init() {
+        console.log("Application Initialized.");
+        // Next steps: Add event listeners and load initial data.
+        loadFeatures();
+    }
+
+    /**
+     * Fetches and parses the master feature CSV file.
+     * (Placeholder for now)
+     */
+    async function loadFeatures() {
+        console.log("Loading vendor features...");
+        // Logic to fetch 'features.csv', parse it, and populate state.featureMasterList
+        // After loading, we will render the UI.
+        render();
+    }
+    
+    /**
+     * Renders the entire UI based on the current state.
+     * (Placeholder for now)
+     */
+    function render() {
+        console.log("Rendering UI...");
+        // This function will update the DOM to reflect the data in 'state'.
+    }
+
+    // --- Other functions like savePlan(), loadPlan(), handleEdits() will go here ---
+
+    // Initial call to start the application when the DOM is ready.
+    document.addEventListener('DOMContentLoaded', init);
+
+})();
