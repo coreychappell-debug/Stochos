@@ -375,3 +375,56 @@ wsl -d Ubuntu-22.04 -- docker exec <container_name> Rscript -e "install.packages
 | **Docker containers** | `docker-compose.yml` | `docker compose up -d` | Yes | None (baked into Dockerfile) |
 | **Ubuntu OS** | WSL2 terminal | `apt update && apt upgrade` | Sometimes | None |
 
+---
+
+## 10. Version Control and Documentation Backup (Git/GitHub)
+
+### 10.1 Docs-as-Code Philosophy
+All Stochos platform code, database schemas, analytical scripts, and **IT procedures/documentation** live in the same Git repository. This ensures that:
+1. **Unification:** Version changes to code and documentation happen together.
+2. **Backup:** Documentation is backed up on the cloud (GitHub) and not tied to a single local machine.
+3. **Change Log:** Every addition or deletion to the runbooks has a timestamped history.
+
+* **Repository URL:** `https://github.com/coreychappell-debug/Stochos`
+* **Default Branch:** `main`
+
+### 10.2 Procedure: Pushing Backups to GitHub
+Whenever you edit code, scripts, or markdown documentation files under the `New York Scripts and Process` folder:
+
+1. Open a PowerShell terminal in the root directory:
+   ```powershell
+   cd "C:\Users\corey\Downloads\Corey - Code Stuff\R Server Project folder\New York Scripts and Process"
+   ```
+2. Check the status of modified files:
+   ```powershell
+   git status
+   ```
+3. Stage all changed files and documentation:
+   ```powershell
+   git add .
+   ```
+4. Commit the changes locally:
+   ```powershell
+   git commit -m "Describe what was modified (e.g., Update IT manual rebuild steps)"
+   ```
+5. Push the backup to the remote GitHub repository:
+   ```powershell
+   git push
+   ```
+
+### 10.3 Deployment Strategy via Git (Target Servers)
+For future cloud servers, manual copy-pasting is obsolete. To deploy code or documentation changes to an active server:
+1. SSH into the cloud server.
+2. Navigate to the project directory:
+   ```bash
+   cd /srv/stochos/analyst_lab
+   ```
+3. Pull the latest commits from the main branch:
+   ```bash
+   git pull origin main
+   ```
+4. Rebuild the running container stack (if dependencies or compose configuration changed):
+   ```bash
+   docker compose up -d --build
+   ```
+
