@@ -196,3 +196,57 @@ npm run dev
 ### Note
 
 This error was encountered during the first formal walkthrough of the daily startup checklist (OPERATIONS.md §13). A warning callout was added to the checklist to prevent recurrence. This is a common Node.js gotcha for operators who are not regular Node.js developers.
+
+---
+
+## 8. WSL2 Idle Auto-Shutdown stops background Docker Containers
+
+**Date discovered:** 2026-05-24  
+**Severity:** High (caused complete service downtime when the system was idle)  
+**Status:** Resolved
+
+### Problem
+
+Even though Docker systemd and containers were configured to run and restart automatically inside WSL2, the entire WSL2 VM would shut down when the local Windows workstation was left idle or after all interactive Windows shell sessions running `wsl.exe` were closed. This caused the platform's transactional DB (`stochos_postgres`) and R/Shiny analytics containers to stop responding.
+
+### Root Cause
+
+By design, WSL2 is a utility VM that automatically stops itself after 60 seconds of idle host command shell activity to conserve Windows system memory. Background systemd services running inside the VM do NOT count as active command shell connections, meaning WSL2 will shutdown regardless of active containers.
+
+### Resolution
+
+Implemented a persistent keep-alive client process running in a hidden window on the Windows host. The watchdog script `watchdog.ps1` checks for this process and, if missing, starts it:
+```powershell
+Start-Process wsl.exe -ArgumentList "-d Ubuntu-22.04 -u root sleep 1000d" -WindowStyle Hidden
+```
+This keeps a single persistent shell wrapper active indefinitely on the Windows host, preventing WSL2 from initiating its idle timeout shutdown.
+
+---
+
+## 9. Docker Compose `ContainerConfig` recreation bug (Compose v1)
+
+**Date discovered:** 2026-05-25  
+**Severity:** High (prevented Docker container updates and restarts)  
+**Status:** Bypassed
+
+### Problem
+
+Executing `docker-compose up -d` or `--force-recreate` returned a blocking exception:
+```
+KeyError: 'ContainerConfig'
+```
+This prevented the automated watchdog or administrators from starting or updating existing containers that were already present in the Docker daemon, leaving services in a stopped or partially renamed state (e.g., prefixing containers with a short-ID like `a45c7b_analyst_lab_prod_shiny`).
+
+### Root Cause
+
+This is a known bug in Docker Compose v1 (v1.29.2, which is installed inside Ubuntu-22.04) when communicating with newer versions of Docker Engine (v29.1.3+). The old Compose client fails to parse newer engine schema definitions of `ContainerConfig` when attempting to converge/recreate existing containers.
+
+### Resolution
+
+To bypass this behavior without doing a major version upgrade of Docker Compose (which would impact existing scripts and operational setup), the watchdog task was updated to force-remove existing container instances prior to calling Compose up:
+```bash
+docker ps -a --filter "name=analyst_lab_prod" -q | xargs -r docker rm -f
+cd /home/analyst1/analyst_lab && docker-compose up -d
+```
+Deleting the old container metadata completely bypasses the Compose convergence phase and forces a clean build from scratch, avoiding the `ContainerConfig` parser error.
+

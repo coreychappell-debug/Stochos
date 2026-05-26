@@ -27,6 +27,15 @@ All Docker containers run inside **WSL2 Ubuntu 22.04**, not through Docker Deskt
 wsl -d Ubuntu-22.04 -- docker <command>
 ```
 
+**WSL2 Idle Auto-Shutdown Keep-Alive:**
+By default, WSL2 automatically shuts down the Linux utility VM 60 seconds after all active Windows command prompts or shells (`wsl.exe`) interacting with it exit. This causes background services like native Docker containers and systemd services to stop. 
+
+To prevent this in the Stochos environment, a persistent background client process is launched on the Windows host when the watchdog runs:
+```powershell
+Start-Process wsl.exe -ArgumentList "-d Ubuntu-22.04 -u root sleep 1000d" -WindowStyle Hidden
+```
+This hidden process acts as an active client connection, keeping WSL2 and all internal Docker containers continuously running even when no interactive users are logged in.
+
 ### Resource Configuration
 
 The `.wslconfig` file (in the Windows user profile) controls:
@@ -47,17 +56,27 @@ Changes require `wsl --shutdown` and WSL restart.
 | Container | Image | Host Port | Container Port | Volume | Restart Policy | Layer |
 |-----------|-------|-----------|----------------|--------|----------------|-------|
 | `stochos_postgres` | `postgres:16-alpine` | 5433 | 5432 | `stochos_pg_data` | unless-stopped | Platform |
-| `rstudio_server` | `rocker/tidyverse` | 8787 | 8787 | Project mounts | per compose | Analytics |
-| `shiny_server` | `rocker/shiny-verse` | 3838 | 3838 | App mounts | per compose | Analytics |
+| `analyst_lab_prod_shiny` | `analyst_lab_prod_shiny` | 3838 | 3838 | `/home/analyst1/analyst_lab/shiny_apps/` | unless-stopped | Analytics (Prod) |
+| `analyst_lab_prod_rstudio` | `rocker/tidyverse` | 8787 | 8787 | `/home/analyst1/analyst_lab/` | unless-stopped | Analytics (Prod) |
+| `analyst_lab_prod_rstudio_tyler` | `rocker/tidyverse` | 8788 | 8787 | `/home/analyst1/analyst_lab/` | unless-stopped | Analytics (Prod) |
+| `analyst_lab_prod_rstudio_caitlin` | `rocker/tidyverse` | 8789 | 8787 | `/home/analyst1/analyst_lab/` | unless-stopped | Analytics (Prod) |
+| `shiny_server` | `rocker/shiny-verse` | 3535 | 3838 | `/home/coreychappell/analyst_lab/shiny_apps/` | unless-stopped | Analytics (Dev) |
+| `rstudio_server` | `rocker/tidyverse` | 8585 | 8787 | `/home/coreychappell/analyst_lab/` | unless-stopped | Analytics (Dev) |
+| `rstudio_server_tylercabral` | `rocker/tidyverse` | 8586 | 8787 | `/home/coreychappell/analyst_lab/` | unless-stopped | Analytics (Dev) |
 
 ### Port Allocation Registry
 
 | Port | Service | Layer | Protocol | Notes |
 |------|---------|-------|----------|-------|
 | 3000 | Next.js Platform | Platform | HTTP | Runs on Windows host (not containerized in dev) |
-| 3838 | Shiny Server | Analytics | HTTP | No authentication by default |
-| 5433 | PostgreSQL | Platform | TCP | Deliberately avoids default 5432 |
-| 8787 | RStudio Server | Analytics | HTTP | Password-protected |
+| 3535 | Shiny Server (Dev Sandbox) | Analytics (Dev) | HTTP | Development Shiny server, no authentication |
+| 3838 | Shiny Server (Production) | Analytics (Prod) | HTTP | Production Shiny server, no authentication |
+| 5433 | PostgreSQL | Platform | TCP | Main platform database, avoids default 5432 |
+| 8585 | RStudio Server (Corey Dev) | Analytics (Dev) | HTTP | Corey's sandbox RStudio environment |
+| 8586 | RStudio Server (Tyler Dev) | Analytics (Dev) | HTTP | Tyler's sandbox RStudio environment |
+| 8787 | RStudio Server (Corey Prod) | Analytics (Prod) | HTTP | Corey's production RStudio environment |
+| 8788 | RStudio Server (Tyler Prod) | Analytics (Prod) | HTTP | Tyler's production RStudio environment |
+| 8789 | RStudio Server (Caitlin Prod) | Analytics (Prod) | HTTP | Caitlin's production RStudio environment |
 
 > No ports overlap between the platform and analytics layers.
 

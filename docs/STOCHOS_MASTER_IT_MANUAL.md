@@ -17,8 +17,10 @@ The Stochos ecosystem is composed of three decoupled layers running on a single 
 
 ### 1.2 The Analytics Layer
 * **DuckDB:** Embedded analytical data warehouse. File-based (`/srv/stochos/data/duckdb/stochos_lottery.duckdb`).
-* **Posit (RStudio) Server:** Runs in a Docker container (`rstudio_server` on port 8787).
-* **Shiny Server:** Runs in a Docker container (`shiny_server` on port 3838).
+* **Posit (RStudio) Server (Production):** Runs in Docker containers: Corey's RStudio (`analyst_lab_prod_rstudio` on port 8787), Tyler's RStudio (`analyst_lab_prod_rstudio_tyler` on port 8788), and Caitlin's RStudio (`analyst_lab_prod_rstudio_caitlin` on port 8789).
+* **Posit (RStudio) Server (Development Sandbox):** Runs in Docker containers: Corey's RStudio (`rstudio_server` on port 8585) and Tyler's RStudio (`rstudio_server_tylercabral` on port 8586).
+* **Shiny Server (Production):** Runs in a Docker container (`analyst_lab_prod_shiny` on port 3838).
+* **Shiny Server (Development Sandbox):** Runs in a Docker container (`shiny_server` on port 3535).
 * **Automated Pipelines:** R/Python scripts that extract from external APIs and write to DuckDB.
 
 ### 1.3 The Application Layer (Stochos Platform)
@@ -40,13 +42,20 @@ wsl --list --verbose
 # Verify all containers are UP
 wsl -d Ubuntu-22.04 -- docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
-*Expected: `stochos_postgres`, `rstudio_server`, and `shiny_server` should show 'Up'.*
+*Expected: All 8 containers (`stochos_postgres`, `analyst_lab_prod_shiny`, `analyst_lab_prod_rstudio`, `analyst_lab_prod_rstudio_tyler`, `analyst_lab_prod_rstudio_caitlin`, `shiny_server`, `rstudio_server`, and `rstudio_server_tylercabral`) should show 'Up'.*
 
 ### Step 2: Verify Application Services
 Open a web browser and ping the following:
 * **Next.js Platform:** `http://localhost:3000` (Should show login page)
-* **RStudio Server:** `http://localhost:8787` (Should show Posit login)
-* **Shiny Server:** `http://localhost:3838` (Should show dashboard index)
+* **Production Analytics:**
+  - **Shiny Server (Production):** `http://localhost:3838` (Should show dashboard index)
+  - **RStudio (Corey's Prod):** `http://localhost:8787` (Should show Posit login)
+  - **RStudio (Tyler's Prod):** `http://localhost:8788` (Should show Posit login)
+  - **RStudio (Caitlin's Prod):** `http://localhost:8789` (Should show Posit login)
+* **Development Analytics (Sandbox):**
+  - **Shiny Server (Dev):** `http://localhost:3535` (Should show dashboard index)
+  - **RStudio (Corey's Dev):** `http://localhost:8585` (Should show Posit login)
+  - **RStudio (Tyler's Dev):** `http://localhost:8586` (Should show Posit login)
 
 ---
 
@@ -124,12 +133,23 @@ If orchestrated via Bash (`automate_pipeline.sh`):
 > **Single-Writer Rule:** DuckDB does not support concurrent write sessions. Do not run interactive ETL pipelines in RStudio while the automated Cron/Task Scheduler pipeline is executing, or database locks/corruption will occur. Read-only operations are perfectly safe to run concurrently.
 
 ### 5.4 Self-Healing Watchdog (Automated Recovery)
-To guarantee high availability and self-healing for the R/Shiny and PostgreSQL servers, a Windows Task Scheduler task (`StochosPlatformWatchdog`) runs the PowerShell script `watchdog.ps1` every 5 minutes:
+To guarantee high availability, system persistence, and self-healing for the R/Shiny and PostgreSQL servers, a Windows Task Scheduler task (`StochosPlatformWatchdog`) runs the PowerShell script `watchdog.ps1` every 5 minutes.
+
+#### 1. Operations Performed by Watchdog
 1. **WSL Verification:** Checks if the WSL2 Ubuntu-22.04 VM is active; starts it if stopped.
-2. **Docker Service Verification:** Verifies the `docker` daemon inside WSL2 systemd is running; starts it if stopped.
-3. **Container Verification:** Checks the health of `analyst_lab_shiny_1`, `analyst_lab_rstudio_1`, `analyst_lab_rstudio_tyler_1`, and `stochos_postgres`. Starts or recreates any exited or unresponsive containers.
-4. **Port Health Check:** Performs an active HTTP ping to port 3838 (Shiny Server). If it doesn't respond, it automatically restarts the container.
-5. **Log File:** Logs all checks and recovery actions to `watchdog.log`.
+2. **WSL Keep-Alive Mechanism:** Launches a persistent background keep-alive client process on the Windows host (`wsl.exe -d Ubuntu-22.04 -u root sleep 1000d` launched hidden) to prevent WSL2 from automatically shutting down. This is critical because WSL2 automatically shuts down 60 seconds after the last active `wsl.exe` shell on Windows closes, which would otherwise stop all Docker background servers.
+3. **Docker Service Verification:** Verifies the `docker` daemon inside WSL2 systemd is running; starts it if stopped and waits for it to respond.
+4. **Dynamic Boot Retries:** Reads the WSL system uptime from `/proc/uptime`. If WSL booted recently (uptime < 90 seconds), the script allows up to 9 inspect attempts (45 seconds total) for Docker containers to cold-start before triggering restarts.
+5. **Container Verification:** Evaluates the running state of the active production and development containers:
+   - **Production:** `analyst_lab_prod_shiny`, `analyst_lab_prod_rstudio`, `analyst_lab_prod_rstudio_tyler`, `analyst_lab_prod_rstudio_caitlin`
+   - **Development (Sandbox):** `shiny_server`, `rstudio_server`, `rstudio_server_tylercabral`
+   - **Database:** `stochos_postgres`
+6. **Docker Compose Recreation Workaround:** Due to a Docker Compose v1 (1.29.2) bug (`KeyError: 'ContainerConfig'` when converging against newer Docker Engine versions), Compose renames containers with short-ID prefixes and fails. The watchdog bypasses this by force-deleting project containers (`docker rm -f`) prior to executing `docker-compose up -d`.
+7. **Port Health Checks:** Performs active HTTP requests to:
+   - Port 3838 (Production Shiny): If unresponsive after retries, restarts `analyst_lab_prod_shiny`.
+   - Port 3535 (Development Shiny): If unresponsive after retries, restarts `shiny_server`.
+8. **Next.js Platform Verification:** Checks port 3000 via a non-triggering TCP socket check. If port 3000 is inactive, it kills any zombie processes on port 3000 and restarts the Next.js dev server in a hidden background PowerShell window.
+9. **Log File:** Logs all checks and recovery actions to `watchdog.log`.
 
 ### 5.5 Retailer & Geodata Audit Automation
 

@@ -47,20 +47,22 @@ If you get replies, you're on the network.
 
 ### 2.2 Analytics Dashboards (Shiny)
 
-| Field | Value |
-|-------|-------|
-| **Executive Dashboard** | http://100.79.201.44:3838/executive/ |
-| **Early Warning System** | http://100.79.201.44:3838/ews/ |
+| Environment | URL | Notes |
+|-------------|-----|-------|
+| **Production Dashboards** | http://100.79.201.44:3838/ | Serves live client-ready views (e.g. `/executive`, `/ews`) |
+| **Development Dashboards** | http://100.79.201.44:3535/ | Development sandbox Shiny applications |
 
 No login required — these are read-only analytical dashboards.
 
 ### 2.3 RStudio Server (Data Science)
 
-| Field | Value |
-|-------|-------|
-| **URL** | http://100.79.201.44:8787 |
-| **Username** | analyst1 |
-| **Password** | *(ask Corey for the RStudio password)* |
+| User / Environment | URL | Username | Password |
+|--------------------|-----|----------|----------|
+| **Corey (Production)** | http://100.79.201.44:8787 | `analyst1` | *(ask Corey)* |
+| **Tyler (Production)** | http://100.79.201.44:8788 | `analyst1` | *(ask Corey)* |
+| **Caitlin (Production)** | http://100.79.201.44:8789 | `analyst1` | *(ask Corey)* |
+| **Corey (Development)** | http://100.79.201.44:8585 | `coreychappell` | *(ask Corey)* |
+| **Tyler (Development)** | http://100.79.201.44:8586 | `tylercabral` | *(ask Corey)* |
 
 ---
 
@@ -92,36 +94,50 @@ For full GUI access to the Windows host machine:
 ## Step 4: System Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                 Windows Host (100.79.201.44)         │
-│                                                      │
-│   ┌──────────────────────────────────────────────┐  │
-│   │ Next.js Platform         → localhost:3000     │  │
-│   │ (runs natively on Node.js)                    │  │
-│   └──────────────────────────────────────────────┘  │
-│                                                      │
-│   ┌──────────────────────────────────────────────┐  │
-│   │ WSL2 Ubuntu 22.04 (100.94.253.6)             │  │
-│   │                                               │  │
-│   │   Docker Containers:                          │  │
-│   │   ├─ PostgreSQL 16      → localhost:5433      │  │
-│   │   ├─ Shiny Server       → localhost:3838      │  │
-│   │   └─ RStudio Server     → localhost:8787      │  │
-│   │                                               │  │
-│   │   DuckDB (file-based)                         │  │
-│   │   └─ /srv/stochos/data/duckdb/               │  │
-│   └──────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                      Windows Host (100.79.201.44)                      │
+│                                                                        │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │ Next.js Platform            → localhost:3000                   │   │
+│   │ (runs natively on Node.js)                                     │   │
+│   └────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │ WSL2 Ubuntu 22.04 (100.94.253.6 VM / Keep-Alive process active)│   │
+│   │                                                                │   │
+│   │   Docker Containers:                                           │   │
+│   │   ├─ PostgreSQL (stochos_postgres)       → localhost:5433      │   │
+│   │   │                                                            │   │
+│   │   ├─ Production Stack (/home/analyst1/analyst_lab):            │   │
+│   │   │  ├─ Shiny (analyst_lab_prod_shiny)   → localhost:3838      │   │
+│   │   │  ├─ Corey RStudio (analyst_lab_prod_rstudio) → localhost:8787│   │
+│   │   │  ├─ Tyler RStudio (analyst_lab_prod_rstudio_tyler) → port 8788│   │
+│   │   │  └─ Caitlin RStudio (analyst_lab_prod_rstudio_caitlin) → port 8789│   │
+│   │   │                                                            │   │
+│   │   └─ Development Stack (/home/coreychappell/analyst_lab):      │   │
+│   │      ├─ Shiny (shiny_server)             → localhost:3535      │   │
+│   │      ├─ Corey RStudio (rstudio_server)   → localhost:8585      │   │
+│   │      └─ Tyler RStudio (rstudio_server_tylercabral) → port 8586 │   │
+│   │                                                                │   │
+│   │   DuckDB (file-based database)                                 │   │
+│   │   └─ /srv/stochos/data/duckdb/                                 │   │
+│   └────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Port Map
 
-| Service | Port | Protocol | Host |
-|---------|------|----------|------|
-| Next.js Platform | 3000 | HTTP | Windows |
-| Shiny Server | 3838 | HTTP | Docker/WSL2 |
-| RStudio Server | 8787 | HTTP | Docker/WSL2 |
-| PostgreSQL | 5433 | TCP | Docker/WSL2 |
+| Service | Port | Protocol | Host | Layer |
+|---------|------|----------|------|-------|
+| Next.js Platform | 3000 | HTTP | Windows | Platform |
+| Shiny (Production) | 3838 | HTTP | Docker/WSL2 | Analytics (Prod) |
+| Shiny (Development) | 3535 | HTTP | Docker/WSL2 | Analytics (Dev) |
+| RStudio (Corey Prod) | 8787 | HTTP | Docker/WSL2 | Analytics (Prod) |
+| RStudio (Tyler Prod) | 8788 | HTTP | Docker/WSL2 | Analytics (Prod) |
+| RStudio (Caitlin Prod)| 8789 | HTTP | Docker/WSL2 | Analytics (Prod) |
+| RStudio (Corey Dev) | 8585 | HTTP | Docker/WSL2 | Analytics (Dev) |
+| RStudio (Tyler Dev) | 8586 | HTTP | Docker/WSL2 | Analytics (Dev) |
+| PostgreSQL | 5433 | TCP | Docker/WSL2 | Platform |
 
 ---
 
@@ -153,10 +169,23 @@ docker logs <container_name> --tail 50
 
 ### 5.3 Restart All Docker Services
 
+Because of a known Docker Compose v1 convergence bug, to restart or recreate the R/Shiny services safely, you must delete the existing containers first:
+
+**Production Stack:**
 ```bash
-cd /path/to/docker-compose-directory
-docker compose down
-docker compose up -d
+# SSH into WSL2 and run:
+docker ps -a --filter 'name=analyst_lab_prod' -q | xargs -r docker rm -f
+cd /home/analyst1/analyst_lab
+docker-compose up -d
+```
+
+**Development Stack:**
+```bash
+# SSH into WSL2 and run:
+docker ps -a --filter 'name=shiny_server' -q | xargs -r docker rm -f
+docker ps -a --filter 'name=rstudio_server' -q | xargs -r docker rm -f
+cd /home/coreychappell/analyst_lab
+docker-compose up -d
 ```
 
 ### 5.4 Database Management (PostgreSQL)
@@ -233,6 +262,8 @@ To update or add new packages:
 | PostgreSQL loopback timeout | Node client attempts IPv6 loopback (`::1`). Modify connection string to explicitly use IPv4 loopback `127.0.0.1` (e.g. `127.0.0.1:5433`). |
 | COMSPEC environment error (`ENOENT`) | Windows host has corrupted/altered shell variables. Avoid cmd wrappers: spawn processes like `wsl` directly rather than executing through the shell. |
 | Geodata audit logs / status | Inspect logs in WSL: `cat /srv/stochos/logs/geodata_audit.log` to check nightly progress. |
+| WSL2 stops running / idle sleep | A hidden background process `wsl.exe -d Ubuntu-22.04 -u root sleep 1000d` must run on the Windows host to keep WSL alive. Check if this task/process is active on the host. |
+| docker-compose up fails with KeyError: 'ContainerConfig' | Compose v1 bug. Clean up project containers first via: `docker ps -a --filter 'name=...' -q \| xargs -r docker rm -f` then run `docker-compose up -d`. |
 
 ---
 
