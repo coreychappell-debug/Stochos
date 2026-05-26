@@ -24,6 +24,8 @@ export default async function ContractDetailPage({ params }) {
         include: { lineItem: { select: { description: true } } },
         orderBy: { createdAt: "desc" },
       },
+      purchaseOrders: { orderBy: { createdAt: "desc" } },
+      accessList: { include: { user: { select: { id: true, name: true, email: true } } } },
     },
   });
 

@@ -22,7 +22,8 @@
 | Analytics warehouse | **DuckDB** | `stochos_lottery.duckdb` | R (read), Python (write) |
 | Historical lottery sales facts | **DuckDB** | `fact_lottery_sales_melt`, `ny_daily_sales_fact_enriched` | R (read-only) |
 | Dashboard marts | **DuckDB** | `ny_retailer_map_v2`, `ny_county_summary_v1`, etc. | R/Shiny (read-only) |
-| Retailer master and geocoding | **DuckDB** | `ny_retailer_dim`, `dim_retailers_master` | R (read-only) |
+| Retailer master (CRM/Operational) & geocoding audit cache | **PostgreSQL** | `crm_retailers` table | Synced from DuckDB `dim_retailers` via [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py); updated by nightly audit job |
+| Retailer analytical master | **DuckDB** | `dim_retailers`, `ny_retailer_dim` | R (read-only) |
 | Game dimension | **DuckDB** | `ny_game_dim` | R (read-only) |
 | Modeled economics | **DuckDB** | `v_unified_lottery_truth` | R/Shiny (read-only) |
 | Instant ticket fiscal year plans | **PostgreSQL** | `instant_ticket_plans`, `instant_ticket_scenarios` | Platform API (Prisma) |
@@ -66,7 +67,7 @@
 |---------------|-------------|----------------------|
 | Platform tables (18) | PostgreSQL | `stochos-platform/prisma/schema.prisma` |
 | Warehouse tables (30+) | DuckDB | `Stochos Lottery Data Warehouse - New York Schema Documentation.txt` |
-| Platform seed data | PostgreSQL | `stochos-platform/prisma/seed.js` |
+| Platform seed data & active retailer sync | PostgreSQL | [seed.js](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/seed.js), [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py) |
 | Instant Ticket seed data | PostgreSQL | `stochos-platform/prisma/seed-instant-tickets.js` |
 | Warehouse seed data | DuckDB | Python ingest scripts (`ny_duckdb_refresh.py`) |
 

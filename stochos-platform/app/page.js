@@ -47,7 +47,31 @@ export default async function DashboardPage() {
     li.budgetAmount && li.spentAmount && Number(li.spentAmount) > Number(li.budgetAmount)
   );
 
-  const modules = [
+  const marketingModules = [
+    {
+      href: "/marketing",
+      icon: "📢",
+      title: "Marketing MRM",
+      description: "Multi-channel campaign planning, media placement tracking, and marketing spend attribution.",
+      active: true,
+    },
+    {
+      href: "/instant-tickets",
+      icon: "🎫",
+      title: "Instant Ticket Planning",
+      description: "Fiscal year game planning, vendor pricing matrices, and production order management.",
+      active: true,
+    },
+  ];
+
+  const operationsModules = [
+    {
+      href: "/crm",
+      icon: "🤝",
+      title: "Sales CRM Overlay",
+      description: "Manage lottery retailer accounts, schedule routes, log store visits, and audit expected versus observed equipment.",
+      active: true,
+    },
     {
       href: "/contracts",
       icon: "📋",
@@ -70,24 +94,27 @@ export default async function DashboardPage() {
       active: true,
     },
     {
-      href: "/marketing",
-      icon: "📢",
-      title: "Marketing MRM",
-      description: "Multi-channel campaign planning, media placement tracking, and marketing spend attribution.",
+      href: "/fleet",
+      icon: "🚗",
+      title: "Fleet Management",
+      description: "Manage vehicle fleet tracking, lifecycle milestones, maintenance logs, and straight-line depreciation.",
       active: true,
     },
     {
-      href: "/instant-tickets",
-      icon: "🎫",
-      title: "Instant Ticket Planning",
-      description: "Fiscal year game planning, vendor pricing matrices, and production order management.",
+      href: "/ews",
+      icon: "⚠️",
+      title: "Early Warning System (EWS)",
+      description: "Monitor active weather alerts, earthquake activity, and spatial hazard proximity threats relative to New York lottery retailers.",
       active: true,
     },
+  ];
+
+  const itModules = [
     {
-      href: "/analytics",
-      icon: "📈",
-      title: "Analytics Dashboard",
-      description: "Executive reporting, retailer performance, geographic analysis, and sales forecasting.",
+      href: "/assets",
+      icon: "💻",
+      title: "IT Asset Registry",
+      description: "Inventory IT hardware, software licenses, lifecycle boundaries, and straight-line depreciation.",
       active: true,
     },
   ];
@@ -127,6 +154,19 @@ export default async function DashboardPage() {
             </div>
           )}
 
+          {/* Analytics Highlight Card - Prominently at the top */}
+          <div className="card" style={{ marginBottom: 24, background: "linear-gradient(135deg, var(--card-bg) 0%, var(--surface-3) 100%)", borderLeft: "4px solid var(--blue)" }}>
+            <div className="card-body" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>📈 Analytics & Performance Portal</h3>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Executive reporting, retailer performance, weather hazard EWS alerts, and sales forecasting.</p>
+              </div>
+              <Link href="/analytics" className="btn btn-primary">
+                Open Analytics
+              </Link>
+            </div>
+          </div>
+
           <div className="kpi-grid">
             <div className="kpi-card kpi-blue">
               <div className="kpi-label">Total Contracts</div>
@@ -144,25 +184,64 @@ export default async function DashboardPage() {
               <div className="kpi-subtitle">Draw + Instant games</div>
             </div>
             <div className="kpi-card kpi-purple">
-              <div className="kpi-label">Modules</div>
-              <div className="kpi-value">5 / 6</div>
-              <div className="kpi-subtitle">Active Modules</div>
+              <div className="kpi-label">Active Modules</div>
+              <div className="kpi-value">8</div>
+              <div className="kpi-subtitle">Fully integrated systems</div>
             </div>
           </div>
 
-          <div className="module-grid">
-            {modules.map((mod) => (
-              <Link
-                key={mod.title}
-                href={mod.active ? mod.href : "#"}
-                className={`module-card ${!mod.active ? "disabled" : ""}`}
-              >
-                <div className="module-card-icon">{mod.icon}</div>
-                <h3>{mod.title}</h3>
-                <p>{mod.description}</p>
-                {!mod.active && <span className="coming-soon">Coming Soon</span>}
-              </Link>
-            ))}
+          {/* Grouped Modules */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+            <div>
+              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>📢 Marketing Modules</h3>
+              <div className="module-grid">
+                {marketingModules.map((mod) => (
+                  <Link
+                    key={mod.title}
+                    href={mod.active ? mod.href : "#"}
+                    className={`module-card ${!mod.active ? "disabled" : ""}`}
+                  >
+                    <div className="module-card-icon">{mod.icon}</div>
+                    <h3>{mod.title}</h3>
+                    <p>{mod.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>📋 Operations Modules</h3>
+              <div className="module-grid">
+                {operationsModules.map((mod) => (
+                  <Link
+                    key={mod.title}
+                    href={mod.active ? mod.href : "#"}
+                    className={`module-card ${!mod.active ? "disabled" : ""}`}
+                  >
+                    <div className="module-card-icon">{mod.icon}</div>
+                    <h3>{mod.title}</h3>
+                    <p>{mod.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>💻 Information Technology</h3>
+              <div className="module-grid">
+                {itModules.map((mod) => (
+                  <Link
+                    key={mod.title}
+                    href={mod.active ? mod.href : "#"}
+                    className={`module-card ${!mod.active ? "disabled" : ""}`}
+                  >
+                    <div className="module-card-icon">{mod.icon}</div>
+                    <h3>{mod.title}</h3>
+                    <p>{mod.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </main>

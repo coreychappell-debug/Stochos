@@ -1,10 +1,27 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AnalyticsTabs({ execUrl, ewsUrl }) {
   const [activeTab, setActiveTab] = useState("exec");
+  const [theme, setTheme] = useState("dark");
 
-  const currentUrl = activeTab === "exec" ? execUrl : ewsUrl;
+  useEffect(() => {
+    // Detect starting theme
+    const isLight = document.body.classList.contains("light-theme");
+    setTheme(isLight ? "light" : "dark");
+
+    // Observe changes to document.body's class list
+    const observer = new MutationObserver(() => {
+      const isLightNow = document.body.classList.contains("light-theme");
+      setTheme(isLightNow ? "light" : "dark");
+    });
+
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const baseTabUrl = activeTab === "exec" ? execUrl : ewsUrl;
+  const currentUrl = `${baseTabUrl}?theme=${theme}`;
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -27,12 +44,12 @@ export default function AnalyticsTabs({ execUrl, ewsUrl }) {
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
           }`}
         >
-          FMU Early Warning System
+          Early Warning System (EWS)
         </button>
       </div>
 
-      <div style={{ flex: 1, borderRadius: "8px", overflow: "hidden", border: "1px solid var(--border)", backgroundColor: "#fff", position: "relative" }}>
-        {/* We use a key on the iframe so React completely re-mounts it when the URL changes */}
+      <div style={{ flex: 1, borderRadius: "8px", overflow: "hidden", border: "1px solid var(--border)", backgroundColor: "var(--card-bg)", position: "relative" }}>
+        {/* We use a key on the iframe so React completely re-mounts it when the theme or URL changes */}
         <iframe 
           key={currentUrl}
           src={currentUrl}

@@ -39,6 +39,9 @@ model Jurisdiction {
   users     User[]
   campaigns Campaign[]
   instantTicketPlans InstantTicketPlan[]
+  vehicles  Vehicle[]
+  assets    Asset[]
+  crmRegions CrmRegion[]
 
   @@map("jurisdictions")
 }
@@ -76,6 +79,10 @@ model Vendor {
   address        String?
   certifications String[]      @default([])
   notes          String?
+  taxId          String?       @map("tax_id")
+  website        String?
+  paymentTerms   String?       @map("payment_terms")
+  classification String?       // e.g. "MWBE", "Small Business"
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
@@ -123,6 +130,17 @@ model User {
   approvals        Approval[] @relation("ApprovalApprover")
   auditLogs        AuditLog[]
   campaignsCreated Campaign[]
+  contractAccess   ContractAccess[]
+  vehicles         Vehicle[]
+  assets           Asset[]
+
+  managerId          String?                   @map("manager_id")
+  manager            User?                     @relation("ManagerStaff", fields: [managerId], references: [id])
+  staff              User[]                    @relation("ManagerStaff")
+  crmRoutes          CrmRoute[]                @relation("RouteRepresentative")
+  crmVisits          CrmVisit[]
+  resolvedExceptions CrmDiscrepancyException[] @relation("DiscrepancyResolver")
+  crmImportBatches   CrmImportBatch[]
 
   @@map("users")
 }
@@ -154,11 +172,13 @@ model Contract {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  lineItems  ContractLineItem[]
-  amendments ContractAmendment[]
-  compliance ContractCompliance[]
-  invoices   Invoice[]
-  campaigns  Campaign[]
+  lineItems      ContractLineItem[]
+  amendments     ContractAmendment[]
+  compliance     ContractCompliance[]
+  invoices       Invoice[]
+  campaigns      Campaign[]
+  purchaseOrders PurchaseOrder[]
+  accessList     ContractAccess[]
 
   @@map("contracts")
 }
@@ -482,7 +502,7 @@ model InstantTicketMarketingItem {
   cost         Decimal                @db.Decimal(14, 2)
   category     String?                // 'pos_display', 'digital_campaign', 'insert', 'signage'
   sortOrder    Int                    @default(0) @map("sort_order")
-  createdAt    DateTime               @default(now()) @map("created_at")
+  createdAt     DateTime               @default(now()) @map("created_at")
 
   @@map("instant_ticket_marketing_items")
 }
@@ -499,4 +519,367 @@ model InstantTicketVendorPricing {
 
   @@unique([vendorId, ticketSize, minQuantity])
   @@map("instant_ticket_vendor_pricing")
+}
+
+model PurchaseOrder {
+  id             String    @id @default(uuid())
+  contractId     String    @map("contract_id")
+  contract       Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  poNumber       String    @unique @map("po_number")
+  description    String?
+  amount         Decimal   @db.Decimal(14, 2)
+  status         String    @default("issued") // 'draft', 'issued', 'received', 'rejected', 'disputed', 'closed'
+  issuedDate     DateTime? @map("issued_date") @db.Date
+  deliveryDate   DateTime? @map("delivery_date") @db.Date
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("purchase_orders")
+}
+
+model ContractAccess {
+  id         String   @id @default(uuid())
+  contractId String   @map("contract_id")
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission String   @default("read") // 'read', 'write'
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([contractId, userId])
+  @@map("contract_access")
+}
+
+model Vehicle {
+  id             String        @id @default(uuid())
+  jurisdictionId String        @map("jurisdiction_id")
+  jurisdiction   Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
+  make           String        // "Ford", "Chevrolet"
+  model          String        // "Explorer", "Bolt"
+  year           Int
+  vin            String        @unique
+  licensePlate   String        @map("license_plate")
+  status         String        @default("active") // 'active', 'maintenance', 'retired'
+  mileage        Int           @default(0)
+  lastService    DateTime?     @map("last_service") @db.Date
+  assignedToId   String?       @map("assigned_to_id")
+  assignedTo     User?         @relation(fields: [assignedToId], references: [id])
+  notes          String?       @db.Text
+  disposalDate   DateTime?     @map("disposal_date") @db.Date
+  disposalMethod String?       @map("disposal_method") // 'sold', 'scrapped', 'donated', 'other'
+  salePrice      Decimal?      @map("sale_price") @db.Decimal(10, 2)
+  usefulLifeMonths Int?        @map("useful_life_months") @default(120) // 10 years default
+  usefulLifeMiles  Int?        @map("useful_life_miles") @default(100000) // 100k miles default
+  value          Decimal?      @db.Decimal(10, 2)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@map("vehicles")
+}
+
+model Asset {
+  id             String        @id @default(uuid())
+  jurisdictionId String        @map("jurisdiction_id")
+  jurisdiction   Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
+  assetTag       String        @unique @map("asset_tag") // unique barcode/sticker ID
+  name           String        // "Dell Latitude 5440"
+  category       String        // 'computer', 'mobile', 'scanner', 'peripheral', 'furniture', 'other'
+  serialNumber   String?       @map("serial_number")
+  status         String        @default("available") // 'available', 'assigned', 'repair', 'retired'
+  value          Decimal?      @db.Decimal(10, 2)
+  assignedToId   String?       @map("assigned_to_id")
+  assignedTo     User?         @relation(fields: [assignedToId], references: [id])
+  purchaseDate   DateTime?     @map("purchase_date") @db.Date
+  notes          String?       @db.Text
+  disposalDate   DateTime?     @map("disposal_date") @db.Date
+  disposalMethod String?       @map("disposal_method") // 'sold', 'scrapped', 'donated', 'other'
+  salePrice      Decimal?      @map("sale_price") @db.Decimal(10, 2)
+  usefulLifeMonths Int?        @map("useful_life_months") @default(36) // 3 years default (36 months)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@map("assets")
+}
+
+// =============================================================================
+// CRM / SALES OVERLAY MODELS
+// =============================================================================
+
+model CrmRegion {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  name           String       // e.g., "Region 1 - Metro"
+  code           String       @unique // e.g., "REG-1"
+  createdAt      DateTime     @default(now()) @map("created_at")
+  districts      CrmDistrict[]
+
+  @@map("crm_regions")
+}
+
+model CrmDistrict {
+  id        String     @id @default(uuid())
+  regionId  String     @map("region_id")
+  region    CrmRegion  @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  name      String     // e.g., "District 12 - Long Island"
+  code      String     @unique // e.g., "DIST-12"
+  createdAt DateTime   @default(now()) @map("created_at")
+  routes    CrmRoute[]
+
+  @@map("crm_districts")
+}
+
+model CrmRoute {
+  id         String        @id @default(uuid())
+  districtId String        @map("district_id")
+  district   CrmDistrict   @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  name       String        // e.g., "Route 12A"
+  code       String        @unique
+  repId      String?       @map("rep_id")
+  rep        User?         @relation("RouteRepresentative", fields: [repId], references: [id])
+  createdAt  DateTime      @default(now()) @map("created_at")
+  retailers  CrmRetailer[]
+
+  @@map("crm_routes")
+}
+
+model CrmChainAccount {
+  id           String        @id @default(uuid())
+  name         String        // e.g., "7-Eleven"
+  code         String        @unique // e.g., "CHAIN-711"
+  contactName  String?       @map("contact_name")
+  contactPhone String?       @map("contact_phone")
+  contactEmail String?       @map("contact_email")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  retailers    CrmRetailer[]
+
+  @@map("crm_chain_accounts")
+}
+
+model CrmRetailer {
+  id                String           @id @default(uuid())
+  externalId        String           @unique @map("external_id") // Durable CRM identification key
+  name              String
+  address           String
+  city              String
+  zipCode           String           @map("zip_code")
+  phone             String?
+  status            String           @default("active") // active, inactive, suspended
+  applicationStatus String           @default("approved") @map("application_status") // pending, approved, terminated
+  trainingStatus    String           @default("not_trained") @map("training_status") // not_trained, trained
+  lastVisitDate     DateTime?        @map("last_visit_date")
+  visitCadence      String           @default("weekly") @map("visit_cadence") // weekly, biweekly, monthly
+  routeId           String?          @map("route_id")
+  route             CrmRoute?        @relation(fields: [routeId], references: [id])
+  routeOrder        Int              @default(0) @map("route_order")
+  chainId           String?          @map("chain_id")
+  chain             CrmChainAccount? @relation(fields: [chainId], references: [id])
+  latitude          Float?
+  longitude         Float?
+  geodataBypassed   Boolean          @default(false) @map("geodata_bypassed")
+  geodataStatus     String?          @map("geodata_status")
+  geodataDistance   Float?           @map("geodata_distance")
+  geodataLastChecked DateTime?       @map("geodata_last_checked")
+  geodataHostCorrectionRequested Boolean @default(false) @map("geodata_host_correction_requested")
+  geodataStandardAddress String?     @map("geodata_standard_address")
+  geodataStandardLatitude Float?     @map("geodata_standard_latitude")
+  geodataStandardLongitude Float?    @map("geodata_standard_longitude")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  assignments       CrmAssetAssignment[]
+  visits            CrmVisit[]
+  actionItems       CrmActionItem[]
+  discrepancies     CrmDiscrepancyException[]
+
+  @@map("crm_retailers")
+}
+
+model CrmEquipmentType {
+  id          String     @id @default(uuid())
+  code        String     @unique // e.g., "FLEX-TERMINAL"
+  name        String     // e.g., "FLEX clerk terminal"
+  category    String     // terminal, self_service_terminal, vending_machine, in_lane, peripheral, signage, fixture, infrastructure, security
+  manufacturer String
+  model       String
+  isRegulated Boolean    @default(false) @map("is_regulated")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  assets      CrmAsset[]
+
+  @@map("crm_equipment_types")
+}
+
+model CrmAsset {
+  id                    String               @id @default(uuid())
+  serialNumber          String?              @unique @map("serial_number")
+  assetTag              String?              @unique @map("asset_tag")
+  typeId                String               @map("type_id")
+  type                  CrmEquipmentType     @relation(fields: [typeId], references: [id])
+  status                String               @default("active") // pending_install, active, missing, pending_retrieval, returned, decommissioned, unknown
+  statusReason          String?              @map("status_reason")
+  ownerType             String               @default("lottery_owned") @map("owner_type") // lottery_owned, retailer_owned, vendor_owned, leased, unknown
+  networkRequired       Boolean              @default(false) @map("network_required")
+  powerRequired         Boolean              @default(false) @map("power_required")
+  supportsCashless      Boolean              @default(false) @map("supports_cashless")
+  supportsTicketCheck   Boolean              @default(false) @map("supports_ticket_check")
+  supportsDrawGames     Boolean              @default(false) @map("supports_draw_games")
+  supportsInstantGames  Boolean              @default(false) @map("supports_instant_games")
+  warrantyStartDate     DateTime?            @map("warranty_start_date") @db.Date
+  warrantyEndDate       DateTime?            @map("warranty_end_date") @db.Date
+  notes                 String?              @db.Text
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  assignments           CrmAssetAssignment[]
+
+  @@map("crm_assets")
+}
+
+model CrmAssetAssignment {
+  id             String          @id @default(uuid())
+  retailerId     String          @map("retailer_id")
+  retailer       CrmRetailer     @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  assetId        String          @map("asset_id")
+  asset          CrmAsset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  placementZone  String          @default("service_counter") @map("placement_zone") // queue_line, customer_service, service_counter, front_end, entry_lobby, travel_plaza_concourse, back_office, other
+  installDate    DateTime?       @map("install_date") @db.Date
+  removalDate    DateTime?       @map("removal_date") @db.Date
+  sourceSystem   String          @default("manual_upload") @map("source_system") // api_read_only_source, vendor_export, manual_upload, survey_import, field_audit
+  sourceAssetKey String?         @map("source_asset_key") // external primary identifier from upstream API
+  integrationMode String         @default("manual_upload") @map("integration_mode") // api_read_only, vendor_export, manual_upload
+  batchId        String?         @map("batch_id")
+  batch          CrmImportBatch? @relation(fields: [batchId], references: [id])
+  rowProvenance  String?         @map("row_provenance")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  lastVerifiedAt DateTime?       @map("last_verified_at")
+
+  verifications  CrmAssetVerification[]
+  discrepancies  CrmDiscrepancyException[]
+
+  @@map("crm_asset_assignments")
+}
+
+model CrmImportBatch {
+  id           String               @id @default(uuid())
+  domain       String               // retailer_master, user_territory, equipment_catalog, equipment_assignment
+  fileName     String               @map("file_name")
+  status       String               @default("success") // success, failed
+  importedById String               @map("imported_by_id")
+  importedBy   User                 @relation(fields: [importedById], references: [id])
+  rowCount     Int                  @map("row_count")
+  errorCount   Int                  @map("error_count")
+  changes      Json?                @default("{}")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  assignments  CrmAssetAssignment[]
+
+  @@map("crm_import_batches")
+}
+
+model CrmVisit {
+  id            String      @id @default(uuid())
+  retailerId    String      @map("retailer_id")
+  retailer      CrmRetailer @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id])
+  visitDate     DateTime    @map("visit_date") @db.Date
+  status        String      @default("completed") // planned, completed
+  checkInTime   DateTime?   @map("check_in_time")
+  checkOutTime  DateTime?   @map("check_out_time")
+  syncStatus    String      @default("synced") @map("sync_status") // queued, synced
+  notes         String?     @db.Text
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  coaching      CrmCoaching?
+  merchandising CrmMerchandising?
+  process       CrmProcessImprovement?
+  verifications CrmAssetVerification[]
+  actionItems   CrmActionItem[]
+  exceptions    CrmDiscrepancyException[]
+
+  @@map("crm_visits")
+}
+
+model CrmCoaching {
+  id                    String   @id @default(uuid())
+  visitId               String   @unique @map("visit_id")
+  visit                 CrmVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  askForTheSaleTrained  Boolean  @default(false) @map("ask_for_the_sale_trained")
+  personnelTrainedCount Int      @default(0) @map("personnel_trained_count")
+  coachingFeedback      String?  @map("coaching_feedback") @db.Text
+  actionPlan            String?  @map("action_plan") @db.Text
+
+  @@map("crm_coaching_logs")
+}
+
+model CrmMerchandising {
+  id                       String   @id @default(uuid())
+  visitId                  String   @unique @map("visit_id")
+  visit                    CrmVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  dispensersCleanAndFilled Boolean  @default(false) @map("dispensers_clean_and_filled")
+  posSignageVisible        Boolean  @default(false) @map("pos_signage_visible")
+  ticketInventoryAdequate  Boolean  @default(false) @map("ticket_inventory_adequate")
+  merchandisingFeedback    String?  @map("merchandising_feedback") @db.Text
+
+  @@map("crm_merchandising_logs")
+}
+
+model CrmProcessImprovement {
+  id                   String   @id @default(uuid())
+  visitId              String   @unique @map("visit_id")
+  visit                CrmVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  salesTrendReviewed   Boolean  @default(false) @map("sales_trend_reviewed")
+  outOfStockPrevented  Boolean  @default(false) @map("out_of_stock_prevented")
+  optimalLayoutApplied Boolean  @default(false) @map("optimal_layout_applied")
+  improvementFeedback  String?  @map("improvement_feedback") @db.Text
+  targetSalesGrowth    Decimal? @map("target_sales_growth") @db.Decimal(5, 2)
+
+  @@map("crm_process_improvement_logs")
+}
+
+model CrmAssetVerification {
+  id                 String             @id @default(uuid())
+  visitId            String             @map("visit_id")
+  visit              CrmVisit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  assetAssignmentId  String             @map("asset_assignment_id")
+  expectedAssignment CrmAssetAssignment @relation(fields: [assetAssignmentId], references: [id], onDelete: Cascade)
+  observedStatus     String             // present, missing, incorrect_placement
+  isDisputed         Boolean            @default(false) @map("is_disputed")
+  notes              String?            @db.Text
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  @@map("crm_asset_verifications")
+}
+
+model CrmDiscrepancyException {
+  id                String              @id @default(uuid())
+  retailerId        String              @map("retailer_id")
+  retailer          CrmRetailer         @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  visitId           String?             @map("visit_id")
+  visit             CrmVisit?           @relation(fields: [visitId], references: [id])
+  assetAssignmentId String?             @map("asset_assignment_id")
+  expectedAssignment CrmAssetAssignment? @relation(fields: [assetAssignmentId], references: [id])
+  title             String              // e.g. "Missing Flex Terminal serial SN-4819"
+  description       String              @db.Text
+  status            String              @default("open") // open, resolved
+  resolvedAt        DateTime?           @map("resolved_at")
+  resolvedById      String?             @map("resolved_by_id")
+  resolvedBy        User?               @relation("DiscrepancyResolver", fields: [resolvedById], references: [id])
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@map("crm_discrepancy_exceptions")
+}
+
+model CrmActionItem {
+  id          String      @id @default(uuid())
+  retailerId  String      @map("retailer_id")
+  retailer    CrmRetailer @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  visitId     String?     @map("visit_id")
+  visit       CrmVisit?   @relation(fields: [visitId], references: [id])
+  title       String
+  description String      @db.Text
+  status      String      @default("open") // open, completed
+  dueDate     DateTime?   @map("due_date") @db.Date
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@map("crm_action_items")
 }

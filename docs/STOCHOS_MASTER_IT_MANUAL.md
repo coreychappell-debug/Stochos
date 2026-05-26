@@ -131,7 +131,71 @@ To guarantee high availability and self-healing for the R/Shiny and PostgreSQL s
 4. **Port Health Check:** Performs an active HTTP ping to port 3838 (Shiny Server). If it doesn't respond, it automatically restarts the container.
 5. **Log File:** Logs all checks and recovery actions to `watchdog.log`.
 
+### 5.5 Retailer & Geodata Audit Automation
+
+To support operational geodata validation and synchronization of active retailers, two automated backend processes run inside the environment:
+
+#### 1. Active Retailer Synchronization
+* **Script:** [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py) inside the `stochos-platform/prisma` directory.
+* **Function:** Batch-syncs all **13,043** active New York lottery retailers from the DuckDB analytical warehouse (`/srv/stochos/data/duckdb/stochos_lottery.duckdb`) into the PostgreSQL `crm_retailers` table.
+* **Orchestration:** Integrated into [seed.js](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/seed.js). Executing `npx prisma db seed` automatically runs the Python synchronization script within the WSL context.
+* **Host Compatibility Override:** Bypasses host Windows `COMSPEC` path corruption by spawning the `wsl` process directly (avoiding the cmd.exe execution wrapper).
+
+#### 2. Nightly Geodata Mismatch Audit Job
+* **Script:** [geodata_audit.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/jobs/geodata_audit.py) located in `/srv/stochos/jobs/` inside WSL.
+* **Function:** Validates retailer addresses against the US Census Bureau Geocoding API.
+  - **Batch Limit:** Processes up to **1,000** unchecked or outdated stores per run (prioritizing null or older checks) to stay within API bounds.
+  - **Throttling:** Enforces a `200ms` rate-limit delay between requests and features a 3-attempt exponential backoff retry.
+  - **Verification:** Computes distance differences. Coordinates differing by >`150 meters` are flagged as `mismatch`. Addresses not found are marked `unmatched`.
+* **Schedule (Cron):** Runs nightly at 3:00 AM inside the Ubuntu WSL2 crontab:
+  ```cron
+  0 3 * * * /usr/bin/python3 /srv/stochos/jobs/geodata_audit.py >> /srv/stochos/logs/geodata_audit.log 2>&1
+  ```
+
+#### 3. Client On-Demand Safeguards
+* **Banner Notice:** The Geodata Audit Center displays the status of the nightly cron run.
+* **Browser Rate Limiting:** Manually triggered scans from the web interface target only the filtered view and are strictly capped at a maximum of **50** retailers per scan. If the queue is larger, it prompts confirmation and caps execution to the first 50 stores to protect browser thread execution and external API limits.
+
+### 5.6 System Status & Geodata Email Reports
+
+To keep the administration team (Corey, Tyler, and Cynthia) updated on the health and stats of the platform, an automated status reporter job runs inside WSL and distributes reports via email.
+
+#### 1. Configuration & SMTP Credentials
+SMTP configuration is managed via the secure environment variables in the platform's `.env.local` or `.env` files:
+```env
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="coreychappell@thestochos.com"
+SMTP_PASS="zogycdzkaktwmkbk"
+REPORT_RECIPIENTS="coreychappell@thestochos.com,tylercabral83@gmail.com,cchappell404@gmail.com"
+```
+*(Note: These credentials align with the official thestochos.com Google Workspace domain using a generated Google App Password for security.)*
+
+#### 2. Status Reporter Daemon
+* **Script:** [status_reporter.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/jobs/status_reporter.py) (copied to `/srv/stochos/jobs/status_reporter.py` in WSL).
+* **Operation:**
+  - Connects to PostgreSQL to compile active retailer geocoding counts (Verified, Mismatched, Unmatched, Bypassed, Pending Host Updates).
+  - Parses the last 40 lines of the Windows watchdog log (`watchdog.log`) to check for recent container crashes, restarts, or warnings.
+  - Parses the `/srv/stochos/logs/geodata_audit.log` log to check for recent nightly job runs or API failures.
+  - Compiles the metrics into a polished, responsive HTML email dashboard.
+  - Relays the email securely via Google Workspace TLS SMTP on port 587.
+
+#### 3. Automation Schedule
+The status report runs weekly on **Monday mornings at 8:00 AM** via the Ubuntu WSL2 crontab:
+```cron
+0 8 * * 1 /usr/bin/python3 /srv/stochos/jobs/status_reporter.py >> /srv/stochos/logs/status_reporter.log 2>&1
+```
+
+#### 4. Manual Testing
+To run a manual test and trigger a status report email immediately:
+```bash
+wsl -d Ubuntu-22.04 python3 /srv/stochos/jobs/status_reporter.py
+```
+Check `/srv/stochos/logs/status_reporter.log` inside WSL to review execution logs.
+
 ---
+
+
 
 ## 6. Dashboard Deployment & Scaling
 
@@ -274,9 +338,19 @@ npm run dev
 npm run build
 npm start
 ```
-
 > [!NOTE]
 > No Docker or WSL2 involvement. The Next.js app runs natively on Windows.
+
+#### Troubleshooting Host Execution
+
+* **PostgreSQL Loopback Resolution (IPv6 localhost bug)**: 
+  Node.js client runners on Windows may default to resolving `localhost` via IPv6 (`::1`), which PostgreSQL in WSL2 does not listen on by default. If connection timeouts occur:
+  - **Fix:** Explicitly override the database connection host string to IPv4 loopback `127.0.0.1` (e.g., `postgresql://stochos:stochos_dev_2026@127.0.0.1:5433/stochos_platform`).
+
+* **COMSPEC Execution Failures (cmd.exe missing/incorrect)**:
+  On Windows hosts where the `COMSPEC` environment variable has been corrupted or points to a non-cmd.exe binary (e.g., a Python scripts directory):
+  - **Symptom:** Command spawning via Node's `exec` or `execSync` fails with `ENOENT` or execution crashes when attempting to run shell processes.
+  - **Fix:** Avoid shell-wrapped spawns. Spawn commands directly (e.g., in Node, use `spawnSync('wsl', ['python3', ...])` with `shell: false` or bypass shell wrappers entirely).
 
 ---
 

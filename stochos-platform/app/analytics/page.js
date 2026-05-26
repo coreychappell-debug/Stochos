@@ -18,6 +18,8 @@ export default async function AnalyticsPage() {
   const execUrl = process.env.SHINY_EXEC_URL || "http://100.94.253.6:3838/executive";
   const ewsUrl = process.env.SHINY_EWS_URL || "http://100.94.253.6:3838/ews";
 
+  console.log("DEBUG SHINY PATHS:", { execUrl, ewsUrl, rawExec: process.env.SHINY_EXEC_URL });
+
   return (
     <AppShell>
       <div className="page-header" style={{ borderBottom: "none", paddingBottom: "16px" }}>

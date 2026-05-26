@@ -43,6 +43,7 @@ export default function ContractListClient({ initialContracts }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [expiryFilter, setExpiryFilter] = useState("all");
 
   const filtered = useMemo(() => {
     return initialContracts.filter((c) => {
@@ -56,9 +57,24 @@ export default function ContractListClient({ initialContracts }) {
         )
           return false;
       }
+      if (expiryFilter !== "all") {
+        if (!c.endDate) return false;
+        const now = new Date();
+        const diffTime = new Date(c.endDate) - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (expiryFilter === "expired") {
+          if (diffDays > 0) return false;
+        } else if (expiryFilter === "3_months") {
+          if (diffDays <= 0 || diffDays > 90) return false;
+        } else if (expiryFilter === "6_months") {
+          if (diffDays <= 0 || diffDays > 180) return false;
+        } else if (expiryFilter === "12_months") {
+          if (diffDays <= 0 || diffDays > 365) return false;
+        }
+      }
       return true;
     });
-  }, [initialContracts, search, statusFilter, typeFilter]);
+  }, [initialContracts, search, statusFilter, typeFilter, expiryFilter]);
 
   return (
     <>
@@ -80,6 +96,18 @@ export default function ContractListClient({ initialContracts }) {
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
+        </select>
+        <select
+          className="form-select"
+          style={{ width: 165 }}
+          value={expiryFilter}
+          onChange={(e) => setExpiryFilter(e.target.value)}
+        >
+          <option value="all">All Expiry Dates</option>
+          <option value="3_months">Expiring &lt; 3 Mos</option>
+          <option value="6_months">Expiring &lt; 6 Mos (Bid)</option>
+          <option value="12_months">Expiring &lt; 12 Mos</option>
+          <option value="expired">Expired</option>
         </select>
         <select
           className="form-select"
@@ -155,7 +183,34 @@ export default function ContractListClient({ initialContracts }) {
                         <span className="text-muted text-small">No budget set</span>
                       )}
                     </td>
-                    <td className="muted">{formatDate(c.endDate)}</td>
+                    <td>
+                      <span className="muted">{formatDate(c.endDate)}</span>
+                      {(() => {
+                        if (!c.endDate || c.status === "completed" || c.status === "terminated") return null;
+                        const now = new Date();
+                        const diffTime = new Date(c.endDate) - now;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 0) {
+                          return <span className="badge badge-expired" style={{ marginLeft: 8, fontSize: 10 }}>Expired</span>;
+                        } else if (diffDays <= 180) {
+                          return (
+                            <span 
+                              className="badge badge-warning" 
+                              style={{ 
+                                marginLeft: 8, 
+                                fontSize: 10,
+                                background: "rgba(255, 209, 102, 0.15)",
+                                color: "var(--gold)"
+                              }}
+                              title="Less than 6 months remaining. Recommended time to initiate competitive bidding."
+                            >
+                              ⚠️ Bid Cycle Required
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </td>
                     <td className="muted">{c._count?.lineItems || 0}</td>
                   </tr>
                 );

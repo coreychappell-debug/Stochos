@@ -209,7 +209,9 @@ To update or add new packages:
 |------|-------|
 | Platform source code | `C:\Users\corey\Downloads\Corey - Code Stuff\R Server Project folder\New York Scripts and Process\stochos-platform\` |
 | Database schema | `stochos-platform\prisma\schema.prisma` |
-| Seed scripts | `stochos-platform\prisma\seed.js`, `seed-instant-tickets.js` |
+| Seed & Sync scripts | [seed.js](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/seed.js), [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py) |
+| Geodata audit script | [geodata_audit.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/jobs/geodata_audit.py) |
+| Geodata audit logs | `/srv/stochos/logs/geodata_audit.log` (on WSL server) |
 | IT Manual | `docs\STOCHOS_MASTER_IT_MANUAL.md` |
 | System of Record | `docs\SYSTEM_OF_RECORD.md` |
 | Shiny apps (Ubuntu) | `/home/analyst1/analyst_lab/shiny_apps/` |
@@ -228,6 +230,9 @@ To update or add new packages:
 | "Package not found" in Shiny | Add to Dockerfile.shiny and rebuild: see §5.7 above |
 | PostgreSQL connection refused | Check container is running: `docker ps`, restart if needed |
 | DuckDB locked | Only one write session allowed. Kill any stuck R/Python process |
+| PostgreSQL loopback timeout | Node client attempts IPv6 loopback (`::1`). Modify connection string to explicitly use IPv4 loopback `127.0.0.1` (e.g. `127.0.0.1:5433`). |
+| COMSPEC environment error (`ENOENT`) | Windows host has corrupted/altered shell variables. Avoid cmd wrappers: spawn processes like `wsl` directly rather than executing through the shell. |
+| Geodata audit logs / status | Inspect logs in WSL: `cat /srv/stochos/logs/geodata_audit.log` to check nightly progress. |
 
 ---
 

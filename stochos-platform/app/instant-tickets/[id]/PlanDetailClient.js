@@ -1,9 +1,30 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function PlanDetailClient({ plan, stats }) {
   const [tab, setTab] = useState("editor");
+  const [saving, setSaving] = useState(false);
+  const router = useRouter();
+
+  const handleUpdateStatus = async (newStatus) => {
+    if (!confirm(`Change plan status to ${newStatus}?`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/instant-tickets/plans/${plan.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update plan status");
+      router.refresh();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const STATUS_COLORS = {
     planned: "#6b7280", ordered: "#f59e0b", in_production: "#3b82f6",
@@ -43,6 +64,25 @@ export default function PlanDetailClient({ plan, stats }) {
                 {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
               </span>
             </p>
+          </div>
+          <div>
+            {plan.status === "approved" ? (
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => handleUpdateStatus("draft")}
+                disabled={saving}
+              >
+                Revoke Approval / Mark as Draft
+              </button>
+            ) : (
+              <button 
+                className="btn btn-primary" 
+                onClick={() => handleUpdateStatus("approved")}
+                disabled={saving}
+              >
+                ✓ Approve Plan
+              </button>
+            )}
           </div>
         </div>
       </div>

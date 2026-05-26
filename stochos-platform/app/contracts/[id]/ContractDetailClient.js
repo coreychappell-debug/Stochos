@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -62,6 +62,77 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
   const [showAddInvoice, setShowAddInvoice] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showAddPO, setShowAddPO] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`/api/contracts/${contract.id}/access`);
+        if (res.ok) {
+          const data = await res.json();
+          setAllUsers(data.allUsers || []);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchUsers();
+  }, [contract.id]);
+
+  const handleAddPO = async (e) => {
+    e.preventDefault(); setSaving(true);
+    const form = new FormData(e.target);
+    await fetch(`/api/contracts/${contract.id}/purchase-orders`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        poNumber: form.get("poNumber"),
+        description: form.get("description"),
+        amount: parseFloat(form.get("amount")),
+        status: form.get("status"),
+        issuedDate: form.get("issuedDate") || null,
+        deliveryDate: form.get("deliveryDate") || null,
+        notes: form.get("notes"),
+      }),
+    });
+    setSaving(false); setShowAddPO(false); router.refresh();
+  };
+
+  const handleUpdatePOStatus = async (poId, newStatus) => {
+    setSaving(true);
+    await fetch(`/api/contracts/${contract.id}/purchase-orders/${poId}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    setSaving(false); router.refresh();
+  };
+
+  const handleDeletePO = async (poId) => {
+    if (!confirm("Are you sure you want to delete this Purchase Order?")) return;
+    setSaving(true);
+    await fetch(`/api/contracts/${contract.id}/purchase-orders/${poId}`, { method: "DELETE" });
+    setSaving(false); router.refresh();
+  };
+
+  const handleShareContract = async (e) => {
+    e.preventDefault(); setSaving(true);
+    const form = new FormData(e.target);
+    await fetch(`/api/contracts/${contract.id}/access`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: form.get("userId"),
+        permission: form.get("permission"),
+      }),
+    });
+    setSaving(false); router.refresh();
+  };
+
+  const handleRevokeAccess = async (userId) => {
+    if (!confirm("Revoke access for this user?")) return;
+    setSaving(true);
+    await fetch(`/api/contracts/${contract.id}/access?userId=${userId}`, { method: "DELETE" });
+    setSaving(false); router.refresh();
+  };
 
   const handlePrint = async () => {
     setShowExport(false);
@@ -177,8 +248,10 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "deliverables", label: `Deliverables (${contract.lineItems?.length || 0})` },
+    { key: "purchase_orders", label: `Purchase Orders (${contract.purchaseOrders?.length || 0})` },
     { key: "invoices", label: `Invoices (${contract.invoices?.length || 0})` },
     { key: "documents", label: `Documents (${contract.compliance?.length || 0})` },
+    { key: "sharing", label: `Sharing (${contract.accessList?.length || 0})` },
     { key: "audit", label: "Audit History" },
   ];
 
@@ -445,6 +518,138 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
                         <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" onClick={() => handleDeleteDoc(doc.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
                       </tr>);
                     })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === "purchase_orders" && (
+          <div className="card">
+            <div className="card-header">
+              <h3>Purchase Orders</h3>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAddPO(!showAddPO)}>
+                {showAddPO ? "Cancel" : "+ Add Purchase Order"}
+              </button>
+            </div>
+            <div className="card-body">
+              {showAddPO && (
+                <form onSubmit={handleAddPO} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, marginBottom: 20, border: "1px solid var(--border)" }}>
+                  <div className="form-row">
+                    <div className="form-group"><label className="form-label">PO Number</label><input name="poNumber" className="form-input" required placeholder="PO-2026-001" /></div>
+                    <div className="form-group"><label className="form-label">Amount ($)</label><input name="amount" className="form-input" type="number" step="0.01" min="0" required /></div>
+                    <div className="form-group"><label className="form-label">Status</label>
+                      <select name="status" className="form-select">
+                        <option value="issued">Issued</option>
+                        <option value="draft">Draft</option>
+                        <option value="received">Received</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="disputed">Disputed</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group"><label className="form-label">Issued Date</label><input name="issuedDate" type="date" className="form-input" defaultValue={new Date().toISOString().split('T')[0]} /></div>
+                    <div className="form-group"><label className="form-label">Delivery Date</label><input name="deliveryDate" type="date" className="form-input" /></div>
+                  </div>
+                  <div className="form-group"><label className="form-label">Description / Scope</label><input name="description" className="form-input" placeholder="Q1 deliverables purchase commitment" /></div>
+                  <div className="form-group"><label className="form-label">Notes</label><textarea name="notes" className="form-input" rows="2" style={{ width: "100%", background: "var(--surface-overlay)", color: "var(--text)" }} /></div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Saving..." : "Save Purchase Order"}</button>
+                </form>
+              )}
+              {(contract.purchaseOrders || []).length === 0 ? (
+                <div className="empty-state"><div className="empty-state-icon">📝</div><h3>No Purchase Orders yet</h3><p>Manage official procurement commitments and lifecycle statuses here.</p></div>
+              ) : (
+                <table className="data-table">
+                  <thead><tr><th>PO Number</th><th>Description</th><th>Amount</th><th>Issued Date</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {contract.purchaseOrders.map((po) => (
+                      <tr key={po.id}>
+                        <td style={{ fontWeight: 600 }}>{po.poNumber}</td>
+                        <td>{po.description || "—"}</td>
+                        <td>{fmt$(po.amount)}</td>
+                        <td className="muted">{fmtDate(po.issuedDate)}</td>
+                        <td>
+                          <span className={`badge badge-${po.status === "issued" ? "active" : po.status === "received" ? "active" : po.status === "disputed" ? "submitted" : po.status === "rejected" ? "expired" : "inactive"}`}>
+                            {po.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="flex gap-2">
+                            <select 
+                              className="form-select form-select-sm" 
+                              style={{ width: 110, padding: "2px 4px", fontSize: 12 }} 
+                              defaultValue={po.status}
+                              onChange={(e) => handleUpdatePOStatus(po.id, e.target.value)}
+                              disabled={saving}
+                            >
+                              <option value="draft">Draft</option>
+                              <option value="issued">Issued</option>
+                              <option value="received">Received</option>
+                              <option value="rejected">Rejected</option>
+                              <option value="disputed">Disputed</option>
+                              <option value="closed">Closed</option>
+                            </select>
+                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeletePO(po.id)} style={{ padding: "2px 6px" }}>🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === "sharing" && (
+          <div className="card">
+            <div className="card-header">
+              <h3>Resource Sharing (ACL)</h3>
+            </div>
+            <div className="card-body">
+              <form onSubmit={handleShareContract} className="flex gap-2 items-end mb-6" style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, border: "1px solid var(--border)", marginBottom: 20 }}>
+                <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
+                  <label className="form-label">Employee / User</label>
+                  <select name="userId" className="form-select" required>
+                    <option value="">Select user to share with...</option>
+                    {allUsers.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label className="form-label">Permission</label>
+                  <select name="permission" className="form-select">
+                    <option value="read">Read Only</option>
+                    <option value="write">Write/Edit</option>
+                  </select>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: "8px 16px" }}>Grant Access</button>
+              </form>
+
+              {(contract.accessList || []).length === 0 ? (
+                <div className="empty-state"><div className="empty-state-icon">👥</div><h3>Not shared yet</h3><p>This contract is currently open to all team members with contracts-unit clearance. Share it to restrict visibility.</p></div>
+              ) : (
+                <table className="data-table">
+                  <thead><tr><th>Name</th><th>Email</th><th>Permission Level</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {contract.accessList.map((access) => (
+                      <tr key={access.id}>
+                        <td style={{ fontWeight: 500 }}>{access.user?.name}</td>
+                        <td className="muted">{access.user?.email}</td>
+                        <td>
+                          <span className="badge badge-submitted">
+                            {access.permission === "write" ? "Write / Edit" : "Read Only"}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleRevokeAccess(access.user?.id)} style={{ padding: "2px 6px" }}>Revoke ✕</button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}

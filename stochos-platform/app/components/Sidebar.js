@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
@@ -8,22 +9,31 @@ const navItems = [
     section: "Platform",
     items: [
       { href: "/", label: "Dashboard", icon: "📊" },
+      { href: "/analytics", label: "Analytics", icon: "📈" },
+    ],
+  },
+  {
+    section: "Marketing",
+    items: [
+      { href: "/marketing", label: "Marketing MRM", icon: "📢" },
+      { href: "/instant-tickets", label: "Instant Tickets", icon: "🎫" },
     ],
   },
   {
     section: "Operations",
     items: [
+      { href: "/crm", label: "CRM (Sales)", icon: "🤝" },
       { href: "/contracts", label: "Contracts", icon: "📋" },
+      { href: "/fleet", label: "Fleet", icon: "🚗" },
       { href: "/vendors", label: "Vendors", icon: "🏢" },
       { href: "/products", label: "Products", icon: "🎰" },
+      { href: "/ews", label: "Early Warning System (EWS)", icon: "⚠️" },
     ],
   },
   {
-    section: "Modules",
+    section: "Information Technology",
     items: [
-      { href: "/marketing", label: "Marketing MRM", icon: "📢" },
-      { href: "/instant-tickets", label: "Instant Tickets", icon: "🎫" },
-      { href: "/analytics", label: "Analytics", icon: "📈" },
+      { href: "/assets", label: "IT Assets", icon: "💻" },
     ],
   },
 ];
@@ -31,6 +41,28 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [theme, setThemeState] = useState("dark");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    setThemeState(savedTheme);
+    if (savedTheme === "light") {
+      document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setThemeState(newTheme);
+    localStorage.setItem("theme", newTheme);
+    if (newTheme === "light") {
+      document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
+    }
+  };
 
   const user = session?.user;
   const initials = user?.name
@@ -71,6 +103,29 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
+        <button 
+          onClick={toggleTheme}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            marginBottom: "12px",
+            backgroundColor: "var(--surface-3)",
+            border: "1px solid var(--border)",
+            borderRadius: "6px",
+            color: "var(--text)",
+            cursor: "pointer",
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            transition: "all var(--transition)"
+          }}
+          className="theme-toggle-btn"
+        >
+          {theme === "dark" ? "☀️ Day Mode" : "🌙 Night Mode"}
+        </button>
+
         <div className="sidebar-user">
           <div className="sidebar-user-avatar">{initials}</div>
           <div className="sidebar-user-info">

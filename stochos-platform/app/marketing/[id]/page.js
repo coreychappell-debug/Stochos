@@ -36,11 +36,23 @@ export default async function CampaignDetailPage({ params }) {
   const products = await prisma.product.findMany({ orderBy: { name: "asc" } });
   const vendors = await prisma.vendor.findMany({ where: { status: "active" }, orderBy: { name: "asc" } });
 
+  const serialize = (obj) =>
+    JSON.parse(
+      JSON.stringify(obj, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+
   return (
     <div className="app-layout">
       <Sidebar />
       <main className="main-content">
-        <CampaignDetailClient campaign={campaign} auditLog={auditLog} products={products} vendors={vendors} />
+        <CampaignDetailClient 
+          campaign={serialize(campaign)} 
+          auditLog={serialize(auditLog)} 
+          products={serialize(products)} 
+          vendors={serialize(vendors)} 
+        />
       </main>
     </div>
   );
