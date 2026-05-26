@@ -88,5 +88,42 @@ if (-not $composeNeeded) {
     }
 }
 
+# 6. Check if Next.js port 3000 is responding
+$nextUrl = "http://localhost:3000/"
+$nextResponding = $false
+try {
+    $response = Invoke-WebRequest -Uri $nextUrl -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+    $nextResponding = $true
+    Log-Message "[OK] Next.js platform is responding on port 3000."
+} catch {
+    Log-Message "[WARNING] Next.js platform is NOT responding on port 3000. Attempting to start it..."
+}
+
+if (-not $nextResponding) {
+    # 6.1 Clean up any hung Next.js processes on port 3000
+    try {
+        $connections = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+        if ($connections) {
+            $pids = $connections | Select-Object -ExpandProperty OwningProcess -Unique
+            foreach ($procId in $pids) {
+                Log-Message "  -> Killing zombie process ID: $procId on port 3000"
+                Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+            }
+            Start-Sleep -Seconds 2
+        }
+    } catch {
+        Log-Message "  [WARNING] Failed to clean up port 3000 processes: $_"
+    }
+
+    # 6.2 Start Next.js in a hidden background window
+    $nextDir = "C:\Users\corey\Downloads\Corey - Code Stuff\R Server Project folder\New York Scripts and Process\stochos-platform"
+    if (Test-Path $nextDir) {
+        Start-Process powershell.exe -WorkingDirectory $nextDir -ArgumentList "-WindowStyle Hidden -Command npm run dev" -PassThru | Out-Null
+        Log-Message "[OK] Next.js platform dev server started in the background."
+    } else {
+        Log-Message "[ERROR] Next.js directory not found at: $nextDir"
+    }
+}
+
 Log-Message "Stochos Watchdog check complete."
 Log-Message "----------------------------------------"
