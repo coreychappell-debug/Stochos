@@ -95,7 +95,7 @@ if (!is.null(nws_data) && nrow(nws_data) > 0) {
 
 # --- USGS Earthquakes Ingestion ---
 message("\nProcessing source: usgs_earthquakes")
-usgs_url <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson"
+usgs_url <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson"
 res_eq <- tryCatch({
   GET(usgs_url)
 }, error = function(e) NULL)

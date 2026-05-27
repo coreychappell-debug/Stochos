@@ -55,6 +55,9 @@ SELECT
     (ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 15000) AS within_buffer,
     CASE 
         -- WEATHER / NWS
+        -- Escalated damaging weather events (Flood, Tsunami, Hurricane)
+        WHEN e.hazard_type = 'weather' AND (e.event_name ILIKE '%Flood%' OR e.event_name ILIKE '%Tsunami%' OR e.event_name ILIKE '%Hurricane%') AND ST_Intersects(ST_Point(r.longitude, r.latitude), e.geom) THEN 'CRITICAL'
+        WHEN e.hazard_type = 'weather' AND (e.event_name ILIKE '%Flood%' OR e.event_name ILIKE '%Tsunami%' OR e.event_name ILIKE '%Hurricane%') AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 15000 THEN 'WARNING'
         WHEN e.hazard_type = 'weather' AND ST_Intersects(ST_Point(r.longitude, r.latitude), e.geom) THEN 'CRITICAL'
         WHEN e.hazard_type = 'weather' AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 5000 THEN 'WARNING'
         WHEN e.hazard_type = 'weather' AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 15000 THEN 'MONITOR'
@@ -62,12 +65,6 @@ SELECT
         -- EARTHQUAKE (Scaled dynamically by magnitude)
         WHEN e.hazard_type = 'earthquake' THEN
             CASE
-                -- Minor magnitude (< 3.0): Barely felt, only monitor very close retailers (within 5km)
-                WHEN e.eq_mag < 3.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 5000 THEN 'MONITOR'
-                -- Light magnitude (3.0 - 4.5): Moderate felt area
-                WHEN e.eq_mag >= 3.0 AND e.eq_mag < 4.5 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 2000 THEN 'CRITICAL'
-                WHEN e.eq_mag >= 3.0 AND e.eq_mag < 4.5 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 5000 THEN 'WARNING'
-                WHEN e.eq_mag >= 3.0 AND e.eq_mag < 4.5 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 15000 THEN 'MONITOR'
                 -- Moderate/Strong (4.5 - 6.0): Potential damage
                 WHEN e.eq_mag >= 4.5 AND e.eq_mag < 6.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 10000 THEN 'CRITICAL'
                 WHEN e.eq_mag >= 4.5 AND e.eq_mag < 6.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 30000 THEN 'WARNING'
@@ -85,8 +82,6 @@ FROM ny_retailer_dim r
 CROSS JOIN projected_emergencies e
 WHERE ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 
     CASE 
-        WHEN e.hazard_type = 'earthquake' AND e.eq_mag < 3.0 THEN 5000
-        WHEN e.hazard_type = 'earthquake' AND e.eq_mag < 4.5 THEN 15000
         WHEN e.hazard_type = 'earthquake' AND e.eq_mag < 6.0 THEN 50000
         WHEN e.hazard_type = 'earthquake' AND e.eq_mag >= 6.0 THEN 150000
         ELSE 100000 
