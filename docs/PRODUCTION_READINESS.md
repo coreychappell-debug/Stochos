@@ -105,6 +105,7 @@ These gates must be cleared in sequence. Each gate builds on the previous one.
 - [ ] Add role-based permission checks to API handlers
 - [ ] Switch to Prisma Migrate for versioned schema changes
 - [ ] Complete security review
+- [ ] Implement active daily sales windowing (rolling 12 months) in active DuckDB database (see [Database Scaling Roadmap](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/docs/architecture/database_scaling_roadmap.md))
 
 ### Gate 4: Production-Ready (required before GA deployment)
 
@@ -116,6 +117,7 @@ These gates must be cleared in sequence. Each gate builds on the previous one.
 - [ ] Disaster recovery plan documented and tested
 - [ ] Production Deployment Guide created for chosen hosting model
 - [ ] Load testing performed for expected user count
+- [ ] Implement automated historical data archiving to cloud Parquet storage for records >3 years old
 
 ---
 

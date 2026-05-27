@@ -20,6 +20,7 @@ This is the master index for all Stochos platform and infrastructure documentati
 | Document | Covers |
 |----------|--------|
 | [infrastructure_model.md](./architecture/infrastructure_model.md) | WSL2, Docker, networking, port registry, volume registry, dependency chain |
+| [database_scaling_roadmap.md](./architecture/database_scaling_roadmap.md) | Active rolling database windows, jurisdiction segmentation, and cloud Parquet archives |
 
 **Planned:**
 - `platform_architecture.md` — Next.js, PostgreSQL, Prisma, auth stack details
@@ -41,6 +42,15 @@ This is the master index for all Stochos platform and infrastructure documentati
 **Planned:**
 - `backup_restore.md` — Unified backup procedures across both stacks
 - `analyst_access.md` — Onboarding, RStudio user setup, Tailscale access
+
+---
+
+## Commercial
+
+| Document | Audience / Purpose |
+|----------|--------------------|
+| [sales_talking_points.md](./business/sales_talking_points.md) | **External.** Client-facing talking points, milestone billing, and modular tiers. |
+| [internal_financial_model.md](./business/internal_financial_model.md) | **Internal.** Strictly confidential labor burden math, partner equity, and billing markups. |
 
 ---
 

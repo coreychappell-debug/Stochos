@@ -1,6 +1,6 @@
 # Stochos Platform — Remote IT Administrator Guide
 
-**Prepared for:** Caitlin Chappell (cchappell404@gmail.com)  
+**Prepared for:** Caitlin Chappell (caitlinchappell@thestochos.com)  
 **Prepared by:** Corey Chappell  
 **Date:** 2026-05-24
 
@@ -18,9 +18,9 @@ Tailscale creates a private, encrypted network between all team machines. Once c
 
 ### 1.2 Accept the Invitation
 
-Corey will send you a Tailscale invite link. Click it while logged in with your Google account (`cchappell404@gmail.com`). This adds your machine to the `coreychappell@` tailnet.
+Corey will send you a Tailscale invite link. Click it while logged in with your Google account (`caitlinchappell@thestochos.com`). This adds your machine to the `coreychappell@` tailnet.
 
-> **Corey:** Generate the invite from https://login.tailscale.com/admin/invite — use the "Invite users" option and enter cchappell404@gmail.com.
+> **Corey:** Generate the invite from https://login.tailscale.com/admin/invite — use the "Invite users" option and enter caitlinchappell@thestochos.com.
 
 ### 1.3 Verify Connection
 
@@ -39,7 +39,7 @@ If you get replies, you're on the network.
 | Field | Value |
 |-------|-------|
 | **URL** | http://100.79.201.44:3000 |
-| **Email** | cchappell404@gmail.com |
+| **Email** | caitlinchappell@thestochos.com |
 | **Password** | Stochos2026! |
 | **Role** | Admin (full access) |
 
@@ -272,8 +272,8 @@ To update or add new packages:
 | Name | Role | Email |
 |------|------|-------|
 | Corey Chappell | Lead / Architect | *(primary)* |
-| Caitlin Chappell | IT Administrator | cchappell404@gmail.com |
-| Tyler | Team Member | *(on Tailscale as `tyler`)* |
+| Caitlin Chappell | IT Administrator | caitlinchappell@thestochos.com |
+| Tyler | Team Member | tylercabral@thestochos.com |
 
 ---
 

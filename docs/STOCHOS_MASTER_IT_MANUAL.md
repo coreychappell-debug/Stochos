@@ -187,7 +187,7 @@ SMTP_HOST="smtp.gmail.com"
 SMTP_PORT=587
 SMTP_USER="coreychappell@thestochos.com"
 SMTP_PASS="zogycdzkaktwmkbk"
-REPORT_RECIPIENTS="coreychappell@thestochos.com,tylercabral83@gmail.com,cchappell404@gmail.com"
+REPORT_RECIPIENTS="coreychappell@thestochos.com,tylercabral@thestochos.com,caitlinchappell@thestochos.com"
 ```
 *(Note: These credentials align with the official thestochos.com Google Workspace domain using a generated Google App Password for security.)*
 

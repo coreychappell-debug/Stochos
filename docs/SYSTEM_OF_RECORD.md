@@ -17,15 +17,18 @@
 | Vendor master | **PostgreSQL** | `vendors` table | Platform API (Prisma) |
 | Product registry | **PostgreSQL** | `products` table | Platform API (Prisma) |
 | User accounts and roles | **PostgreSQL** | `users`, `roles` tables | NextAuth + Prisma |
+| Dashboard permissions | **PostgreSQL** | `users`, `roles` tables (RBAC) | NextAuth + Prisma |
 | Authentication sessions | **NextAuth / PostgreSQL** | JWT cookie + `users` table | NextAuth v5 |
 | Audit log (platform mutations) | **PostgreSQL** | `audit_log` table | Platform API (Prisma) |
 | Analytics warehouse | **DuckDB** | `stochos_lottery.duckdb` | R (read), Python (write) |
 | Historical lottery sales facts | **DuckDB** | `fact_lottery_sales_melt`, `ny_daily_sales_fact_enriched` | R (read-only) |
 | Dashboard marts | **DuckDB** | `ny_retailer_map_v2`, `ny_county_summary_v1`, etc. | R/Shiny (read-only) |
+| Forecast outputs | **DuckDB** | Prediction grids and forecast models | R/Shiny (read-only) |
 | Retailer master (CRM/Operational) & geocoding audit cache | **PostgreSQL** | `crm_retailers` table | Synced from DuckDB `dim_retailers` via [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py); updated by nightly audit job |
 | Retailer analytical master | **DuckDB** | `dim_retailers`, `ny_retailer_dim` | R (read-only) |
 | Game dimension | **DuckDB** | `ny_game_dim` | R (read-only) |
 | Modeled economics | **DuckDB** | `v_unified_lottery_truth` | R/Shiny (read-only) |
+| External ERP IDs | **Integration Layer** | Mapping tables / ETL scripts | Python ingestion pipeline |
 | Instant ticket fiscal year plans | **PostgreSQL** | `instant_ticket_plans`, `instant_ticket_scenarios` | Platform API (Prisma) |
 | Instant ticket game rosters | **PostgreSQL** | `instant_ticket_games`, `instant_ticket_game_features` | Platform API (Prisma) |
 | Instant ticket vendor pricing | **PostgreSQL** | `instant_ticket_vendor_pricing` | Platform API (Prisma) |
@@ -81,6 +84,9 @@
 | Platform README | `stochos-platform/README.md` | Quick start, project structure, scripts |
 | System of Record | `docs/SYSTEM_OF_RECORD.md` | This file — canonical authority map |
 | Infrastructure model | `docs/architecture/infrastructure_model.md` | WSL2, Docker, networking, port map |
+| Database Scaling Roadmap | `docs/architecture/database_scaling_roadmap.md` | Active rolling windows, Parquet archives |
+| Sales Talking Points | `docs/business/sales_talking_points.md` | Risk-free billing trigger, modular pricing for lotteries |
+| Internal Financial Model | `docs/business/internal_financial_model.md` | Burdened labor rate math, partner equity splits |
 | DuckDB operations | `docs/operations/duckdb_operations.md` | Warehouse philosophy, writer/reader rules, backup |
 | Docker operations | `docs/operations/docker_operations.md` | Container lifecycle, image updates, volume management |
 | Analytics architecture | `docs/architecture/analytics_architecture.md` | DuckDB layers, R/Shiny pipeline, mart design |
