@@ -21,6 +21,7 @@ This is the master index for all Stochos platform and infrastructure documentati
 |----------|--------|
 | [infrastructure_model.md](./architecture/infrastructure_model.md) | WSL2, Docker, networking, port registry, volume registry, dependency chain |
 | [database_scaling_roadmap.md](./architecture/database_scaling_roadmap.md) | Active rolling database windows, jurisdiction segmentation, and cloud Parquet archives |
+| [security_rbac_principles.md](./engineering/security_rbac_principles.md) | Middleware section route gates, encrypted session tokens, row-level contract access restrictions |
 
 **Planned:**
 - `platform_architecture.md` — Next.js, PostgreSQL, Prisma, auth stack details
