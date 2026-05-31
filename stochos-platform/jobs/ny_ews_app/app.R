@@ -83,6 +83,12 @@ ui <- dashboardPage(
         
         /* Checkbox overrides */
         .checkbox label { color: var(--text-color); }
+        
+        /* Accessibility (WCAG 2.1 AA) */
+        :focus-visible {
+          outline: 3px solid var(--accent-color) !important;
+          outline-offset: 2px !important;
+        }
       ")),
       tags$script(HTML("
         // Client-side theme detection from Next.js iframe URL queries
@@ -91,6 +97,16 @@ ui <- dashboardPage(
         if (theme === 'light') {
           document.documentElement.classList.add('light-theme');
         }
+        
+        // Add ADA compliance attributes to dynamically rendered maps and tables
+        $(document).on('shiny:idle', function() {
+          $('.leaflet-container').attr({
+            'tabindex': '0',
+            'role': 'application',
+            'aria-label': 'Interactive Risk Map'
+          });
+          $('.dataTables_wrapper table').attr('tabindex', '0');
+        });
       "))
     ),
     
@@ -378,12 +394,28 @@ server <- function(input, output, session) {
   observeEvent(input$risk_map_draw_new_feature, {
     feat <- input$risk_map_draw_new_feature
     
-    geojson_str <- jsonlite::toJSON(
-      list(type = "FeatureCollection", features = list(feat)),
-      auto_unbox = TRUE, force = TRUE
-    )
-    geom <- sf::st_read(geojson_str, quiet = TRUE)
-    st_crs(geom) <- 4326
+    # Check if the drawn feature is a circle
+    if (!is.null(feat$properties$feature_type) && feat$properties$feature_type == "circle") {
+      # Extract center coordinates
+      coords <- feat$geometry$coordinates
+      center <- sf::st_sfc(sf::st_point(c(coords[[1]], coords[[2]])), crs = 4326)
+      # Project center to projected CRS (meters)
+      center_proj <- sf::st_transform(center, 32118)
+      # Buffer center by the drawn radius (in meters) to create the actual circle polygon
+      radius <- feat$properties$radius
+      circle_poly_proj <- sf::st_buffer(center_proj, dist = radius)
+      # Transform back to 4326 (WGS84)
+      geom_sfc <- sf::st_transform(circle_poly_proj, 4326)
+      geom <- sf::st_sf(geometry = geom_sfc)
+    } else {
+      # Standard polygon/line handling
+      geojson_str <- jsonlite::toJSON(
+        list(type = "FeatureCollection", features = list(feat)),
+        auto_unbox = TRUE, force = TRUE
+      )
+      geom <- sf::st_read(geojson_str, quiet = TRUE)
+      st_crs(geom) <- 4326
+    }
     
     drawn_polygon(geom)
   })

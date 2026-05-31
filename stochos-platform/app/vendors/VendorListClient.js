@@ -236,11 +236,18 @@ export default function VendorListClient({ initialVendors }) {
             </thead>
             <tbody>
               {filtered.map((v) => (
-                <tr key={v.id} className="cursor-pointer">
+                <tr 
+                  key={v.id} 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/vendors/${v.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/vendors/${v.id}`); } }}
+                >
                   <td>
-                    <Link href={`/vendors/${v.id}`} style={{ fontWeight: 600 }}>
+                    <span style={{ fontWeight: 600 }}>
                       {v.name}
-                    </Link>
+                    </span>
                   </td>
                   <td className="muted">{VENDOR_TYPES[v.type] || v.type}</td>
                   <td>

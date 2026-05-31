@@ -434,7 +434,7 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
                     {contract.lineItems.map((li) => (
                       <tr key={li.id}><td style={{ fontWeight: 500 }}>{li.description}</td><td className="muted">{li.deliverableType || "—"}</td><td className="muted">{li.product?.name || "—"}</td><td>{fmt$(li.budgetAmount)}</td><td>{fmt$(li.spentAmount)}</td><td className="muted">{fmtDate(li.dueDate)}</td>
                         <td><span className={`badge badge-${li.status === "delivered" ? "active" : li.status}`}>{ITEM_STATUS[li.status] || li.status}</span></td>
-                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" onClick={() => handleDeleteLineItem(li.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
+                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" aria-label="Delete Line Item" onClick={() => handleDeleteLineItem(li.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -515,7 +515,7 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
                     {contract.compliance.map((doc) => {
                       const isExpired = doc.expirationDate && new Date(doc.expirationDate) < new Date();
                       return (<tr key={doc.id}><td style={{ fontWeight: 500, textTransform: "capitalize" }}>{doc.documentType?.replace(/_/g, " ")}</td><td className="muted">{doc.description || "—"}</td><td style={{ color: isExpired ? "var(--red)" : "inherit" }}>{fmtDate(doc.expirationDate)}{isExpired && " ⚠️"}</td><td><span className={`badge badge-${doc.status === "received" ? "active" : doc.status}`}>{doc.status}</span></td>
-                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" onClick={() => handleDeleteDoc(doc.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
+                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" aria-label="Delete Document" onClick={() => handleDeleteDoc(doc.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
                       </tr>);
                     })}
                   </tbody>
@@ -592,7 +592,7 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
                               <option value="disputed">Disputed</option>
                               <option value="closed">Closed</option>
                             </select>
-                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeletePO(po.id)} style={{ padding: "2px 6px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Purchase Order" onClick={() => handleDeletePO(po.id)} style={{ padding: "2px 6px" }}>🗑️</button>
                           </div>
                         </td>
                       </tr>

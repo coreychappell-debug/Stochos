@@ -112,7 +112,7 @@ npm update
 
 ## 5. Automated Pipeline Management
 
-The Early Warning System and New York Analytics pipelines run on an automated schedule.
+The Spatial Operations, Logistics & Risk (SOLR) and New York Analytics pipelines run on an automated schedule.
 
 ### 5.1 On Windows (Task Scheduler)
 If orchestrated via PowerShell (`automate_pipeline.ps1`):
@@ -251,7 +251,7 @@ Once the script is running, the terminal will pause and ask you three questions.
 3. **Prompt 3 (Target Name):** Type the production name you want it to have on the server (no spaces) and hit Enter.
    * *Example:* `executive`
 
-**Example 2: Deploying the FMU Early Warning System**
+**Example 2: Deploying the FMU Spatial Operations, Logistics & Risk (SOLR)**
 1. **Prompt 1 (Source Folder):** `C:\Users\corey\Downloads\Corey - Code Stuff\R test script`
 2. **Prompt 2 (Main Script):** `04_shiny_app.R`
 3. **Prompt 3 (Target Name):** `ews`
@@ -329,7 +329,7 @@ If a dashboard requires a new R package or system library:
    wsl -d Ubuntu-22.04 bash -c "cd /home/analyst1/analyst_lab && docker-compose up -d --force-recreate shiny"
    ```
 
-### 8.3 Early Warning System (`/ews`)
+### 8.3 Spatial Operations, Logistics & Risk (SOLR) (`/ews`)
 **R Packages:** Automatically resolved by `deploy_shiny_app.ps1` at runtime if they are standard CRAN packages. If they require system-level compilation libraries, follow the instructions in §8.2.
 
 ---
@@ -401,7 +401,7 @@ node prisma/seed-instant-tickets.js         # Instant ticket data
 
 ### 9.3 Shiny Dashboards (R Analytics)
 
-**What it covers:** Executive Dashboard, Early Warning System, and any future R/Shiny apps.
+**What it covers:** Executive Dashboard, Spatial Operations, Logistics & Risk (SOLR), and any future R/Shiny apps.
 
 **Where the code lives:** Windows development folders (varies per project).
 
@@ -521,4 +521,22 @@ For future cloud servers, manual copy-pasting is obsolete. To deploy code or doc
    ```bash
    docker compose up -d --build
    ```
+
+---
+
+## 11. Development Standards & Global Accessibility Compliance
+
+As a standard requirement for the Stochos Platform, **all new frontend code and UI components must be built to meet WCAG 2.1 AA accessibility standards**. This ensures compliance with enterprise and government procurement requirements globally.
+
+### 11.1 Key Technical Guidelines
+* **Semantic HTML:** Use `<button>` instead of clickable `<div>`s. Ensure proper heading hierarchy (`<h1>`, `<h2>`, etc.).
+* **Screen Reader Support:** Provide descriptive `alt` text for all images and icons. Use `aria-label`, `aria-hidden`, and `aria-expanded` attributes on complex or custom interactive components.
+* **Keyboard Navigation:** All interactive elements must be fully reachable and usable via the `Tab` and `Enter` keys, with clearly visible focus rings.
+* **Color Contrast:** Text and interactive elements must maintain a minimum 4.5:1 contrast ratio. Color must not be the only indicator of status or information.
+
+### 11.2 Global Regulatory Context
+By strictly adhering to WCAG 2.1 AA, the Stochos Platform meets the technical foundation for the following major international laws:
+* **United States:** ADA Title II/III and Section 508 (Federal Government procurement).
+* **European Union:** European Accessibility Act (EAA) and the Web Accessibility Directive (EN 301 549).
+* **Greater Asia:** Japan's JIS X 8341-3 (Act on the Elimination of Discrimination Against Persons with Disabilities) and India's RPwD Act.
 

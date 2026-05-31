@@ -1,0 +1,15 @@
+/* globals.css – design tokens */
+:root {
+  --color-primary: hsl(220, 90%, 56%);
+  --color-secondary: hsl(340, 78%, 58%);
+  --color-accent: hsl(45, 100%, 50%);
+  --font-base: 'Inter', system-ui, sans-serif;
+  --radius-base: 0.5rem;
+}
+
+/* Example usage */
+body {
+  font-family: var(--font-base);
+  color: var(--color-primary);
+  background-color: hsl(210, 20%, 95%);
+}

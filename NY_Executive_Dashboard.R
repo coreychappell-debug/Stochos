@@ -236,6 +236,12 @@ label { color: #8899aa !important; font-size: 11px !important; text-transform: u
 ::-webkit-scrollbar-track { background: #0a1628; }
 ::-webkit-scrollbar-thumb { background: #2d3a4a; border-radius: 4px; }
 
+/* ===== ACCESSIBILITY (WCAG 2.1 AA) ===== */
+:focus-visible {
+  outline: 3px solid #00b4d8 !important;
+  outline-offset: 2px !important;
+}
+
 /* ===== SIDEBAR BRAND ===== */
 .sidebar-brand { text-align:center; padding:18px 15px 12px; }
 .sidebar-brand h4 { color:#00b4d8; font-weight:700; font-size:18px; margin:0; letter-spacing:2px; }
@@ -412,7 +418,18 @@ ui <- dashboardPage(
       tags$link(
         href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
         rel = "stylesheet"
-      )
+      ),
+      tags$script(HTML("
+        $(document).on('shiny:idle', function() {
+          // Add ADA compliance attributes to dynamically rendered maps and tables
+          $('.leaflet-container').attr({
+            'tabindex': '0',
+            'role': 'application',
+            'aria-label': 'Interactive Retailer Map'
+          });
+          $('.dataTables_wrapper table').attr('tabindex', '0');
+        });
+      "))
     ),
 
     tabItems(

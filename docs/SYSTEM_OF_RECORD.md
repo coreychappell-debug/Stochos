@@ -24,7 +24,7 @@
 | Historical lottery sales facts | **DuckDB** | `fact_lottery_sales_melt`, `ny_daily_sales_fact_enriched` | R (read-only) |
 | Dashboard marts | **DuckDB** | `ny_retailer_map_v2`, `ny_county_summary_v1`, etc. | R/Shiny (read-only) |
 | Forecast outputs | **DuckDB** | Prediction grids and forecast models | R/Shiny (read-only) |
-| Retailer master (CRM/Operational) & geocoding audit cache | **PostgreSQL** | `crm_retailers` table | Synced from DuckDB `dim_retailers` via [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py); updated by nightly audit job |
+| Retailer master (FOMO/Operational) & geocoding audit cache | **PostgreSQL** | `crm_retailers` table | Synced from DuckDB `dim_retailers` via [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py); updated by nightly audit job |
 | Retailer analytical master | **DuckDB** | `dim_retailers`, `ny_retailer_dim` | R (read-only) |
 | Game dimension | **DuckDB** | `ny_game_dim` | R (read-only) |
 | Modeled economics | **DuckDB** | `v_unified_lottery_truth` | R/Shiny (read-only) |

@@ -25,7 +25,7 @@ datasource db {
 
 model Jurisdiction {
   id                   String   @id @default(uuid())
-  name                 String   // "New York Lottery"
+  name                 String // "New York Lottery"
   abbreviation         String   @unique // "NY"
   currency             String   @default("USD")
   fiscalYearStartMonth Int      @default(4) @map("fiscal_year_start_month")
@@ -33,15 +33,20 @@ model Jurisdiction {
   status               String   @default("active")
   createdAt            DateTime @default(now()) @map("created_at")
 
-  products  Product[]
-  vendors   Vendor[]
-  contracts Contract[]
-  users     User[]
-  campaigns Campaign[]
+  products           Product[]
+  vendors            Vendor[]
+  contracts          Contract[]
+  users              User[]
+  campaigns          Campaign[]
   instantTicketPlans InstantTicketPlan[]
-  vehicles  Vehicle[]
-  assets    Asset[]
-  crmRegions CrmRegion[]
+  vehicles           Vehicle[]
+  assets             Asset[]
+  crmRegions         CrmRegion[]
+  trialBalances      TrialBalanceRecord[]
+  reportTemplates    ReportTemplate[]
+  reportPackages     ReportPackage[]
+  metricRegistry     MetricRegistryEntry[]
+  formatPresets      FormatPreset[]
 
   @@map("jurisdictions")
 }
@@ -50,17 +55,17 @@ model Product {
   id             String       @id @default(uuid())
   jurisdictionId String       @map("jurisdiction_id")
   jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
-  name           String       // "Mega Millions", "Cash4Life", etc.
-  category       String       // 'draw_game', 'instant', 'monitor', 'marketing_campaign'
-  type           String?      // 'lotto_jackpot', 'pick_3', 'scratch_off', etc.
+  name           String // "Mega Millions", "Cash4Life", etc.
+  category       String // 'draw_game', 'instant', 'monitor', 'marketing_campaign'
+  type           String? // 'lotto_jackpot', 'pick_3', 'scratch_off', etc.
   price          Decimal?     @db.Decimal(10, 2)
   status         String       @default("active")
-  externalCode   String?      @map("external_code")   // e.g., 'mega', 'powerball'
-  externalSource String?      @map("external_source")  // e.g., 'ny_game_dim'
+  externalCode   String?      @map("external_code") // e.g., 'mega', 'powerball'
+  externalSource String?      @map("external_source") // e.g., 'ny_game_dim'
   createdAt      DateTime     @default(now()) @map("created_at")
 
-  lineItems ContractLineItem[]
-  campaigns Campaign[]       @relation("CampaignProducts")
+  lineItems          ContractLineItem[]
+  campaigns          Campaign[]          @relation("CampaignProducts")
   instantTicketGames InstantTicketGame[]
 
   @@map("products")
@@ -71,7 +76,7 @@ model Vendor {
   jurisdictionId String?       @map("jurisdiction_id")
   jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
   name           String
-  type           String        // 'lead_agency', 'media_buyer', 'printer', 'specialty', 'research'
+  type           String // 'lead_agency', 'media_buyer', 'printer', 'specialty', 'research'
   status         String        @default("active")
   contactName    String?       @map("contact_name")
   contactEmail   String?       @map("contact_email")
@@ -82,15 +87,15 @@ model Vendor {
   taxId          String?       @map("tax_id")
   website        String?
   paymentTerms   String?       @map("payment_terms")
-  classification String?       // e.g. "MWBE", "Small Business"
+  classification String? // e.g. "MWBE", "Small Business"
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  contracts Contract[]
-  campaigns  Campaign[]
-  channels   CampaignChannel[]
-  assets     CampaignAsset[]
-  milestones CampaignMilestone[]
+  contracts                   Contract[]
+  campaigns                   Campaign[]
+  channels                    CampaignChannel[]
+  assets                      CampaignAsset[]
+  milestones                  CampaignMilestone[]
   instantTicketGames          InstantTicketGame[]
   instantTicketVendorPricings InstantTicketVendorPricing[]
   instantTicketMarketingItems InstantTicketMarketingItem[]
@@ -125,22 +130,30 @@ model User {
   status         String        @default("active")
   createdAt      DateTime      @default(now()) @map("created_at")
 
-  contractsCreated Contract[] @relation("ContractCreatedBy")
-  invoicesApproved Invoice[]  @relation("InvoiceApprovedBy")
-  approvals        Approval[] @relation("ApprovalApprover")
+  contractsCreated Contract[]       @relation("ContractCreatedBy")
+  invoicesApproved Invoice[]        @relation("InvoiceApprovedBy")
+  approvals        Approval[]       @relation("ApprovalApprover")
   auditLogs        AuditLog[]
   campaignsCreated Campaign[]
   contractAccess   ContractAccess[]
   vehicles         Vehicle[]
   assets           Asset[]
 
-  managerId          String?                   @map("manager_id")
-  manager            User?                     @relation("ManagerStaff", fields: [managerId], references: [id])
-  staff              User[]                    @relation("ManagerStaff")
-  crmRoutes          CrmRoute[]                @relation("RouteRepresentative")
-  crmVisits          CrmVisit[]
-  resolvedExceptions CrmDiscrepancyException[] @relation("DiscrepancyResolver")
-  crmImportBatches   CrmImportBatch[]
+  managerId              String?                   @map("manager_id")
+  manager                User?                     @relation("ManagerStaff", fields: [managerId], references: [id])
+  staff                  User[]                    @relation("ManagerStaff")
+  crmRoutes              CrmRoute[]                @relation("RouteRepresentative")
+  crmVisits              CrmVisit[]
+  resolvedExceptions     CrmDiscrepancyException[] @relation("DiscrepancyResolver")
+  crmImportBatches       CrmImportBatch[]
+  reportTemplatesCreated ReportTemplate[]
+  reportSnapshotsCreated ReportSnapshot[]
+  reportPackagesCreated  ReportPackage[]
+  reportSectionsAssigned ReportSection[]   @relation("SectionAssignee")
+  reportSectionsReviewed ReportSection[]   @relation("SectionReviewer")
+  metricFormatsOwned     MetricRegistryEntry[] @relation("MetricFormatOwner")
+  formatPresetsCreated   FormatPreset[]    @relation("FormatPresetCreator")
+  formatAudits           FormatAuditEntry[] @relation("FormatAuditUser")
 
   @@map("users")
 }
@@ -159,7 +172,7 @@ model Contract {
   parent         Contract?    @relation("ContractHierarchy", fields: [parentId], references: [id])
   children       Contract[]   @relation("ContractHierarchy")
   title          String
-  type           String       // 'lead_agency', 'media_buying', 'instant_ticket', 'specialty', 'zero_base'
+  type           String // 'lead_agency', 'media_buying', 'instant_ticket', 'specialty', 'zero_base'
   status         String       @default("draft") // 'draft', 'pending_approval', 'active', 'expired', 'terminated'
   startDate      DateTime?    @map("start_date") @db.Date
   endDate        DateTime?    @map("end_date") @db.Date
@@ -184,21 +197,21 @@ model Contract {
 }
 
 model ContractLineItem {
-  id              String   @id @default(uuid())
-  contractId      String   @map("contract_id")
-  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  productId       String?  @map("product_id")
-  product         Product? @relation(fields: [productId], references: [id])
+  id              String    @id @default(uuid())
+  contractId      String    @map("contract_id")
+  contract        Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  productId       String?   @map("product_id")
+  product         Product?  @relation(fields: [productId], references: [id])
   description     String
-  deliverableType String?  @map("deliverable_type") // 'media_placement', 'print_signage', 'creative', etc.
-  budgetAmount    Decimal? @map("budget_amount") @db.Decimal(14, 2)
-  spentAmount     Decimal  @default(0) @map("spent_amount") @db.Decimal(14, 2)
+  deliverableType String?   @map("deliverable_type") // 'media_placement', 'print_signage', 'creative', etc.
+  budgetAmount    Decimal?  @map("budget_amount") @db.Decimal(14, 2)
+  spentAmount     Decimal   @default(0) @map("spent_amount") @db.Decimal(14, 2)
   quantity        Int?
-  unitCost        Decimal? @map("unit_cost") @db.Decimal(10, 4)
+  unitCost        Decimal?  @map("unit_cost") @db.Decimal(10, 4)
   dueDate         DateTime? @map("due_date") @db.Date
-  status          String   @default("pending") // 'pending', 'in_progress', 'delivered', 'invoiced', 'closed'
-  sortOrder       Int      @default(0) @map("sort_order")
-  createdAt       DateTime @default(now()) @map("created_at")
+  status          String    @default("pending") // 'pending', 'in_progress', 'delivered', 'invoiced', 'closed'
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   invoices Invoice[]
 
@@ -206,29 +219,29 @@ model ContractLineItem {
 }
 
 model ContractAmendment {
-  id              String   @id @default(uuid())
-  contractId      String   @map("contract_id")
-  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  amendmentNumber Int      @map("amendment_number")
+  id              String    @id @default(uuid())
+  contractId      String    @map("contract_id")
+  contract        Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  amendmentNumber Int       @map("amendment_number")
   description     String?
-  valueChange     Decimal  @default(0) @map("value_change") @db.Decimal(14, 2)
+  valueChange     Decimal   @default(0) @map("value_change") @db.Decimal(14, 2)
   newEndDate      DateTime? @map("new_end_date") @db.Date
   effectiveDate   DateTime? @map("effective_date") @db.Date
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   @@map("contract_amendments")
 }
 
 model ContractCompliance {
-  id             String   @id @default(uuid())
-  contractId     String   @map("contract_id")
-  contract       Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  documentType   String   @map("document_type") // 'bond', 'insurance', 'nda', 'background_check', 'license'
+  id             String    @id @default(uuid())
+  contractId     String    @map("contract_id")
+  contract       Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  documentType   String    @map("document_type") // 'bond', 'insurance', 'nda', 'background_check', 'license'
   description    String?
   expirationDate DateTime? @map("expiration_date") @db.Date
-  status         String   @default("pending") // 'pending', 'received', 'expired', 'waived'
-  fileReference  String?  @map("file_reference")
-  createdAt      DateTime @default(now()) @map("created_at")
+  status         String    @default("pending") // 'pending', 'received', 'expired', 'waived'
+  fileReference  String?   @map("file_reference")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   @@map("contract_compliance")
 }
@@ -264,7 +277,7 @@ model Approval {
   entityId   String    @map("entity_id")
   approverId String    @map("approver_id")
   approver   User      @relation("ApprovalApprover", fields: [approverId], references: [id])
-  status     String    // 'pending', 'approved', 'rejected'
+  status     String // 'pending', 'approved', 'rejected'
   comment    String?
   decidedAt  DateTime? @map("decided_at")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -278,7 +291,7 @@ model AuditLog {
   user       User     @relation(fields: [userId], references: [id])
   entityType String   @map("entity_type")
   entityId   String   @map("entity_id")
-  action     String   // 'create', 'update', 'delete', 'approve', 'reject'
+  action     String // 'create', 'update', 'delete', 'approve', 'reject'
   changes    Json?    @default("{}") // before/after diff
   createdAt  DateTime @default(now()) @map("created_at")
 
@@ -313,30 +326,30 @@ model Campaign {
   channels   CampaignChannel[]
   assets     CampaignAsset[]
   milestones CampaignMilestone[]
-  products   Product[]         @relation("CampaignProducts")
+  products   Product[]           @relation("CampaignProducts")
 
   @@map("campaigns")
 }
 
 model CampaignChannel {
-  id           String    @id @default(uuid())
-  campaignId   String    @map("campaign_id")
-  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  vendorId     String?   @map("vendor_id")
-  vendor       Vendor?   @relation(fields: [vendorId], references: [id])
-  channel      String    // 'tv', 'radio', 'digital_display', 'social_media', 'outdoor', 'pos_retail', 'print', 'events', 'sponsorship'
+  id           String              @id @default(uuid())
+  campaignId   String              @map("campaign_id")
+  campaign     Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  vendorId     String?             @map("vendor_id")
+  vendor       Vendor?             @relation(fields: [vendorId], references: [id])
+  channel      String // 'tv', 'radio', 'digital_display', 'social_media', 'outdoor', 'pos_retail', 'print', 'events', 'sponsorship'
   description  String?
-  status       String    @default("planned") // 'planned', 'active', 'paused', 'completed', 'cancelled'
-  plannedSpend Decimal?  @map("planned_spend") @db.Decimal(14, 2)
-  actualSpend  Decimal   @default(0) @map("actual_spend") @db.Decimal(14, 2)
-  startDate    DateTime? @map("start_date") @db.Date
-  endDate      DateTime? @map("end_date") @db.Date
-  targetMarket String?   @map("target_market")
-  kpiGoal      String?   @map("kpi_goal")
+  status       String              @default("planned") // 'planned', 'active', 'paused', 'completed', 'cancelled'
+  plannedSpend Decimal?            @map("planned_spend") @db.Decimal(14, 2)
+  actualSpend  Decimal             @default(0) @map("actual_spend") @db.Decimal(14, 2)
+  startDate    DateTime?           @map("start_date") @db.Date
+  endDate      DateTime?           @map("end_date") @db.Date
+  targetMarket String?             @map("target_market")
+  kpiGoal      String?             @map("kpi_goal")
   impressions  BigInt?
-  notes        String?   @db.Text
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  notes        String?             @db.Text
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
   assets       CampaignAsset[]
   milestones   CampaignMilestone[]
 
@@ -344,68 +357,68 @@ model CampaignChannel {
 }
 
 model CampaignAsset {
-  id                    String           @id @default(uuid())
-  campaignId            String           @map("campaign_id")
-  campaign              Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  channelId             String?          @map("channel_id")
-  channel               CampaignChannel? @relation(fields: [channelId], references: [id])
-  vendorId              String?          @map("vendor_id")
-  vendor                Vendor?          @relation(fields: [vendorId], references: [id])
-  
-  name                  String           // renamed from assetName internally, or keep as name since it was name
-  assetType             String           @map("asset_type") // 'video', 'static_image', 'html5', 'audio', 'copy'
-  formatSpecs           String?          @map("format_specs") // e.g. 1920x1080, MP4, 30s
-  language              String?          @default("English")
-  
-  status                String           @default("draft") // draft, in_review, approved, in_production, live, retired
-  approvalStatus        String?          @map("approval_status") // e.g. pending_legal, approved, rejected
-  reviewOwner           String?          @map("review_owner")
-  
-  dueDate               DateTime?        @map("due_date") @db.Date
-  launchDate            DateTime?        @map("launch_date") @db.Date
-  expirationDate        DateTime?        @map("expiration_date") @db.Date
-  usageRightsExpiration DateTime?        @map("usage_rights_expiration") @db.Date
-  
-  assetUrl              String?          @map("asset_url")
-  version               String           @default("v1")
-  
-  complianceNotes       String?          @map("compliance_notes") @db.Text
-  notes                 String?          @db.Text
-  
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @updatedAt @map("updated_at")
-  milestones            CampaignMilestone[]
+  id         String           @id @default(uuid())
+  campaignId String           @map("campaign_id")
+  campaign   Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  channelId  String?          @map("channel_id")
+  channel    CampaignChannel? @relation(fields: [channelId], references: [id])
+  vendorId   String?          @map("vendor_id")
+  vendor     Vendor?          @relation(fields: [vendorId], references: [id])
+
+  name        String // renamed from assetName internally, or keep as name since it was name
+  assetType   String  @map("asset_type") // 'video', 'static_image', 'html5', 'audio', 'copy'
+  formatSpecs String? @map("format_specs") // e.g. 1920x1080, MP4, 30s
+  language    String? @default("English")
+
+  status         String  @default("draft") // draft, in_review, approved, in_production, live, retired
+  approvalStatus String? @map("approval_status") // e.g. pending_legal, approved, rejected
+  reviewOwner    String? @map("review_owner")
+
+  dueDate               DateTime? @map("due_date") @db.Date
+  launchDate            DateTime? @map("launch_date") @db.Date
+  expirationDate        DateTime? @map("expiration_date") @db.Date
+  usageRightsExpiration DateTime? @map("usage_rights_expiration") @db.Date
+
+  assetUrl String? @map("asset_url")
+  version  String  @default("v1")
+
+  complianceNotes String? @map("compliance_notes") @db.Text
+  notes           String? @db.Text
+
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+  milestones CampaignMilestone[]
 
   @@map("campaign_assets")
 }
 
 model CampaignMilestone {
-  id            String           @id @default(uuid())
-  campaignId    String           @map("campaign_id")
-  campaign      Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  channelId     String?          @map("channel_id")
-  channel       CampaignChannel? @relation(fields: [channelId], references: [id])
-  assetId       String?          @map("asset_id")
-  asset         CampaignAsset?   @relation(fields: [assetId], references: [id])
-  vendorId      String?          @map("vendor_id")
-  vendor        Vendor?          @relation(fields: [vendorId], references: [id])
-  
+  id         String           @id @default(uuid())
+  campaignId String           @map("campaign_id")
+  campaign   Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  channelId  String?          @map("channel_id")
+  channel    CampaignChannel? @relation(fields: [channelId], references: [id])
+  assetId    String?          @map("asset_id")
+  asset      CampaignAsset?   @relation(fields: [assetId], references: [id])
+  vendorId   String?          @map("vendor_id")
+  vendor     Vendor?          @relation(fields: [vendorId], references: [id])
+
   name          String
-  milestoneType String           @map("milestone_type")
+  milestoneType String  @map("milestone_type")
   owner         String?
-  priority      String           @default("normal")
-  status        String           @default("not_started")
-  
-  dueDate       DateTime?        @map("due_date") @db.Date
-  completedDate DateTime?        @map("completed_date") @db.Date
-  
-  dependencyNotes String?        @map("dependency_notes") @db.Text
-  blockerReason   String?        @map("blocker_reason") @db.Text
-  notes           String?        @db.Text
-  
-  sortOrder     Int              @default(0) @map("sort_order")
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
+  priority      String  @default("normal")
+  status        String  @default("not_started")
+
+  dueDate       DateTime? @map("due_date") @db.Date
+  completedDate DateTime? @map("completed_date") @db.Date
+
+  dependencyNotes String? @map("dependency_notes") @db.Text
+  blockerReason   String? @map("blocker_reason") @db.Text
+  notes           String? @db.Text
+
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("campaign_milestones")
 }
@@ -415,19 +428,19 @@ model CampaignMilestone {
 // ─────────────────────────────────────────────
 
 model InstantTicketPlan {
-  id             String       @id @default(uuid())
-  jurisdictionId String       @map("jurisdiction_id")
-  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
-  name           String       // "FY2027 Base Plan"
-  fiscalYear     Int          @map("fiscal_year")
-  totalSalesTarget     Decimal  @map("total_sales_target") @db.Decimal(14, 2)
-  retailerCommPct      Decimal  @default(5.0) @map("retailer_comm_pct") @db.Decimal(5, 2)
-  adminExpensePct      Decimal  @default(0.0) @map("admin_expense_pct") @db.Decimal(5, 2)
-  sellThroughPct       Decimal  @default(98.0) @map("sell_through_pct") @db.Decimal(5, 2)
-  status         String       @default("draft") // 'draft', 'submitted', 'approved', 'archived'
-  notes          String?      @db.Text
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id               String       @id @default(uuid())
+  jurisdictionId   String       @map("jurisdiction_id")
+  jurisdiction     Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  name             String // "FY2027 Base Plan"
+  fiscalYear       Int          @map("fiscal_year")
+  totalSalesTarget Decimal      @map("total_sales_target") @db.Decimal(14, 2)
+  retailerCommPct  Decimal      @default(5.0) @map("retailer_comm_pct") @db.Decimal(5, 2)
+  adminExpensePct  Decimal      @default(0.0) @map("admin_expense_pct") @db.Decimal(5, 2)
+  sellThroughPct   Decimal      @default(98.0) @map("sell_through_pct") @db.Decimal(5, 2)
+  status           String       @default("draft") // 'draft', 'submitted', 'approved', 'archived'
+  notes            String?      @db.Text
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   scenarios InstantTicketScenario[]
 
@@ -435,13 +448,13 @@ model InstantTicketPlan {
 }
 
 model InstantTicketScenario {
-  id             String            @id @default(uuid())
-  planId         String            @map("plan_id")
-  plan           InstantTicketPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  name           String            // "Base Plan", "Conservative", "Aggressive"
-  sortOrder      Int               @default(0) @map("sort_order")
-  denominations  Json              @default("[]") // [{price: 1, mixPercent: 10, isActive: true}, ...]
-  createdAt      DateTime          @default(now()) @map("created_at")
+  id            String            @id @default(uuid())
+  planId        String            @map("plan_id")
+  plan          InstantTicketPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  name          String // "Base Plan", "Conservative", "Aggressive"
+  sortOrder     Int               @default(0) @map("sort_order")
+  denominations Json              @default("[]") // [{price: 1, mixPercent: 10, isActive: true}, ...]
+  createdAt     DateTime          @default(now()) @map("created_at")
 
   games          InstantTicketGame[]
   marketingItems InstantTicketMarketingItem[]
@@ -450,31 +463,31 @@ model InstantTicketScenario {
 }
 
 model InstantTicketGame {
-  id                String                 @id @default(uuid())
-  scenarioId        String                 @map("scenario_id")
-  scenario          InstantTicketScenario  @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
-  vendorId          String?                @map("vendor_id")
-  vendor            Vendor?                @relation(fields: [vendorId], references: [id])
-  productId         String?                @map("product_id")
-  product           Product?               @relation(fields: [productId], references: [id])
-  gameNumber        String                 @map("game_number")
-  name              String
-  denomination      Int                    // 1, 2, 3, 5, 10, 20, 25, 30, 50
-  ticketSize        String                 @default("4x4") @map("ticket_size")
-  units             BigInt                 // e.g. 12000000
-  payoutPercent     Decimal                @map("payout_percent") @db.Decimal(5, 2)
-  topPrize          Decimal?               @map("top_prize") @db.Decimal(14, 2)
+  id             String                @id @default(uuid())
+  scenarioId     String                @map("scenario_id")
+  scenario       InstantTicketScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  vendorId       String?               @map("vendor_id")
+  vendor         Vendor?               @relation(fields: [vendorId], references: [id])
+  productId      String?               @map("product_id")
+  product        Product?              @relation(fields: [productId], references: [id])
+  gameNumber     String                @map("game_number")
+  name           String
+  denomination   Int // 1, 2, 3, 5, 10, 20, 25, 30, 50
+  ticketSize     String                @default("4x4") @map("ticket_size")
+  units          BigInt // e.g. 12000000
+  payoutPercent  Decimal               @map("payout_percent") @db.Decimal(5, 2)
+  topPrize       Decimal?              @map("top_prize") @db.Decimal(14, 2)
   // Lifecycle dates
-  launchDate        DateTime?              @map("launch_date") @db.Date    // When the game goes on sale
-  closeDate         DateTime?              @map("close_date") @db.Date     // When the game stops selling (closed to retail)
-  endDate           DateTime?              @map("end_date") @db.Date       // Final claim deadline
+  launchDate     DateTime?             @map("launch_date") @db.Date // When the game goes on sale
+  closeDate      DateTime?             @map("close_date") @db.Date // When the game stops selling (closed to retail)
+  endDate        DateTime?             @map("end_date") @db.Date // Final claim deadline
   // Procurement
-  poNumber          String?                @map("po_number")
-  poDate            DateTime?              @map("po_date") @db.Date
-  receiptDate       DateTime?              @map("receipt_date") @db.Date
-  deliveryStatus    String                 @default("planned") @map("delivery_status") // 'planned', 'ordered', 'in_production', 'shipped', 'received'
-  sortOrder         Int                    @default(0) @map("sort_order")
-  createdAt         DateTime               @default(now()) @map("created_at")
+  poNumber       String?               @map("po_number")
+  poDate         DateTime?             @map("po_date") @db.Date
+  receiptDate    DateTime?             @map("receipt_date") @db.Date
+  deliveryStatus String                @default("planned") @map("delivery_status") // 'planned', 'ordered', 'in_production', 'shipped', 'received'
+  sortOrder      Int                   @default(0) @map("sort_order")
+  createdAt      DateTime              @default(now()) @map("created_at")
 
   features InstantTicketGameFeature[]
 
@@ -482,39 +495,39 @@ model InstantTicketGame {
 }
 
 model InstantTicketGameFeature {
-  id         String            @id @default(uuid())
-  gameId     String            @map("game_id")
-  game       InstantTicketGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  featureName String           @map("feature_name") // "Holographic Foil", "Scented Ink", etc.
+  id          String            @id @default(uuid())
+  gameId      String            @map("game_id")
+  game        InstantTicketGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  featureName String            @map("feature_name") // "Holographic Foil", "Scented Ink", etc.
 
   @@unique([gameId, featureName])
   @@map("instant_ticket_game_features")
 }
 
 model InstantTicketMarketingItem {
-  id           String                 @id @default(uuid())
-  scenarioId   String                 @map("scenario_id")
-  scenario     InstantTicketScenario  @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
-  vendorId     String?                @map("vendor_id")
-  vendor       Vendor?                @relation(fields: [vendorId], references: [id])
-  name         String
-  description  String?
-  cost         Decimal                @db.Decimal(14, 2)
-  category     String?                // 'pos_display', 'digital_campaign', 'insert', 'signage'
-  sortOrder    Int                    @default(0) @map("sort_order")
-  createdAt     DateTime               @default(now()) @map("created_at")
+  id          String                @id @default(uuid())
+  scenarioId  String                @map("scenario_id")
+  scenario    InstantTicketScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  vendorId    String?               @map("vendor_id")
+  vendor      Vendor?               @relation(fields: [vendorId], references: [id])
+  name        String
+  description String?
+  cost        Decimal               @db.Decimal(14, 2)
+  category    String? // 'pos_display', 'digital_campaign', 'insert', 'signage'
+  sortOrder   Int                   @default(0) @map("sort_order")
+  createdAt   DateTime              @default(now()) @map("created_at")
 
   @@map("instant_ticket_marketing_items")
 }
 
 model InstantTicketVendorPricing {
-  id          String  @id @default(uuid())
-  vendorId    String  @map("vendor_id")
-  vendor      Vendor  @relation(fields: [vendorId], references: [id])
-  costModel   String  @map("cost_model") // 'per_thousand' or 'percent_of_sales'
-  ticketSize  String  @map("ticket_size") // '2.4x4', '4x4', '6x4', '8x4', '12x8', '12x12'
-  baseCost    Decimal @map("base_cost") @db.Decimal(10, 4)
-  minQuantity BigInt  @default(0) @map("min_quantity") // volume tier threshold
+  id          String   @id @default(uuid())
+  vendorId    String   @map("vendor_id")
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  costModel   String   @map("cost_model") // 'per_thousand' or 'percent_of_sales'
+  ticketSize  String   @map("ticket_size") // '2.4x4', '4x4', '6x4', '8x4', '12x8', '12x12'
+  baseCost    Decimal  @map("base_cost") @db.Decimal(10, 4)
+  minQuantity BigInt   @default(0) @map("min_quantity") // volume tier threshold
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([vendorId, ticketSize, minQuantity])
@@ -522,18 +535,18 @@ model InstantTicketVendorPricing {
 }
 
 model PurchaseOrder {
-  id             String    @id @default(uuid())
-  contractId     String    @map("contract_id")
-  contract       Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  poNumber       String    @unique @map("po_number")
-  description    String?
-  amount         Decimal   @db.Decimal(14, 2)
-  status         String    @default("issued") // 'draft', 'issued', 'received', 'rejected', 'disputed', 'closed'
-  issuedDate     DateTime? @map("issued_date") @db.Date
-  deliveryDate   DateTime? @map("delivery_date") @db.Date
-  notes          String?   @db.Text
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(uuid())
+  contractId   String    @map("contract_id")
+  contract     Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  poNumber     String    @unique @map("po_number")
+  description  String?
+  amount       Decimal   @db.Decimal(14, 2)
+  status       String    @default("issued") // 'draft', 'issued', 'received', 'rejected', 'disputed', 'closed'
+  issuedDate   DateTime? @map("issued_date") @db.Date
+  deliveryDate DateTime? @map("delivery_date") @db.Date
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@map("purchase_orders")
 }
@@ -552,52 +565,52 @@ model ContractAccess {
 }
 
 model Vehicle {
-  id             String        @id @default(uuid())
-  jurisdictionId String        @map("jurisdiction_id")
-  jurisdiction   Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
-  make           String        // "Ford", "Chevrolet"
-  model          String        // "Explorer", "Bolt"
-  year           Int
-  vin            String        @unique
-  licensePlate   String        @map("license_plate")
-  status         String        @default("active") // 'active', 'maintenance', 'retired'
-  mileage        Int           @default(0)
-  lastService    DateTime?     @map("last_service") @db.Date
-  assignedToId   String?       @map("assigned_to_id")
-  assignedTo     User?         @relation(fields: [assignedToId], references: [id])
-  notes          String?       @db.Text
-  disposalDate   DateTime?     @map("disposal_date") @db.Date
-  disposalMethod String?       @map("disposal_method") // 'sold', 'scrapped', 'donated', 'other'
-  salePrice      Decimal?      @map("sale_price") @db.Decimal(10, 2)
-  usefulLifeMonths Int?        @map("useful_life_months") @default(120) // 10 years default
-  usefulLifeMiles  Int?        @map("useful_life_miles") @default(100000) // 100k miles default
-  value          Decimal?      @db.Decimal(10, 2)
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  id               String       @id @default(uuid())
+  jurisdictionId   String       @map("jurisdiction_id")
+  jurisdiction     Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  make             String // "Ford", "Chevrolet"
+  model            String // "Explorer", "Bolt"
+  year             Int
+  vin              String       @unique
+  licensePlate     String       @map("license_plate")
+  status           String       @default("active") // 'active', 'maintenance', 'retired'
+  mileage          Int          @default(0)
+  lastService      DateTime?    @map("last_service") @db.Date
+  assignedToId     String?      @map("assigned_to_id")
+  assignedTo       User?        @relation(fields: [assignedToId], references: [id])
+  notes            String?      @db.Text
+  disposalDate     DateTime?    @map("disposal_date") @db.Date
+  disposalMethod   String?      @map("disposal_method") // 'sold', 'scrapped', 'donated', 'other'
+  salePrice        Decimal?     @map("sale_price") @db.Decimal(10, 2)
+  usefulLifeMonths Int?         @default(120) @map("useful_life_months") // 10 years default
+  usefulLifeMiles  Int?         @default(100000) @map("useful_life_miles") // 100k miles default
+  value            Decimal?     @db.Decimal(10, 2)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   @@map("vehicles")
 }
 
 model Asset {
-  id             String        @id @default(uuid())
-  jurisdictionId String        @map("jurisdiction_id")
-  jurisdiction   Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
-  assetTag       String        @unique @map("asset_tag") // unique barcode/sticker ID
-  name           String        // "Dell Latitude 5440"
-  category       String        // 'computer', 'mobile', 'scanner', 'peripheral', 'furniture', 'other'
-  serialNumber   String?       @map("serial_number")
-  status         String        @default("available") // 'available', 'assigned', 'repair', 'retired'
-  value          Decimal?      @db.Decimal(10, 2)
-  assignedToId   String?       @map("assigned_to_id")
-  assignedTo     User?         @relation(fields: [assignedToId], references: [id])
-  purchaseDate   DateTime?     @map("purchase_date") @db.Date
-  notes          String?       @db.Text
-  disposalDate   DateTime?     @map("disposal_date") @db.Date
-  disposalMethod String?       @map("disposal_method") // 'sold', 'scrapped', 'donated', 'other'
-  salePrice      Decimal?      @map("sale_price") @db.Decimal(10, 2)
-  usefulLifeMonths Int?        @map("useful_life_months") @default(36) // 3 years default (36 months)
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  id               String       @id @default(uuid())
+  jurisdictionId   String       @map("jurisdiction_id")
+  jurisdiction     Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  assetTag         String       @unique @map("asset_tag") // unique barcode/sticker ID
+  name             String // "Dell Latitude 5440"
+  category         String // 'computer', 'mobile', 'scanner', 'peripheral', 'furniture', 'other'
+  serialNumber     String?      @map("serial_number")
+  status           String       @default("available") // 'available', 'assigned', 'repair', 'retired'
+  value            Decimal?     @db.Decimal(10, 2)
+  assignedToId     String?      @map("assigned_to_id")
+  assignedTo       User?        @relation(fields: [assignedToId], references: [id])
+  purchaseDate     DateTime?    @map("purchase_date") @db.Date
+  notes            String?      @db.Text
+  disposalDate     DateTime?    @map("disposal_date") @db.Date
+  disposalMethod   String?      @map("disposal_method") // 'sold', 'scrapped', 'donated', 'other'
+  salePrice        Decimal?     @map("sale_price") @db.Decimal(10, 2)
+  usefulLifeMonths Int?         @default(36) @map("useful_life_months") // 3 years default (36 months)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   @@map("assets")
 }
@@ -607,12 +620,12 @@ model Asset {
 // =============================================================================
 
 model CrmRegion {
-  id             String       @id @default(uuid())
-  jurisdictionId String       @map("jurisdiction_id")
-  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
-  name           String       // e.g., "Region 1 - Metro"
-  code           String       @unique // e.g., "REG-1"
-  createdAt      DateTime     @default(now()) @map("created_at")
+  id             String        @id @default(uuid())
+  jurisdictionId String        @map("jurisdiction_id")
+  jurisdiction   Jurisdiction  @relation(fields: [jurisdictionId], references: [id])
+  name           String // e.g., "Region 1 - Metro"
+  code           String        @unique // e.g., "REG-1"
+  createdAt      DateTime      @default(now()) @map("created_at")
   districts      CrmDistrict[]
 
   @@map("crm_regions")
@@ -622,7 +635,7 @@ model CrmDistrict {
   id        String     @id @default(uuid())
   regionId  String     @map("region_id")
   region    CrmRegion  @relation(fields: [regionId], references: [id], onDelete: Cascade)
-  name      String     // e.g., "District 12 - Long Island"
+  name      String // e.g., "District 12 - Long Island"
   code      String     @unique // e.g., "DIST-12"
   createdAt DateTime   @default(now()) @map("created_at")
   routes    CrmRoute[]
@@ -634,7 +647,7 @@ model CrmRoute {
   id         String        @id @default(uuid())
   districtId String        @map("district_id")
   district   CrmDistrict   @relation(fields: [districtId], references: [id], onDelete: Cascade)
-  name       String        // e.g., "Route 12A"
+  name       String // e.g., "Route 12A"
   code       String        @unique
   repId      String?       @map("rep_id")
   rep        User?         @relation("RouteRepresentative", fields: [repId], references: [id])
@@ -646,7 +659,7 @@ model CrmRoute {
 
 model CrmChainAccount {
   id           String        @id @default(uuid())
-  name         String        // e.g., "7-Eleven"
+  name         String // e.g., "7-Eleven"
   code         String        @unique // e.g., "CHAIN-711"
   contactName  String?       @map("contact_name")
   contactPhone String?       @map("contact_phone")
@@ -658,110 +671,110 @@ model CrmChainAccount {
 }
 
 model CrmRetailer {
-  id                String           @id @default(uuid())
-  externalId        String           @unique @map("external_id") // Durable CRM identification key
-  name              String
-  address           String
-  city              String
-  zipCode           String           @map("zip_code")
-  phone             String?
-  status            String           @default("active") // active, inactive, suspended
-  applicationStatus String           @default("approved") @map("application_status") // pending, approved, terminated
-  trainingStatus    String           @default("not_trained") @map("training_status") // not_trained, trained
-  lastVisitDate     DateTime?        @map("last_visit_date")
-  visitCadence      String           @default("weekly") @map("visit_cadence") // weekly, biweekly, monthly
-  routeId           String?          @map("route_id")
-  route             CrmRoute?        @relation(fields: [routeId], references: [id])
-  routeOrder        Int              @default(0) @map("route_order")
-  chainId           String?          @map("chain_id")
-  chain             CrmChainAccount? @relation(fields: [chainId], references: [id])
-  latitude          Float?
-  longitude         Float?
-  geodataBypassed   Boolean          @default(false) @map("geodata_bypassed")
-  geodataStatus     String?          @map("geodata_status")
-  geodataDistance   Float?           @map("geodata_distance")
-  geodataLastChecked DateTime?       @map("geodata_last_checked")
-  geodataHostCorrectionRequested Boolean @default(false) @map("geodata_host_correction_requested")
-  geodataStandardAddress String?     @map("geodata_standard_address")
-  geodataStandardLatitude Float?     @map("geodata_standard_latitude")
-  geodataStandardLongitude Float?    @map("geodata_standard_longitude")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
+  id                             String           @id @default(uuid())
+  externalId                     String           @unique @map("external_id") // Durable CRM identification key
+  name                           String
+  address                        String
+  city                           String
+  zipCode                        String           @map("zip_code")
+  phone                          String?
+  status                         String           @default("active") // active, inactive, suspended
+  applicationStatus              String           @default("approved") @map("application_status") // pending, approved, terminated
+  trainingStatus                 String           @default("not_trained") @map("training_status") // not_trained, trained
+  lastVisitDate                  DateTime?        @map("last_visit_date")
+  visitCadence                   String           @default("weekly") @map("visit_cadence") // weekly, biweekly, monthly
+  routeId                        String?          @map("route_id")
+  route                          CrmRoute?        @relation(fields: [routeId], references: [id])
+  routeOrder                     Int              @default(0) @map("route_order")
+  chainId                        String?          @map("chain_id")
+  chain                          CrmChainAccount? @relation(fields: [chainId], references: [id])
+  latitude                       Float?
+  longitude                      Float?
+  geodataBypassed                Boolean          @default(false) @map("geodata_bypassed")
+  geodataStatus                  String?          @map("geodata_status")
+  geodataDistance                Float?           @map("geodata_distance")
+  geodataLastChecked             DateTime?        @map("geodata_last_checked")
+  geodataHostCorrectionRequested Boolean          @default(false) @map("geodata_host_correction_requested")
+  geodataStandardAddress         String?          @map("geodata_standard_address")
+  geodataStandardLatitude        Float?           @map("geodata_standard_latitude")
+  geodataStandardLongitude       Float?           @map("geodata_standard_longitude")
+  createdAt                      DateTime         @default(now()) @map("created_at")
+  updatedAt                      DateTime         @updatedAt @map("updated_at")
 
-  assignments       CrmAssetAssignment[]
-  visits            CrmVisit[]
-  actionItems       CrmActionItem[]
-  discrepancies     CrmDiscrepancyException[]
+  assignments   CrmAssetAssignment[]
+  visits        CrmVisit[]
+  actionItems   CrmActionItem[]
+  discrepancies CrmDiscrepancyException[]
 
   @@map("crm_retailers")
 }
 
 model CrmEquipmentType {
-  id          String     @id @default(uuid())
-  code        String     @unique // e.g., "FLEX-TERMINAL"
-  name        String     // e.g., "FLEX clerk terminal"
-  category    String     // terminal, self_service_terminal, vending_machine, in_lane, peripheral, signage, fixture, infrastructure, security
+  id           String     @id @default(uuid())
+  code         String     @unique // e.g., "FLEX-TERMINAL"
+  name         String // e.g., "FLEX clerk terminal"
+  category     String // terminal, self_service_terminal, vending_machine, in_lane, peripheral, signage, fixture, infrastructure, security
   manufacturer String
-  model       String
-  isRegulated Boolean    @default(false) @map("is_regulated")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  assets      CrmAsset[]
+  model        String
+  isRegulated  Boolean    @default(false) @map("is_regulated")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  assets       CrmAsset[]
 
   @@map("crm_equipment_types")
 }
 
 model CrmAsset {
-  id                    String               @id @default(uuid())
-  serialNumber          String?              @unique @map("serial_number")
-  assetTag              String?              @unique @map("asset_tag")
-  typeId                String               @map("type_id")
-  type                  CrmEquipmentType     @relation(fields: [typeId], references: [id])
-  status                String               @default("active") // pending_install, active, missing, pending_retrieval, returned, decommissioned, unknown
-  statusReason          String?              @map("status_reason")
-  ownerType             String               @default("lottery_owned") @map("owner_type") // lottery_owned, retailer_owned, vendor_owned, leased, unknown
-  networkRequired       Boolean              @default(false) @map("network_required")
-  powerRequired         Boolean              @default(false) @map("power_required")
-  supportsCashless      Boolean              @default(false) @map("supports_cashless")
-  supportsTicketCheck   Boolean              @default(false) @map("supports_ticket_check")
-  supportsDrawGames     Boolean              @default(false) @map("supports_draw_games")
-  supportsInstantGames  Boolean              @default(false) @map("supports_instant_games")
-  warrantyStartDate     DateTime?            @map("warranty_start_date") @db.Date
-  warrantyEndDate       DateTime?            @map("warranty_end_date") @db.Date
-  notes                 String?              @db.Text
-  createdAt             DateTime             @default(now()) @map("created_at")
-  updatedAt             DateTime             @updatedAt @map("updated_at")
-  assignments           CrmAssetAssignment[]
+  id                   String               @id @default(uuid())
+  serialNumber         String?              @unique @map("serial_number")
+  assetTag             String?              @unique @map("asset_tag")
+  typeId               String               @map("type_id")
+  type                 CrmEquipmentType     @relation(fields: [typeId], references: [id])
+  status               String               @default("active") // pending_install, active, missing, pending_retrieval, returned, decommissioned, unknown
+  statusReason         String?              @map("status_reason")
+  ownerType            String               @default("lottery_owned") @map("owner_type") // lottery_owned, retailer_owned, vendor_owned, leased, unknown
+  networkRequired      Boolean              @default(false) @map("network_required")
+  powerRequired        Boolean              @default(false) @map("power_required")
+  supportsCashless     Boolean              @default(false) @map("supports_cashless")
+  supportsTicketCheck  Boolean              @default(false) @map("supports_ticket_check")
+  supportsDrawGames    Boolean              @default(false) @map("supports_draw_games")
+  supportsInstantGames Boolean              @default(false) @map("supports_instant_games")
+  warrantyStartDate    DateTime?            @map("warranty_start_date") @db.Date
+  warrantyEndDate      DateTime?            @map("warranty_end_date") @db.Date
+  notes                String?              @db.Text
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  assignments          CrmAssetAssignment[]
 
   @@map("crm_assets")
 }
 
 model CrmAssetAssignment {
-  id             String          @id @default(uuid())
-  retailerId     String          @map("retailer_id")
-  retailer       CrmRetailer     @relation(fields: [retailerId], references: [id], onDelete: Cascade)
-  assetId        String          @map("asset_id")
-  asset          CrmAsset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  placementZone  String          @default("service_counter") @map("placement_zone") // queue_line, customer_service, service_counter, front_end, entry_lobby, travel_plaza_concourse, back_office, other
-  installDate    DateTime?       @map("install_date") @db.Date
-  removalDate    DateTime?       @map("removal_date") @db.Date
-  sourceSystem   String          @default("manual_upload") @map("source_system") // api_read_only_source, vendor_export, manual_upload, survey_import, field_audit
-  sourceAssetKey String?         @map("source_asset_key") // external primary identifier from upstream API
-  integrationMode String         @default("manual_upload") @map("integration_mode") // api_read_only, vendor_export, manual_upload
-  batchId        String?         @map("batch_id")
-  batch          CrmImportBatch? @relation(fields: [batchId], references: [id])
-  rowProvenance  String?         @map("row_provenance")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  lastVerifiedAt DateTime?       @map("last_verified_at")
+  id              String          @id @default(uuid())
+  retailerId      String          @map("retailer_id")
+  retailer        CrmRetailer     @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  assetId         String          @map("asset_id")
+  asset           CrmAsset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  placementZone   String          @default("service_counter") @map("placement_zone") // queue_line, customer_service, service_counter, front_end, entry_lobby, travel_plaza_concourse, back_office, other
+  installDate     DateTime?       @map("install_date") @db.Date
+  removalDate     DateTime?       @map("removal_date") @db.Date
+  sourceSystem    String          @default("manual_upload") @map("source_system") // api_read_only_source, vendor_export, manual_upload, survey_import, field_audit
+  sourceAssetKey  String?         @map("source_asset_key") // external primary identifier from upstream API
+  integrationMode String          @default("manual_upload") @map("integration_mode") // api_read_only, vendor_export, manual_upload
+  batchId         String?         @map("batch_id")
+  batch           CrmImportBatch? @relation(fields: [batchId], references: [id])
+  rowProvenance   String?         @map("row_provenance")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  lastVerifiedAt  DateTime?       @map("last_verified_at")
 
-  verifications  CrmAssetVerification[]
-  discrepancies  CrmDiscrepancyException[]
+  verifications CrmAssetVerification[]
+  discrepancies CrmDiscrepancyException[]
 
   @@map("crm_asset_assignments")
 }
 
 model CrmImportBatch {
   id           String               @id @default(uuid())
-  domain       String               // retailer_master, user_territory, equipment_catalog, equipment_assignment
+  domain       String // retailer_master, user_territory, equipment_catalog, equipment_assignment
   fileName     String               @map("file_name")
   status       String               @default("success") // success, failed
   importedById String               @map("imported_by_id")
@@ -776,18 +789,18 @@ model CrmImportBatch {
 }
 
 model CrmVisit {
-  id            String      @id @default(uuid())
-  retailerId    String      @map("retailer_id")
-  retailer      CrmRetailer @relation(fields: [retailerId], references: [id], onDelete: Cascade)
-  userId        String      @map("user_id")
-  user          User        @relation(fields: [userId], references: [id])
-  visitDate     DateTime    @map("visit_date") @db.Date
-  status        String      @default("completed") // planned, completed
-  checkInTime   DateTime?   @map("check_in_time")
-  checkOutTime  DateTime?   @map("check_out_time")
-  syncStatus    String      @default("synced") @map("sync_status") // queued, synced
-  notes         String?     @db.Text
-  createdAt     DateTime    @default(now()) @map("created_at")
+  id           String      @id @default(uuid())
+  retailerId   String      @map("retailer_id")
+  retailer     CrmRetailer @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  userId       String      @map("user_id")
+  user         User        @relation(fields: [userId], references: [id])
+  visitDate    DateTime    @map("visit_date") @db.Date
+  status       String      @default("completed") // planned, completed
+  checkInTime  DateTime?   @map("check_in_time")
+  checkOutTime DateTime?   @map("check_out_time")
+  syncStatus   String      @default("synced") @map("sync_status") // queued, synced
+  notes        String?     @db.Text
+  createdAt    DateTime    @default(now()) @map("created_at")
 
   coaching      CrmCoaching?
   merchandising CrmMerchandising?
@@ -842,7 +855,7 @@ model CrmAssetVerification {
   visit              CrmVisit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
   assetAssignmentId  String             @map("asset_assignment_id")
   expectedAssignment CrmAssetAssignment @relation(fields: [assetAssignmentId], references: [id], onDelete: Cascade)
-  observedStatus     String             // present, missing, incorrect_placement
+  observedStatus     String // present, missing, incorrect_placement
   isDisputed         Boolean            @default(false) @map("is_disputed")
   notes              String?            @db.Text
   createdAt          DateTime           @default(now()) @map("created_at")
@@ -851,20 +864,20 @@ model CrmAssetVerification {
 }
 
 model CrmDiscrepancyException {
-  id                String              @id @default(uuid())
-  retailerId        String              @map("retailer_id")
-  retailer          CrmRetailer         @relation(fields: [retailerId], references: [id], onDelete: Cascade)
-  visitId           String?             @map("visit_id")
-  visit             CrmVisit?           @relation(fields: [visitId], references: [id])
-  assetAssignmentId String?             @map("asset_assignment_id")
+  id                 String              @id @default(uuid())
+  retailerId         String              @map("retailer_id")
+  retailer           CrmRetailer         @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  visitId            String?             @map("visit_id")
+  visit              CrmVisit?           @relation(fields: [visitId], references: [id])
+  assetAssignmentId  String?             @map("asset_assignment_id")
   expectedAssignment CrmAssetAssignment? @relation(fields: [assetAssignmentId], references: [id])
-  title             String              // e.g. "Missing Flex Terminal serial SN-4819"
-  description       String              @db.Text
-  status            String              @default("open") // open, resolved
-  resolvedAt        DateTime?           @map("resolved_at")
-  resolvedById      String?             @map("resolved_by_id")
-  resolvedBy        User?               @relation("DiscrepancyResolver", fields: [resolvedById], references: [id])
-  createdAt         DateTime            @default(now()) @map("created_at")
+  title              String // e.g. "Missing Flex Terminal serial SN-4819"
+  description        String              @db.Text
+  status             String              @default("open") // open, resolved
+  resolvedAt         DateTime?           @map("resolved_at")
+  resolvedById       String?             @map("resolved_by_id")
+  resolvedBy         User?               @relation("DiscrepancyResolver", fields: [resolvedById], references: [id])
+  createdAt          DateTime            @default(now()) @map("created_at")
 
   @@map("crm_discrepancy_exceptions")
 }
@@ -882,4 +895,419 @@ model CrmActionItem {
   createdAt   DateTime    @default(now()) @map("created_at")
 
   @@map("crm_action_items")
+}
+
+// =============================================================================
+// CONNECTED REPORTING & XBRL
+// =============================================================================
+
+model TrialBalanceRecord {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  periodDate     DateTime     @map("period_date") @db.Date
+  accountCode    String       @map("account_code")
+  accountName    String       @map("account_name")
+  balance        Decimal      @db.Decimal(14, 2)
+  status         String       @default("imported") // imported, mapped, archived
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@map("trial_balance_records")
+}
+
+model ReportTemplate {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  name           String
+  description    String?      @db.Text
+  content        String       @db.Text // Markdown with {{ TAG }}
+  createdById    String       @map("created_by")
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  snapshots ReportSnapshot[]
+
+  @@map("report_templates")
+}
+
+model ReportSnapshot {
+  id          String         @id @default(uuid())
+  templateId  String         @map("template_id")
+  template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  periodDate  DateTime       @map("period_date") @db.Date
+  contentHtml String         @map("content_html") @db.Text
+  status      String         @default("draft") // draft, reviewed, approved, published
+  createdById String         @map("created_by")
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@map("report_snapshots")
+}
+
+model ReportPackage {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  name           String       // "FY24 Q3 ACFR"
+  frequency      String       @default("annual") // annual, quarterly, monthly
+  periodDate     DateTime     @map("period_date") @db.Date
+  status         String       @default("draft") // draft, in_review, approved, published
+  createdById    String       @map("created_by")
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  sections          ReportSection[]
+  commentaryTasks   CommentaryTask[]
+  budgetScenarios   BudgetScenario[]
+  evidence          SupportingEvidence[]
+  compiledArtifacts CompiledArtifact[]
+
+  @@map("report_packages")
+}
+
+model ReportSection {
+  id             String         @id @default(uuid())
+  packageId      String         @map("package_id")
+  package        ReportPackage  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  name           String         // "Management Discussion & Analysis"
+  content        String         @db.Text
+  status         String         @default("draft") // draft, submitted, approved
+  sortOrder      Int            @default(0) @map("sort_order")
+  
+  assigneeId     String?        @map("assignee_id")
+  assignee       User?          @relation("SectionAssignee", fields: [assigneeId], references: [id])
+  reviewerId     String?        @map("reviewer_id")
+  reviewer       User?          @relation("SectionReviewer", fields: [reviewerId], references: [id])
+  
+  dueDate        DateTime?      @map("due_date") @db.Date
+  submittedAt    DateTime?      @map("submitted_at")
+  approvedAt     DateTime?      @map("approved_at")
+  
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  commentaryTasks CommentaryTask[]
+  evidence        SupportingEvidence[]
+
+  @@map("report_sections")
+}
+
+// =============================================================================
+// GOVERNED GRID & NUMBER FORMAT SUBSYSTEM
+// =============================================================================
+
+model MetricRegistryEntry {
+  id                 String       @id @default(uuid())
+  jurisdictionId     String       @map("jurisdiction_id")
+  jurisdiction       Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  name               String       // e.g. "Gross Sales YTD"
+  description        String?      @db.Text
+  accountMappingRule String?      @map("account_mapping_rule") // Logic for tying Trial Balance accounts
+  
+  // Number Format Subsystem
+  defaultFormat      Json         @map("default_format") // Stores NumberFormat interface
+  formatOwnerId      String       @map("format_owner_id")
+  formatOwner        User         @relation("MetricFormatOwner", fields: [formatOwnerId], references: [id])
+  formatLastUpdated  DateTime     @default(now()) @map("format_last_updated")
+  
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  @@map("metric_registry")
+}
+
+model FormatPreset {
+  id               String       @id @default(uuid())
+  name             String       // e.g. "ACFR Millions Standard"
+  description      String?      @db.Text
+  jurisdictionId   String?      @map("jurisdiction_id") // Null if system preset
+  jurisdiction     Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+  isSystemPreset   Boolean      @default(false) @map("is_system_preset")
+  
+  format           Json         // Stores NumberFormat interface
+  
+  createdById      String       @map("created_by_id")
+  createdBy        User         @relation("FormatPresetCreator", fields: [createdById], references: [id])
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@map("format_presets")
+}
+
+model FormatAuditEntry {
+  id             String   @id @default(uuid())
+  entityType     String   @map("entity_type") // "cell", "column", "metric_registry", "template"
+  entityId       String   @map("entity_id")
+  
+  changedById    String   @map("changed_by_id")
+  changedBy      User     @relation("FormatAuditUser", fields: [changedById], references: [id])
+  changedAt      DateTime @default(now()) @map("changed_at")
+  
+  previousFormat Json?    @map("previous_format") // Partial<NumberFormat>
+  newFormat      Json     @map("new_format")      // Partial<NumberFormat>
+  
+  reason         String?  @db.Text
+  source         String   @map("source") // "manual", "preset_apply", "template_clone", "system_default"
+
+  @@map("format_audit_log")
+}
+
+model DataGovernanceSettings {
+  id                String   @id @default(uuid())
+  retentionPeriodDays Int      @default(2555) // ~7 years
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@map("data_governance_settings")
+}
+
+model MetricDefinition {
+  id                 String   @id @default(uuid())
+  name               String
+  glAccount          String?
+  dimensions         Json?    // dimension definitions
+  ownerUserId        String
+  effectiveStartDate DateTime
+  effectiveEndDate   DateTime?
+  numberFormat       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  calculations       MetricCalculation[]
+  commentaryRules    CommentaryRule[]
+  @@map("metric_definitions")
+}
+
+model MetricCalculation {
+  id                  String   @id @default(uuid())
+  metricDefinitionId  String
+  metricDefinition    MetricDefinition @relation(fields: [metricDefinitionId], references: [id])
+  version             Int
+  expression          String
+  aggregationBehavior String?
+  dependencyMetrics   Json?    // list of metric IDs this calculation depends on
+  effectiveStartDate  DateTime
+  effectiveEndDate    DateTime?
+  isCurrent           Boolean @default(false)
+  createdById         String
+  approvedById        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  @@map("metric_calculations")
+  @@unique([metricDefinitionId, version])
+}
+model Pipeline {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  schemaVersion  String   @default("1.0")
+  pipelineJson   Json
+  createdBy      String
+  createdAt      DateTime @default(now())
+  importBatches  ImportBatch[]
+}
+
+enum ImportBatchStatus {
+  uploading
+  parsing
+  mapping
+  validating
+  importing
+  complete
+  failed
+  rolled_back
+}
+
+enum ImportValidationStatus {
+  passed
+  passed_with_warnings
+  failed
+}
+
+model ImportBatch {
+  id                    String   @id @default(uuid())
+  organizationId        String
+  gridId                String
+  pipelineId            String
+  sourceFilename        String
+  sourceFileHash        String
+  sourceFileSizeBytes   Int
+  storagePath           String
+  mappingSnapshot       Json
+  uploadedBy            String
+  uploadedAt            DateTime @default(now())
+  status                ImportBatchStatus @default(uploading)
+  rowCountSource        Int @default(0)
+  rowCountImported      Int @default(0)
+  rowCountExcluded      Int @default(0)
+  rowCountFailed        Int @default(0)
+  validationStatus      ImportValidationStatus?
+  isRolledBack          Boolean @default(false)
+  rolledBackBy          String?
+  rolledBackAt          DateTime?
+  rollbackReason        String?
+  supersededByBatchId   String?
+  supersededBy          ImportBatch? @relation("BatchSupersession", fields: [supersededByBatchId], references: [id])
+  supersededBatches     ImportBatch[] @relation("BatchSupersession")
+  pipeline              Pipeline @relation(fields: [pipelineId], references: [id])
+  cellTraces            CellImportTrace[]
+  evidence              SupportingEvidence[]
+
+  @@index([organizationId])
+  @@index([pipelineId])
+  @@index([gridId])
+  @@index([status])
+}
+
+model CellImportTrace {
+  id               String   @id @default(uuid())
+  cellId           String
+  batchId          String
+  sourceRowNumber  Int
+  sourceRawValue   String
+  transformedValue Decimal
+  importedAt       DateTime @default(now())
+  batch            ImportBatch @relation(fields: [batchId], references: [id])
+
+  @@unique([cellId, batchId])
+  @@index([cellId])
+  @@index([batchId])
+}
+
+model CommentaryRule {
+  id                    String   @id @default(uuid()) @map("rule_id")
+  ruleCode              String   @unique @map("rule_code")
+  name                  String
+  description           String?
+  metricId              String   @map("metric_id")
+  metric                MetricDefinition @relation(fields: [metricId], references: [id])
+  operator              String // >, <, >=, <=, ==, !=
+  threshold             Decimal  @db.Decimal(14, 2)
+  appliesToSectionType  String   @map("applies_to_section_type")
+  requiredCommentaryType String  @map("required_commentary_type")
+  severity              Int      @default(3) // 1-5
+  isActive              Boolean  @default(true) @map("is_active")
+  createdBy             String   @map("created_by")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedBy             String?  @map("updated_by")
+  updatedAt             DateTime? @updatedAt @map("updated_at")
+  tasks                 CommentaryTask[]
+
+  @@index([metricId])
+  @@map("commentary_rules")
+}
+
+model CommentaryTask {
+  id             String   @id @default(uuid()) @map("task_id")
+  packageId      String   @map("package_id")
+  package        ReportPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  sectionId      String   @map("section_id")
+  section        ReportSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  ruleId         String   @map("rule_id")
+  rule           CommentaryRule @relation(fields: [ruleId], references: [id])
+  ruleCode       String   @map("rule_code")
+  triggeredAt    DateTime @default(now()) @map("triggered_at")
+  assignedTo     String?  @map("assigned_to")
+  status         String   @default("pending") // pending, completed
+  resolvedBy     String?  @map("resolved_by")
+  resolvedAt     DateTime? @map("resolved_at")
+  resolutionNote String?  @map("resolution_note") @db.Text
+  metricSnapshot Json?    @map("metric_snapshot")
+  severity       String?  @default("hard_fail") // hard_fail, soft_warning, info
+
+  @@map("commentary_tasks")
+}
+
+model BudgetScenario {
+  id                   String   @id @default(uuid())
+  packageId            String   @map("package_id")
+  package              ReportPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  name                 String // e.g. "Base Scenario", "Stretch Scenario"
+  derivedFromScenarioId String?  @map("derived_from_scenario_id")
+  derivedFromScenario  BudgetScenario? @relation("ScenarioLineage", fields: [derivedFromScenarioId], references: [id])
+  derivedScenarios     BudgetScenario[] @relation("ScenarioLineage")
+  status               String   @default("draft") // draft, active, adopted
+  isAdopted            Boolean  @default(false) @map("is_adopted")
+  data                 Json     @default("{}") // Scenario-specific budget lines / overrides
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("budget_scenarios")
+}
+
+model SupportingEvidence {
+  id             String   @id @default(uuid())
+  packageId      String?  @map("package_id")
+  package        ReportPackage? @relation(fields: [packageId], references: [id])
+  sectionId      String?  @map("section_id")
+  section        ReportSection? @relation(fields: [sectionId], references: [id])
+  importBatchId  String?  @map("import_batch_id")
+  importBatch    ImportBatch? @relation(fields: [importBatchId], references: [id])
+  fileName       String   @map("file_name")
+  fileHash       String   @map("file_hash")
+  fileSizeBytes  Int      @map("file_size_bytes")
+  storagePath    String   @map("storage_path")
+  isConfidential Boolean  @default(false) @map("is_confidential")
+  uploadedBy     String   @map("uploaded_by")
+  uploadedAt     DateTime @default(now()) @map("uploaded_at")
+
+  @@map("supporting_evidence")
+}
+
+model FiscalCalendar {
+  id                   String   @id @default(uuid())
+  name                 String
+  fiscalYearStartMonth Int      @default(7) @map("fiscal_year_start_month")
+  isActive             Boolean  @default(true) @map("is_active")
+  deadlines            ReportingDeadline[]
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@map("fiscal_calendars")
+}
+
+model ReportingDeadline {
+  id           String   @id @default(uuid())
+  calendarId   String   @map("calendar_id")
+  calendar     FiscalCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  name         String // e.g. "Q1 Close statutory submission"
+  deadlineDate DateTime @map("deadline_date") @db.Date
+  frequency    String   @default("annual") // annual, quarterly, monthly
+  status       String   @default("pending") // pending, completed, missed
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("reporting_deadlines")
+}
+
+model CompiledArtifact {
+  id                     String   @id @default(uuid()) @map("artifact_id")
+  packageId              String   @map("package_id")
+  package                ReportPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  htmlPath               String   @map("html_path")
+  pdfPath                String   @map("pdf_path")
+  xlsxPath               String   @map("xlsx_path")
+  boardPacketPath        String   @map("board_packet_path")
+  htmlHash               String   @map("html_hash")
+  pdfHash                String   @map("pdf_hash")
+  xlsxHash               String   @map("xlsx_hash")
+  boardPacketHash        String   @map("board_packet_hash")
+  accessibilityValidatedAt DateTime? @map("accessibility_validated_at")
+  accessibilityStatus    String?  @map("accessibility_status") // e.g., "passed", "failed"
+  governanceSnapshot     Json     @map("governance_snapshot") // snapshot of governance_results
+  isLitigationHold       Boolean  @default(false) @map("is_litigation_hold")
+  publicUrl              String?  @map("public_url")
+  createdAt              DateTime @default(now()) @map("created_at")
+  snapshots              LockedReportSnapshot[]
+
+  @@map("compiled_artifacts")
+}
+
+model LockedReportSnapshot {
+  id                 String   @id @default(uuid())
+  artifactId         String   @map("artifact_id")
+  artifact           CompiledArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  metricMapSnapshot  Json     @map("metric_map_snapshot") // full metric values/overrides map
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("locked_report_snapshots")
 }

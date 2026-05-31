@@ -6,8 +6,22 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export function middleware(request) {
+const roleAccessMap = {
+  "/spatial-ops": ["admin", "analyst", "manager"],
+  "/analytics": ["admin", "analyst", "manager"],
+  "/reporting": ["admin", "procurement_officer", "analyst"],
+  "/fomo": ["admin", "sales_rep", "manager"],
+  "/fleet": ["admin", "sales_rep", "manager"],
+  "/contracts": ["admin", "procurement_officer"],
+  "/vendors": ["admin", "procurement_officer"],
+  "/marketing": ["admin", "marketing_manager"],
+  "/instant-tickets": ["admin", "marketing_manager"],
+  "/assets": ["admin", "it_manager"],
+};
+
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   // Public routes — no auth required
@@ -15,20 +29,33 @@ export function middleware(request) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/unauthorized"
   ) {
     return NextResponse.next();
   }
 
-  // Check for NextAuth session cookie
-  const sessionToken =
-    request.cookies.get("authjs.session-token")?.value ||
-    request.cookies.get("__Secure-authjs.session-token")?.value;
+  // Decrypt and verify the JWT token
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  });
 
-  if (!sessionToken) {
+  if (!token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  const userRole = token.role || "";
+
+  // Check section access
+  for (const [routePrefix, allowedRoles] of Object.entries(roleAccessMap)) {
+    if (pathname === routePrefix || pathname.startsWith(routePrefix + "/")) {
+      if (!allowedRoles.includes(userRole)) {
+        return NextResponse.redirect(new URL("/unauthorized", request.url));
+      }
+    }
   }
 
   return NextResponse.next();

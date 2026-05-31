@@ -34,15 +34,15 @@ const nextConfig = {
         destination: "http://localhost:3838/executive/:path+",
       },
       {
-        source: "/ews",
+        source: "/spatial-ops",
         destination: "http://localhost:3838/ews/",
       },
       {
-        source: "/ews/",
+        source: "/spatial-ops/",
         destination: "http://localhost:3838/ews/",
       },
       {
-        source: "/ews/:path+",
+        source: "/spatial-ops/:path+",
         destination: "http://localhost:3838/ews/:path+",
       },
       {

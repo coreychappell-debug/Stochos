@@ -13,6 +13,15 @@ const navItems = [
     ],
   },
   {
+    section: "Finance & Reporting",
+    items: [
+      { href: "/reporting", label: "Governed Financial & Performance Administration (GFPA)", icon: "📑" },
+      { href: "/reporting/prep", label: "Data Prep Studio", icon: "⚙️" },
+      { href: "/reporting/grid", label: "Governed Grid", icon: "📊" },
+      { href: "/reporting/workflow", label: "Workflow & Binders", icon: "🗂️" },
+    ],
+  },
+  {
     section: "Marketing",
     items: [
       { href: "/marketing", label: "Marketing MRM", icon: "📢" },
@@ -22,12 +31,12 @@ const navItems = [
   {
     section: "Operations",
     items: [
-      { href: "/crm", label: "CRM (Sales)", icon: "🤝" },
+      { href: "/fomo", label: "Field Operations, Merchandising & Oversight (FOMO)", icon: "🤝" },
       { href: "/contracts", label: "Contracts", icon: "📋" },
       { href: "/fleet", label: "Fleet", icon: "🚗" },
       { href: "/vendors", label: "Vendors", icon: "🏢" },
       { href: "/products", label: "Products", icon: "🎰" },
-      { href: "/ews", label: "Early Warning System (EWS)", icon: "⚠️" },
+      { href: "/spatial-ops", label: "Spatial Ops, Logistics & Risk (SOLR)", icon: "🌐" },
     ],
   },
   {
@@ -103,6 +112,30 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
+        <Link 
+          href="/help"
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            marginBottom: "8px",
+            backgroundColor: "var(--surface-3)",
+            border: "1px solid var(--border)",
+            borderRadius: "6px",
+            color: "var(--text)",
+            cursor: "pointer",
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            textDecoration: "none",
+            transition: "all var(--transition)"
+          }}
+          className="help-guide-btn"
+        >
+          📖 Help & User Guide
+        </Link>
+
         <button 
           onClick={toggleTheme}
           style={{

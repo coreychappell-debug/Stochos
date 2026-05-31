@@ -66,9 +66,9 @@ export default async function DashboardPage() {
 
   const operationsModules = [
     {
-      href: "/crm",
+      href: "/fomo",
       icon: "🤝",
-      title: "Sales CRM Overlay",
+      title: "Field Operations, Merchandising & Oversight (FOMO)",
       description: "Manage lottery retailer accounts, schedule routes, log store visits, and audit expected versus observed equipment.",
       active: true,
     },
@@ -101,10 +101,10 @@ export default async function DashboardPage() {
       active: true,
     },
     {
-      href: "/ews",
-      icon: "⚠️",
-      title: "Early Warning System (EWS)",
-      description: "Monitor active weather alerts, earthquake activity, and spatial hazard proximity threats relative to New York lottery retailers.",
+      href: "/spatial-ops",
+      icon: "🌐",
+      title: "Spatial Operations, Logistics & Risk (SOLR)",
+      description: "Monitor active weather/earthquake alerts, analyze retailer risk proximity, and coordinate logistics planning.",
       active: true,
     },
   ];
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
             <div className="card-body" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>📈 Analytics & Performance Portal</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Executive reporting, retailer performance, weather hazard EWS alerts, and sales forecasting.</p>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Executive reporting, retailer performance, SOLR weather and hazard planning, and sales forecasting.</p>
               </div>
               <Link href="/analytics" className="btn btn-primary">
                 Open Analytics

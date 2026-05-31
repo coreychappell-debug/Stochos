@@ -33,6 +33,27 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 
+  // Enforce read access permissions
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { role: true }
+  });
+  const isAdmin = user?.role?.name === "admin";
+
+  if (!isAdmin) {
+    const hasAccess = contract.createdById === session.user.id || await prisma.contractAccess.findUnique({
+      where: {
+        contractId_userId: {
+          contractId: id,
+          userId: session.user.id
+        }
+      }
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+  }
+
   // Fetch audit log for this contract
   const auditLog = await prisma.auditLog.findMany({
     where: { entityType: "contract", entityId: id },
@@ -54,6 +75,31 @@ export async function PUT(request, { params }) {
 
   // Get current state for audit diff
   const before = await prisma.contract.findUnique({ where: { id } });
+  if (!before) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+
+  // Enforce write access permissions
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { role: true }
+  });
+  const isAdmin = user?.role?.name === "admin";
+
+  if (!isAdmin) {
+    const access = await prisma.contractAccess.findUnique({
+      where: {
+        contractId_userId: {
+          contractId: id,
+          userId: session.user.id
+        }
+      }
+    });
+    const canWrite = before.createdById === session.user.id || (access && access.permission === "write");
+    if (!canWrite) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+  }
 
   const contract = await prisma.contract.update({
     where: { id },
@@ -91,6 +137,33 @@ export async function DELETE(request, { params }) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  const contract = await prisma.contract.findUnique({ where: { id } });
+  if (!contract) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+
+  // Enforce delete access permissions
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { role: true }
+  });
+  const isAdmin = user?.role?.name === "admin";
+
+  if (!isAdmin) {
+    const access = await prisma.contractAccess.findUnique({
+      where: {
+        contractId_userId: {
+          contractId: id,
+          userId: session.user.id
+        }
+      }
+    });
+    const canDelete = contract.createdById === session.user.id || (access && access.permission === "write");
+    if (!canDelete) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+  }
 
   await prisma.contract.delete({ where: { id } });
 

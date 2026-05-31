@@ -28,6 +28,24 @@ export async function GET(request) {
     ];
   }
 
+  // Retrieve user role from database
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { role: true }
+  });
+  const isAdmin = user?.role?.name === "admin";
+
+  if (!isAdmin) {
+    where.AND = [
+      {
+        OR: [
+          { createdById: session.user.id },
+          { contractAccess: { some: { userId: session.user.id } } }
+        ]
+      }
+    ];
+  }
+
   const contracts = await prisma.contract.findMany({
     where,
     include: {

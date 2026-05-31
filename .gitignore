@@ -33,3 +33,6 @@ watchdog.log
 # OS files
 .DS_Store
 Thumbs.db
+
+# Step logs
+step_*.txt

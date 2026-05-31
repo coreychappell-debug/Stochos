@@ -564,7 +564,14 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                 {filtered.map((v) => {
                   const lifecycle = getVehicleStatusDetails(v);
                   return (
-                    <tr key={v.id} className="cursor-pointer" onClick={() => setSelectedVehicle(v)}>
+                    <tr 
+                      key={v.id} 
+                      className="cursor-pointer" 
+                      onClick={() => setSelectedVehicle(v)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedVehicle(v); } }}
+                    >
                       <td style={{ fontWeight: 600 }}>{v.licensePlate}</td>
                       <td>
                         <div>{v.year} {v.make} {v.model}</div>
@@ -713,6 +720,9 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                         <div
                           key={idx}
                           onClick={() => setSelectedDayKey(isSelected ? null : dateKey)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedDayKey(isSelected ? null : dateKey); } }}
                           style={getDayCellStyle(cell.isCurrentMonth, isSelected, isToday)}
                         >
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -824,6 +834,9 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                           key={`${vehicle.id}-${type}-${idx}`} 
                           className="cursor-pointer"
                           onClick={() => setSelectedVehicle(vehicle)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedVehicle(vehicle); } }}
                           style={{ 
                             padding: 12, 
                             borderRadius: 6, 
@@ -880,7 +893,7 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
             <div className="card" style={{ width: 340, flexShrink: 0 }}>
               <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3>Vehicle Profile</h3>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedVehicle(null)}>✕</button>
+                <button className="btn btn-secondary btn-sm" aria-label="Close" onClick={() => setSelectedVehicle(null)}>✕</button>
               </div>
               <div className="card-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
                 {error && <div className="login-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -1029,7 +1042,7 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
           <div className="card" style={{ width: 500, maxHeight: "90vh", overflowY: "auto" }}>
             <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3>Register Fleet Vehicle</h3>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowAddModal(false)}>✕</button>
+              <button className="btn btn-secondary btn-sm" aria-label="Close" onClick={() => setShowAddModal(false)}>✕</button>
             </div>
             <div className="card-body">
               {error && <div className="login-error" style={{ marginBottom: 12 }}>{error}</div>}

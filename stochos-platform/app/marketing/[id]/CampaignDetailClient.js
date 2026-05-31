@@ -459,7 +459,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
                           </h4>
                           <div className="flex gap-2">
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditingChannelId(ch.id)} style={{ padding: "2px 8px" }}>Edit</button>
-                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeleteChannel(ch.id)} style={{ padding: "2px 8px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Channel" onClick={() => handleDeleteChannel(ch.id)} style={{ padding: "2px 8px" }}>🗑️</button>
                           </div>
                         </div>
                         <div className="form-row" style={{ fontSize: 14 }}>
@@ -595,7 +595,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
                           <div className="flex gap-2">
                             {asset.assetUrl && <a href={asset.assetUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ padding: "2px 8px", textDecoration: "none" }}>🔗 View</a>}
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditingAssetId(asset.id)} style={{ padding: "2px 8px" }}>Edit</button>
-                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeleteAsset(asset.id)} style={{ padding: "2px 8px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Asset" onClick={() => handleDeleteAsset(asset.id)} style={{ padding: "2px 8px" }}>🗑️</button>
                           </div>
                         </div>
                         <div className="form-row" style={{ fontSize: 14 }}>
@@ -730,7 +730,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
                           </h4>
                           <div className="flex gap-2">
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditingMilestoneId(m.id)} style={{ padding: "2px 8px" }}>Edit</button>
-                            <button className="btn btn-secondary btn-sm" onClick={() => handleDeleteMilestone(m.id)} style={{ padding: "2px 8px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Milestone" onClick={() => handleDeleteMilestone(m.id)} style={{ padding: "2px 8px" }}>🗑️</button>
                           </div>
                         </div>
                         <div style={{ marginBottom: 12 }}>

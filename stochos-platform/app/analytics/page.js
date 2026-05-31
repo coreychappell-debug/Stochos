@@ -26,7 +26,7 @@ export default async function AnalyticsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2>Analytics & Dashboards</h2>
-            <p>Stochos Early Warning System & Geographic Analysis</p>
+            <p>Spatial Operations, Logistics & Risk (SOLR) & Geographic Analysis</p>
           </div>
         </div>
       </div>
