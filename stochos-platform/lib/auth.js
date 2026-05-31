@@ -43,6 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           permissions: user.role.permissions,
           jurisdictionId: user.jurisdictionId,
           jurisdictionName: user.jurisdiction?.name || null,
+          division: user.division,
         };
       },
     }),
@@ -55,6 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.permissions = user.permissions;
         token.jurisdictionId = user.jurisdictionId;
         token.jurisdictionName = user.jurisdictionName;
+        token.division = user.division;
       }
       return token;
     },
@@ -64,6 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.permissions = token.permissions;
       session.user.jurisdictionId = token.jurisdictionId;
       session.user.jurisdictionName = token.jurisdictionName;
+      session.user.division = token.division;
       return session;
     },
   },

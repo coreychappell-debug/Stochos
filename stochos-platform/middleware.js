@@ -8,17 +8,17 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const roleAccessMap = {
-  "/spatial-ops": ["admin", "analyst", "manager"],
-  "/analytics": ["admin", "analyst", "manager"],
-  "/reporting": ["admin", "procurement_officer", "analyst"],
-  "/fomo": ["admin", "sales_rep", "manager"],
-  "/fleet": ["admin", "sales_rep", "manager"],
-  "/contracts": ["admin", "procurement_officer"],
-  "/vendors": ["admin", "procurement_officer"],
-  "/marketing": ["admin", "marketing_manager"],
-  "/instant-tickets": ["admin", "marketing_manager"],
-  "/assets": ["admin", "it_manager"],
+const divisionAccessMap = {
+  "/spatial-ops": { divisions: ["OPERATIONS", "EXECUTIVE"], roles: [] },
+  "/analytics": { divisions: ["FINANCE", "OPERATIONS", "EXECUTIVE"], roles: ["analyst", "manager"] },
+  "/reporting": { divisions: ["FINANCE", "EXECUTIVE"], roles: ["analyst"] },
+  "/fomo": { divisions: ["OPERATIONS", "EXECUTIVE"], roles: ["manager", "sales_rep"] },
+  "/fleet": { divisions: ["OPERATIONS", "EXECUTIVE"], roles: ["manager", "sales_rep"] },
+  "/contracts": { divisions: ["PROCUREMENT", "EXECUTIVE"], roles: ["procurement_officer"] },
+  "/vendors": { divisions: ["PROCUREMENT", "EXECUTIVE"], roles: ["procurement_officer"] },
+  "/marketing": { divisions: ["MARKETING", "EXECUTIVE"], roles: ["marketing_manager"] },
+  "/instant-tickets": { divisions: ["MARKETING", "EXECUTIVE"], roles: ["marketing_manager"] },
+  "/assets": { divisions: ["IT", "EXECUTIVE"], roles: ["it_manager"] },
 };
 
 export async function middleware(request) {
@@ -48,11 +48,20 @@ export async function middleware(request) {
   }
 
   const userRole = token.role || "";
+  const userDivision = token.division || "";
+
+  // Admins bypass all route checks
+  if (userRole === "admin") {
+    return NextResponse.next();
+  }
 
   // Check section access
-  for (const [routePrefix, allowedRoles] of Object.entries(roleAccessMap)) {
+  for (const [routePrefix, rule] of Object.entries(divisionAccessMap)) {
     if (pathname === routePrefix || pathname.startsWith(routePrefix + "/")) {
-      if (!allowedRoles.includes(userRole)) {
+      const hasDivisionAccess = rule.divisions.includes(userDivision);
+      const hasRoleAccess = rule.roles.includes(userRole);
+
+      if (!hasDivisionAccess && !hasRoleAccess) {
         return NextResponse.redirect(new URL("/unauthorized", request.url));
       }
     }

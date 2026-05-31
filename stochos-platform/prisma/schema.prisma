@@ -128,6 +128,7 @@ model User {
   jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
   lastLogin      DateTime?     @map("last_login")
   status         String        @default("active")
+  division       String        @default("EXECUTIVE") // EXECUTIVE, FINANCE, MARKETING, OPERATIONS, IT, PROCUREMENT
   createdAt      DateTime      @default(now()) @map("created_at")
 
   contractsCreated Contract[]       @relation("ContractCreatedBy")
