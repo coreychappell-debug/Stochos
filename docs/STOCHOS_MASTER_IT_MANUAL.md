@@ -195,6 +195,7 @@ REPORT_RECIPIENTS="coreychappell@thestochos.com,tylercabral@thestochos.com,caitl
 * **Script:** [status_reporter.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/jobs/status_reporter.py) (copied to `/srv/stochos/jobs/status_reporter.py` in WSL).
 * **Operation:**
   - Connects to PostgreSQL to compile active retailer geocoding counts (Verified, Mismatched, Unmatched, Bypassed, Pending Host Updates).
+  - Connects to the DuckDB analytical warehouse (`stochos_lottery.duckdb`) to inspect EWS risk history and check data freshness (flagging pipeline warnings if the last run is older than 2 hours).
   - Parses the last 40 lines of the Windows watchdog log (`watchdog.log`) to check for recent container crashes, restarts, or warnings.
   - Parses the `/srv/stochos/logs/geodata_audit.log` log to check for recent nightly job runs or API failures.
   - Compiles the metrics into a polished, responsive HTML email dashboard.
