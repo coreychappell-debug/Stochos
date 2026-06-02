@@ -23,6 +23,52 @@
             --accent-light: #60a5fa;
         }
 
+        body.light-theme {
+            --bg-main: #f4f6f9;
+            --bg-panel: #ffffff;
+            --bg-input: #f1f3f4;
+            --border-color: #cbd5e1;
+            --text-light: #1e293b;
+            --text-dark: #64748b;
+            --accent-color: #1a73e8;
+            --danger-color: #b91c1c;
+            --warning-color: #b45309;
+            --success-color: #107c41;
+            --bg-light: #e2e8f0;
+            --accent-light: #1a73e8;
+        }
+
+        body.light-theme .icon-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-theme button:hover:not(:disabled),
+        body.light-theme select:hover:not(:disabled) {
+            background-color: #e8eaed;
+            border-color: #dadce0;
+        }
+
+        body.light-theme button:active:not(:disabled),
+        body.light-theme select:active:not(:disabled) {
+            background-color: #cbd5e1;
+        }
+
+        body.light-theme .scenario-tab:hover {
+            color: var(--accent-color);
+        }
+
+        body.light-theme button:disabled {
+            background-color: #f1f3f4;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            opacity: 0.6;
+        }
+
+        /* Unify all form elements to use the Inter font family */
+        button, select, input, textarea {
+            font-family: inherit;
+        }
+
         html,
         body {
             height: 100%;
@@ -53,7 +99,7 @@
             flex-wrap: wrap;
             gap: 0.5rem;
             padding: 0.5rem 0.75rem;
-            background-color: #1f2937;
+            background-color: var(--bg-panel);
             /* bg-panel */
             border-radius: 0.5rem;
         }
@@ -200,7 +246,7 @@
             align-items: center;
             gap: 12px;
             padding: 10px;
-            background-color: #2b3649;
+            background-color: var(--bg-light);
             border-radius: 8px 8px 0 0;
             cursor: pointer;
         }
@@ -307,7 +353,7 @@
             display: none;
             position: absolute;
             right: 0;
-            background-color: #374151;
+            background-color: var(--bg-input);
             min-width: 220px;
             box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
             z-index: 1;
@@ -705,10 +751,45 @@
             const DB_NAME = 'PlanDB';
             const STORE_NAME = 'PlanStore';
 
+            function applyTheme() {
+                const urlParams = new URLSearchParams(window.location.search);
+                let theme = urlParams.get('theme');
+                if (!theme) {
+                    try {
+                        if (window.parent && window.parent.document) {
+                            const isParentLight = window.parent.document.body.classList.contains('light-theme');
+                            theme = isParentLight ? 'light' : 'dark';
+                        }
+                    } catch (e) {
+                        // Ignore cross-origin constraints if any
+                    }
+                }
+                if (theme === 'light') {
+                    document.body.classList.add('light-theme');
+                } else {
+                    document.body.classList.remove('light-theme');
+                }
+            }
+
+            function setupThemeSync() {
+                applyTheme();
+                try {
+                    if (window.parent && window.parent.document) {
+                        const observer = new MutationObserver(() => {
+                            applyTheme();
+                        });
+                        observer.observe(window.parent.document.body, { attributes: true, attributeFilter: ["class"] });
+                    }
+                } catch (e) {
+                    console.warn("Could not sync theme with parent window:", e);
+                }
+            }
+
             // --- INIT ---
             document.addEventListener('DOMContentLoaded', boot);
 
             async function boot() {
+                setupThemeSync();
                 try {
                     await openDBSafe();
                     const restored = await restoreFromAutosaveSafe();
@@ -1057,7 +1138,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <h2 style="font-size: 1.15rem; margin: 0;">FY${state.fiscalYear} Plan</h2>
                 </div>
-                <div style="padding: 0.5rem; margin-bottom: 0.75rem; text-align: center; background-color: #111827; border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div style="padding: 0.5rem; margin-bottom: 0.75rem; text-align: center; background-color: var(--bg-main); border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
                     <div style="font-size: 0.9em;"><strong>Total Planned Sales (${vendorView === 'all' ? 'All Vendors' : vendorLabel(vendorView)}):</strong> ${formatCurrency(totalPlannedSales)} of ${formatCurrency(state.totalSalesTarget)} (${salesGoalPercent}%)</div>
                     <div style="font-size: 0.85em; color: var(--text-dark);"><strong>Expected Contract Cost:</strong> ${formatCurrency(totalPlannedContractCost)}</div>
                 </div>
@@ -1110,13 +1191,13 @@
                     const tableNsDisplay = isNsCollapsed ? 'display:none;' : '';
 
                     nsGroup.innerHTML = `
-                        <div class="game-group-header" data-action="toggle-ns-collapse" style="background-color: #2D3748; border-color: #4A5568;">
+                        <div class="game-group-header" data-action="toggle-ns-collapse" style="background-color: var(--bg-light); border-color: var(--border-color);">
                             <span class="toggle-icon">${toggleNsIcon}</span>
                             <h3>Non-Scratcher / Marketing Items</h3>
                             <button style="margin-left: auto; background-color: var(--accent-light); color: #fff;" data-action="add-ns-item">+ Add Item</button>
                         </div>
                         <div style="${tableNsDisplay}">
-                        <table class="game-table" style="background-color: #1A202C;">
+                        <table class="game-table" style="background-color: var(--bg-panel);">
                             <thead>
                                 <tr>
                                     <th style="width: 25%">Item Name</th>

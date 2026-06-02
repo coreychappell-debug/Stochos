@@ -50,7 +50,7 @@ function toInputDate(d) {
   return new Date(d).toISOString().split('T')[0];
 }
 
-export default function ContractDetailClient({ contract, auditLog, products }) {
+export default function ContractDetailClient({ contract, auditLog, products, approvals = [] }) {
   const router = useRouter();
   const [tab, setTab] = useState("overview");
   
@@ -322,83 +322,162 @@ export default function ContractDetailClient({ contract, auditLog, products }) {
         </div>
 
         {tab === "overview" && (
-          <div className="card">
-            <div className="card-header flex justify-between">
-              <h3>Contract Details</h3>
-              {!isEditing && <button className="btn btn-secondary btn-sm" onClick={() => setIsEditing(true)}>Edit Details</button>}
-            </div>
-            <div className="card-body">
-              {isEditing ? (
-                <form onSubmit={handleEditContract} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, border: "1px solid var(--border)" }}>
-                  <div className="form-group"><label className="form-label">Title</label><input name="title" className="form-input" defaultValue={contract.title} required /></div>
-                  <div className="form-row">
-                    <div className="form-group"><label className="form-label">Type</label>
-                      <select name="type" className="form-select" defaultValue={contract.type} required>
-                        {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label className="form-label">Start Date</label><input name="startDate" className="form-input" type="date" defaultValue={toInputDate(contract.startDate)} /></div>
-                    <div className="form-group"><label className="form-label">End Date</label><input name="endDate" className="form-input" type="date" defaultValue={toInputDate(contract.endDate)} /></div>
-                    <div className="form-group"><label className="form-label">Notice Date</label><input name="noticeDate" className="form-input" type="date" defaultValue={toInputDate(contract.noticeDate)} /></div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label className="form-label">Total Value ($)</label><input name="totalValue" className="form-input" type="number" step="0.01" min="0" defaultValue={contract.totalValue} /></div>
-                    <div className="form-group"><label className="form-label">Budget Cap ($)</label><input name="budgetCap" className="form-input" type="number" step="0.01" min="0" defaultValue={contract.budgetCap} /></div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setIsEditing(false)}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <div className="form-row">
-                    <div><div className="form-label">Vendor</div><div>{contract.vendor?.name || "—"}</div></div>
-                    <div><div className="form-label">Jurisdiction</div><div>{contract.jurisdiction?.name || "—"}</div></div>
-                    <div><div className="form-label">Type</div><div>{TYPE_LABELS[contract.type] || contract.type}</div></div>
-                  </div>
-                  <div className="form-row" style={{ marginTop: 20 }}>
-                    <div><div className="form-label">Created By</div><div>{contract.createdBy?.name || "—"}</div></div>
-                    <div><div className="form-label">Created At</div><div>{fmtDateTime(contract.createdAt)}</div></div>
-                    <div><div className="form-label">Last Updated</div><div>{fmtDateTime(contract.updatedAt)}</div></div>
-                  </div>
-                </>
-              )}
-              
-              <div style={{ marginTop: 32, borderTop: "1px solid var(--border)", paddingTop: 24 }}>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="form-label m-0">Amendments</div>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setShowAddAmendment(!showAddAmendment)}>{showAddAmendment ? "Cancel" : "+ Add Amendment"}</button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {approvals.length > 0 && (
+              <div className="card" style={{ borderLeft: "5px solid var(--gold)" }}>
+                <div className="card-header">
+                  <h3 style={{ margin: 0 }}>Workflow Approvals Chain</h3>
+                  <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12 }}>Sequential review checklist required to transition this contract to active status.</p>
                 </div>
-                
-                {showAddAmendment && (
-                  <form onSubmit={handleAddAmendment} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, marginBottom: 20, border: "1px solid var(--border)" }}>
-                    <div className="form-group"><label className="form-label">Description</label><input name="description" className="form-input" required placeholder="Scope expansion" /></div>
-                    <div className="form-row">
-                      <div className="form-group"><label className="form-label">Value Change ($)</label><input name="valueChange" className="form-input" type="number" step="0.01" placeholder="e.g. 50000 or -10000" /></div>
-                      <div className="form-group"><label className="form-label">Effective Date</label><input name="effectiveDate" className="form-input" type="date" /></div>
-                      <div className="form-group"><label className="form-label">New End Date (Optional)</label><input name="newEndDate" className="form-input" type="date" /></div>
-                    </div>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Adding..." : "Save Amendment"}</button>
-                  </form>
-                )}
+                <div className="card-body" style={{ padding: 20 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {approvals.map((app, index) => {
+                      const isApproved = app.status === "approved";
+                      const isPending = app.status === "pending";
+                      const badgeCls = isApproved ? "active" : isPending ? "pending" : "rejected";
+                      const statusText = isApproved ? "Approved" : isPending ? "Pending Review" : "Rejected";
+                      const roleDesc = app.approver?.division 
+                        ? `${app.approver.division.charAt(0).toUpperCase() + app.approver.division.slice(1).toLowerCase()} Executive`
+                        : "Administrator";
+                      
+                      return (
+                        <div key={app.id} style={{ display: "flex", alignItems: "flex-start", gap: 16, paddingBottom: 16, borderBottom: index < approvals.length - 1 ? "1px solid var(--border)" : "none" }}>
+                          <div style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            background: isApproved ? "var(--green-dim)" : "var(--surface-3)",
+                            color: isApproved ? "var(--green)" : "var(--text-muted)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 12,
+                            fontWeight: "bold",
+                            border: isPending ? "1px dashed var(--gold)" : "none"
+                          }}>
+                            {isApproved ? "✓" : index + 1}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                              <div style={{ fontWeight: 600, fontSize: 14 }}>{app.approver?.name || "System Reviewer"}</div>
+                              <span className={`badge badge-${badgeCls}`} style={{ fontSize: 11 }}>{statusText}</span>
+                            </div>
+                            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+                              {app.approver?.email} · {roleDesc}
+                            </div>
+                            {app.comment && (
+                              <div style={{ 
+                                marginTop: 8, 
+                                padding: "8px 12px", 
+                                background: "var(--surface-overlay)", 
+                                borderRadius: "var(--radius-sm)", 
+                                fontSize: 13,
+                                color: "var(--text-secondary)",
+                                borderLeft: "3px solid var(--green)"
+                              }}>
+                                "{app.comment}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
 
-                {contract.amendments?.length > 0 ? (
-                  <table className="data-table">
-                    <thead><tr><th>#</th><th>Description</th><th>Value Change</th><th>Effective</th></tr></thead>
-                    <tbody>
-                      {contract.amendments.map((a) => (
-                        <tr key={a.id}><td>{a.amendmentNumber}</td><td>{a.description || "—"}</td>
-                          <td style={{ color: parseFloat(a.valueChange) >= 0 ? "var(--green)" : "var(--red)" }}>{parseFloat(a.valueChange) >= 0 ? "+" : ""}{fmt$(a.valueChange)}</td>
-                          <td className="muted">{fmtDate(a.effectiveDate)}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    <div style={{ 
+                      marginTop: 8, 
+                      padding: 12, 
+                      background: "rgba(255, 159, 67, 0.05)", 
+                      border: "1px solid rgba(255, 159, 67, 0.15)", 
+                      borderRadius: "var(--radius-md)",
+                      fontSize: 12,
+                      color: "var(--gold)",
+                      lineHeight: 1.4
+                    }}>
+                      <strong>Workflow Configuration Note:</strong> The Operations Manager has system clearance to customize, bypass, or re-route this approval sequence by editing the contract routing parameters in Settings.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="card">
+              <div className="card-header flex justify-between">
+                <h3>Contract Details</h3>
+                {!isEditing && <button className="btn btn-secondary btn-sm" onClick={() => setIsEditing(true)}>Edit Details</button>}
+              </div>
+              <div className="card-body">
+                {isEditing ? (
+                  <form onSubmit={handleEditContract} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, border: "1px solid var(--border)" }}>
+                    <div className="form-group"><label className="form-label">Title</label><input name="title" className="form-input" defaultValue={contract.title} required /></div>
+                    <div className="form-row">
+                      <div className="form-group"><label className="form-label">Type</label>
+                        <select name="type" className="form-select" defaultValue={contract.type} required>
+                          {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group"><label className="form-label">Start Date</label><input name="startDate" className="form-input" type="date" defaultValue={toInputDate(contract.startDate)} /></div>
+                      <div className="form-group"><label className="form-label">End Date</label><input name="endDate" className="form-input" type="date" defaultValue={toInputDate(contract.endDate)} /></div>
+                      <div className="form-group"><label className="form-label">Notice Date</label><input name="noticeDate" className="form-input" type="date" defaultValue={toInputDate(contract.noticeDate)} /></div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group"><label className="form-label">Total Value ($)</label><input name="totalValue" className="form-input" type="number" step="0.01" min="0" defaultValue={contract.totalValue} /></div>
+                      <div className="form-group"><label className="form-label">Budget Cap ($)</label><input name="budgetCap" className="form-input" type="number" step="0.01" min="0" defaultValue={contract.budgetCap} /></div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setIsEditing(false)}>Cancel</button>
+                    </div>
+                  </form>
                 ) : (
-                  <div className="text-muted" style={{ fontSize: 13 }}>No amendments recorded.</div>
+                  <>
+                    <div className="form-row">
+                      <div><div className="form-label">Vendor</div><div>{contract.vendor?.name || "—"}</div></div>
+                      <div><div className="form-label">Jurisdiction</div><div>{contract.jurisdiction?.name || "—"}</div></div>
+                      <div><div className="form-label">Type</div><div>{TYPE_LABELS[contract.type] || contract.type}</div></div>
+                    </div>
+                    <div className="form-row" style={{ marginTop: 20 }}>
+                      <div><div className="form-label">Division</div><div>{contract.division ? <span className={`badge badge-${contract.division.toLowerCase()}`}>{contract.division}</span> : "—"}</div></div>
+                      <div><div className="form-label">Created By</div><div>{contract.createdBy?.name || "—"}</div></div>
+                      <div><div className="form-label">Last Updated</div><div>{fmtDateTime(contract.updatedAt)}</div></div>
+                    </div>
+                  </>
                 )}
+                
+                <div style={{ marginTop: 32, borderTop: "1px solid var(--border)", paddingTop: 24 }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="form-label m-0">Amendments</div>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setShowAddAmendment(!showAddAmendment)}>{showAddAmendment ? "Cancel" : "+ Add Amendment"}</button>
+                  </div>
+                  
+                  {showAddAmendment && (
+                    <form onSubmit={handleAddAmendment} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, marginBottom: 20, border: "1px solid var(--border)" }}>
+                      <div className="form-group"><label className="form-label">Description</label><input name="description" className="form-input" required placeholder="Scope expansion" /></div>
+                      <div className="form-row">
+                        <div className="form-group"><label className="form-label">Value Change ($)</label><input name="valueChange" className="form-input" type="number" step="0.01" placeholder="e.g. 50000 or -10000" /></div>
+                        <div className="form-group"><label className="form-label">Effective Date</label><input name="effectiveDate" className="form-input" type="date" /></div>
+                        <div className="form-group"><label className="form-label">New End Date (Optional)</label><input name="newEndDate" className="form-input" type="date" /></div>
+                      </div>
+                      <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Adding..." : "Save Amendment"}</button>
+                    </form>
+                  )}
+
+                  {contract.amendments?.length > 0 ? (
+                    <table className="data-table">
+                      <thead><tr><th>#</th><th>Description</th><th>Value Change</th><th>Effective</th></tr></thead>
+                      <tbody>
+                        {contract.amendments.map((a) => (
+                          <tr key={a.id}><td>{a.amendmentNumber}</td><td>{a.description || "—"}</td>
+                            <td style={{ color: parseFloat(a.valueChange) >= 0 ? "var(--green)" : "var(--red)" }}>{parseFloat(a.valueChange) >= 0 ? "+" : ""}{fmt$(a.valueChange)}</td>
+                            <td className="muted">{fmtDate(a.effectiveDate)}</td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-muted" style={{ fontSize: 13 }}>No amendments recorded.</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

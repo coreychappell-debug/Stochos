@@ -38,6 +38,7 @@ library(plotly)
 library(leaflet)
 library(DT)
 library(scales)
+library(sf)
 library(shinycssloaders)
 library(htmltools)
 library(tidyr)
@@ -463,6 +464,19 @@ ui <- dashboardPage(
         if (theme === 'light') {
           document.documentElement.classList.add('light-theme');
         }
+        // Client-side embed detection
+        const embed = urlParams.get('embed');
+        if (embed === '1') {
+          document.documentElement.classList.add('embed-mode');
+          const style = document.createElement('style');
+          style.innerHTML = `
+            .main-header, .main-sidebar { display: none !important; }
+            .content-wrapper, .right-side { margin-left: 0 !important; padding-top: 0 !important; }
+            .wrapper { background: transparent !important; }
+            .content-wrapper { background: transparent !important; }
+          `;
+          document.head.appendChild(style);
+        }
       "))
     ),
 
@@ -691,6 +705,13 @@ ui <- dashboardPage(
           valueBoxOutput("geo_counties",  width = 4),
           valueBoxOutput("geo_top_county", width = 4),
           valueBoxOutput("geo_top_city",  width = 4)
+        ),
+
+        # Socio-Demographic Map Box
+        fluidRow(
+          box(title = "Socio-Demographic & Research Map", width = 12,
+            leafletOutput("geo_map", height = "550px")
+          )
         ),
 
         # County bar + City table
@@ -1018,6 +1039,14 @@ ui <- dashboardPage(
 # ==========================================================================
 
 server <- function(input, output, session) {
+
+  # --- URL parameter tab switching ---
+  observe({
+    query <- getQueryString()
+    if (!is.null(query$tab)) {
+      updateTabItems(session, "main_tabs", selected = query$tab)
+    }
+  })
 
   # --- DuckDB Connection (read-only) ---
   con <- dbConnect(duckdb(), DUCKDB_FILE, read_only = TRUE)
@@ -1810,6 +1839,143 @@ server <- function(input, output, session) {
     df <- geo_filtered() %>% filter(geo_level == "county", county != "Unknown")
     paste0(nrow(df), " counties  |  ",
            fmt_dollar(sum(df$net_contribution, na.rm = TRUE)), " net contribution")
+  })
+
+  output$geo_map <- renderLeaflet({
+    # Load NY county shapes
+    counties_sf <- tryCatch({
+      sf::st_read("/srv/stochos/new-york-counties.geojson", quiet = TRUE)
+    }, error = function(e) {
+      NULL
+    })
+    
+    validate(need(!is.null(counties_sf), "Error loading NY County boundaries. Please ensure new-york-counties.geojson is located in /srv/stochos/"))
+    
+    # Clean county name
+    counties_sf$county_clean <- gsub(" County", "", counties_sf$name)
+    
+    # Get county summary data
+    county_data <- safe_query(con, "SELECT * FROM mart_ny_county_summary")
+    
+    # Merge county boundary geometries with aggregated summary metrics
+    merged <- merge(counties_sf, county_data, by.x = "county_clean", by.y = "county", all.x = TRUE)
+    
+    # Setup static DMA mappings
+    get_dma <- function(co) {
+      nyc <- c("Bronx", "Kings", "New York", "Queens", "Richmond", "Nassau", "Suffolk", "Westchester", "Rockland", "Orange", "Putnam", "Dutchess", "Sullivan", "Ulster")
+      albany <- c("Albany", "Rensselaer", "Schenectady", "Saratoga", "Warren", "Washington", "Clinton", "Essex", "Franklin", "Fulton", "Montgomery", "Schoharie", "Greene", "Columbia", "Delaware", "Otsego", "Hamilton")
+      buffalo <- c("Erie", "Niagara", "Chautauqua", "Cattaraugus", "Allegany", "Wyoming")
+      rochester <- c("Monroe", "Wayne", "Ontario", "Orleans", "Genesee", "Livingston", "Yates", "Seneca")
+      syracuse <- c("Onondaga", "Cayuga", "Cortland", "Madison", "Oswego", "Jefferson", "Lewis", "St. Lawrence", "Tompkins")
+      binghamton <- c("Broome", "Chenango", "Tioga", "Schuyler", "Chemung")
+      utica <- c("Oneida", "Herkimer")
+      if (co %in% nyc) return("New York City DMA")
+      if (co %in% albany) return("Albany-Schenectady-Troy DMA")
+      if (co %in% buffalo) return("Buffalo DMA")
+      if (co %in% rochester) return("Rochester DMA")
+      if (co %in% syracuse) return("Syracuse DMA")
+      if (co %in% binghamton) return("Binghamton DMA")
+      if (co %in% utica) return("Utica DMA")
+      return("Other/Upstate DMA")
+    }
+    merged$dma <- sapply(merged$county_clean, get_dma)
+    
+    # Safe defaults for missing attributes
+    merged$sales_per_capita[is.na(merged$sales_per_capita)] <- 0
+    merged$residents_per_retailer[is.na(merged$residents_per_retailer)] <- 0
+    merged$median_income[is.na(merged$median_income)] <- 0
+    merged$net_contribution[is.na(merged$net_contribution)] <- 0
+    merged$gross_revenue[is.na(merged$gross_revenue)] <- 0
+    merged$retailer_count[is.na(merged$retailer_count)] <- 0
+    
+    # Setup responsive palettes
+    pal_sales <- colorNumeric(palette = "viridis", domain = merged$sales_per_capita)
+    pal_density <- colorNumeric(palette = "plasma", domain = merged$residents_per_retailer)
+    pal_income <- colorNumeric(palette = "YlOrRd", domain = merged$median_income)
+    pal_earmarks <- colorNumeric(palette = "PuBu", domain = merged$net_contribution)
+    
+    dma_factors <- factor(merged$dma)
+    pal_dma <- colorFactor(palette = "Set3", domain = dma_factors)
+    
+    tile_provider <- if (theme_mode() == "light") providers$CartoDB.Positron else providers$CartoDB.DarkMatter
+    
+    m <- leaflet(merged) %>%
+      addProviderTiles(tile_provider) %>%
+      setView(lng = -75.5, lat = 42.8, zoom = 7)
+      
+    # 1. Sales Per Capita
+    m <- m %>% addPolygons(
+      group = "Sales Per Capita",
+      fillColor = ~pal_sales(sales_per_capita),
+      fillOpacity = 0.6, color = "#666", weight = 1,
+      highlightOptions = highlightOptions(weight = 3, color = "#fff", bringToFront = TRUE),
+      label = ~paste0(
+        "<strong>County:</strong> ", county_clean, "<br>",
+        "<strong>Sales Per Capita:</strong> ", scales::dollar(sales_per_capita), "<br>",
+        "<strong>Total Sales:</strong> ", scales::dollar(gross_revenue), "<br>",
+        "<strong>Population:</strong> ", format(population, big.mark = ",")
+      ) %>% lapply(htmltools::HTML)
+    )
+    
+    # 2. Retailer Density
+    m <- m %>% addPolygons(
+      group = "Retailer Density (Residents/Retailer)",
+      fillColor = ~pal_density(residents_per_retailer),
+      fillOpacity = 0.6, color = "#666", weight = 1,
+      highlightOptions = highlightOptions(weight = 3, color = "#fff", bringToFront = TRUE),
+      label = ~paste0(
+        "<strong>County:</strong> ", county_clean, "<br>",
+        "<strong>Residents per Retailer:</strong> ", format(round(residents_per_retailer), big.mark = ","), "<br>",
+        "<strong>Retailers per Sq Mile:</strong> ", round(retailers_per_sq_mile, 3), "<br>",
+        "<strong>Retailer Count:</strong> ", format(retailer_count, big.mark = ",")
+      ) %>% lapply(htmltools::HTML)
+    )
+    
+    # 3. Median Income
+    m <- m %>% addPolygons(
+      group = "Median Household Income",
+      fillColor = ~pal_income(median_income),
+      fillOpacity = 0.6, color = "#666", weight = 1,
+      highlightOptions = highlightOptions(weight = 3, color = "#fff", bringToFront = TRUE),
+      label = ~paste0(
+        "<strong>County:</strong> ", county_clean, "<br>",
+        "<strong>Median Household Income:</strong> ", scales::dollar(median_income), "<br>",
+        "<strong>Population:</strong> ", format(population, big.mark = ",")
+      ) %>% lapply(htmltools::HTML)
+    )
+    
+    # 4. Education Earmarks
+    m <- m %>% addPolygons(
+      group = "Education Earmarks (Aid)",
+      fillColor = ~pal_earmarks(net_contribution),
+      fillOpacity = 0.6, color = "#666", weight = 1,
+      highlightOptions = highlightOptions(weight = 3, color = "#fff", bringToFront = TRUE),
+      label = ~paste0(
+        "<strong>County:</strong> ", county_clean, "<br>",
+        "<strong>Education Aid (Net Contrib):</strong> ", scales::dollar(net_contribution), "<br>",
+        "<strong>Total Gross Revenue:</strong> ", scales::dollar(gross_revenue)
+      ) %>% lapply(htmltools::HTML)
+    )
+    
+    # 5. DMA Boundaries
+    m <- m %>% addPolygons(
+      group = "DMA Boundaries",
+      fillColor = ~pal_dma(dma_factors),
+      fillOpacity = 0.4, color = "#444", weight = 2,
+      highlightOptions = highlightOptions(weight = 4, color = "#fff", bringToFront = TRUE),
+      label = ~paste0("<strong>County:</strong> ", county_clean, "<br><strong>DMA:</strong> ", dma) %>% lapply(htmltools::HTML)
+    )
+    
+    m %>% addLayersControl(
+      baseGroups = c(
+        "Sales Per Capita", 
+        "Retailer Density (Residents/Retailer)", 
+        "Median Household Income", 
+        "Education Earmarks (Aid)",
+        "DMA Boundaries"
+      ),
+      options = layersControlOptions(collapsed = FALSE)
+    )
   })
 
   output$geo_counties <- renderValueBox({

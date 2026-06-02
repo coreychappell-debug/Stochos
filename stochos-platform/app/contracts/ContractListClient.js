@@ -44,11 +44,13 @@ export default function ContractListClient({ initialContracts }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [expiryFilter, setExpiryFilter] = useState("all");
+  const [divisionFilter, setDivisionFilter] = useState("all");
 
   const filtered = useMemo(() => {
     return initialContracts.filter((c) => {
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (typeFilter !== "all" && c.type !== typeFilter) return false;
+      if (divisionFilter !== "all" && c.division !== divisionFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -74,7 +76,7 @@ export default function ContractListClient({ initialContracts }) {
       }
       return true;
     });
-  }, [initialContracts, search, statusFilter, typeFilter, expiryFilter]);
+  }, [initialContracts, search, statusFilter, typeFilter, expiryFilter, divisionFilter]);
 
   return (
     <>
@@ -120,6 +122,18 @@ export default function ContractListClient({ initialContracts }) {
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
+        <select
+          className="form-select"
+          style={{ width: 160 }}
+          value={divisionFilter}
+          onChange={(e) => setDivisionFilter(e.target.value)}
+        >
+          <option value="all">All Divisions</option>
+          <option value="IT">IT Division</option>
+          <option value="OPERATIONS">Operations</option>
+          <option value="MARKETING">Marketing</option>
+          <option value="FINANCE">Finance</option>
+        </select>
       </div>
 
       {filtered.length === 0 ? (
@@ -128,8 +142,8 @@ export default function ContractListClient({ initialContracts }) {
           <h3>No contracts found</h3>
           <p>
             {initialContracts.length === 0
-              ? "Create your first contract to get started."
-              : "Try adjusting your search or filters."}
+               ? "Create your first contract to get started."
+               : "Try adjusting your search or filters."}
           </p>
         </div>
       ) : (
@@ -140,6 +154,7 @@ export default function ContractListClient({ initialContracts }) {
                 <th>Contract</th>
                 <th>Vendor</th>
                 <th>Type</th>
+                <th>Division</th>
                 <th>Status</th>
                 <th>Value</th>
                 <th>Budget Usage</th>
@@ -159,6 +174,15 @@ export default function ContractListClient({ initialContracts }) {
                     </td>
                     <td className="muted">{c.vendor?.name || "—"}</td>
                     <td className="muted">{CONTRACT_TYPES[c.type] || c.type}</td>
+                    <td>
+                      {c.division ? (
+                        <span className={`badge badge-${c.division.toLowerCase()}`}>
+                          {c.division}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <span className={`badge badge-${c.status}`}>
                         {STATUS_LABELS[c.status] || c.status}

@@ -98,10 +98,10 @@ export default function PlanDetailClient({ plan, stats }) {
             onClick={() => setTab(t.key)}
             style={{
               padding: "10px 24px",
-              background: tab === t.key ? "var(--bg-card)" : "transparent",
-              color: tab === t.key ? "var(--primary)" : "var(--text-muted)",
+              background: tab === t.key ? "var(--card-bg)" : "transparent",
+              color: tab === t.key ? "var(--blue)" : "var(--text-muted)",
               border: "none",
-              borderBottom: tab === t.key ? "2px solid var(--primary)" : "2px solid transparent",
+              borderBottom: tab === t.key ? "2px solid var(--blue)" : "2px solid transparent",
               marginBottom: "-2px",
               cursor: "pointer",
               fontWeight: tab === t.key ? 600 : 400,
@@ -186,7 +186,7 @@ export default function PlanDetailClient({ plan, stats }) {
                   {Object.entries(pipeline).map(([status, count]) => (
                     <div key={status} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ width: "120px", textTransform: "capitalize", fontSize: "13px", color: "var(--text-muted)" }}>{status.replace(/_/g, " ")}</div>
-                      <div style={{ flex: 1, background: "var(--bg-secondary)", borderRadius: "4px", height: "24px", overflow: "hidden" }}>
+                      <div style={{ flex: 1, background: "var(--surface-3)", borderRadius: "4px", height: "24px", overflow: "hidden" }}>
                         <div style={{ width: `${games.length > 0 ? (count / games.length) * 100 : 0}%`, height: "100%", background: STATUS_COLORS[status], borderRadius: "4px", minWidth: count > 0 ? "24px" : "0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: "#fff" }}>
                           {count > 0 ? count : ""}
                         </div>
@@ -204,7 +204,7 @@ export default function PlanDetailClient({ plan, stats }) {
             <div className="card-body">
               {Object.entries(gamesByDenom).sort(([a], [b]) => parseInt(a) - parseInt(b)).map(([denom, denomGames]) => (
                 <div key={denom} style={{ marginBottom: "24px" }}>
-                  <h4 style={{ color: "var(--primary)", marginBottom: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "4px" }}>${denom} Games ({denomGames.length})</h4>
+                  <h4 style={{ color: "var(--blue)", marginBottom: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "4px" }}>${denom} Games ({denomGames.length})</h4>
                   <table className="data-table">
                     <thead><tr><th>Game #</th><th>Name</th><th>Vendor</th><th>Units</th><th>Payout %</th><th>Top Prize</th><th>Launch</th><th>Status</th></tr></thead>
                     <tbody>

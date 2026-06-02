@@ -440,6 +440,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .badge-approved   { background: var(--green-dim); color: var(--green); }
 .badge-rejected   { background: var(--red-dim);   color: var(--red); }
 .badge-paid       { background: var(--purple-dim); color: var(--purple); }
+.badge-it         { background: rgba(162, 0, 255, 0.15); color: #c470ff; }
+.badge-marketing  { background: rgba(255, 0, 128, 0.15); color: #ff60ad; }
+.badge-operations { background: rgba(0, 180, 216, 0.15); color: #48cae4; }
+.badge-finance    { background: rgba(46, 196, 182, 0.15); color: #2ec4b6; }
+.badge-executive  { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
+.badge-procurement{ background: rgba(230, 57, 70, 0.15); color: #e63946; }
 
 /* ─── Tables ─── */
 .data-table {

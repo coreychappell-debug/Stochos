@@ -23,7 +23,6 @@ async function main() {
   // Clean previous data
   await prisma.instantTicketVendorPricing.deleteMany({});
   await prisma.instantTicketPlan.deleteMany({ where: { jurisdictionId: ny.id } });
-  // Clean old instant product entries
   await prisma.product.deleteMany({ where: { jurisdictionId: ny.id, category: 'instant', externalSource: 'instant_ticket_planner' } });
   console.log('  ✓ Cleaned previous data');
 
@@ -63,42 +62,64 @@ async function main() {
   });
   console.log('  ✓ Plan + scenario created');
 
-  // Game lifecycle statuses:
-  // received + launchDate in past = on_sale or closed or ended
-  // received + no launchDate = waiting to launch
-  // Games use: planned → ordered → in_production → shipped → received → on_sale → closed → ended
   const games = [
-    // $1 games — mix of active, ended from prior FY
-    { num: '1401', name: 'Lucky 7s', denom: 1, size: '2.4x4', vendor: 'sg', units: 24000000, payout: 61.0, topPrize: 5000, features: [], delivery: 'received', po: 'PO-2026-0101', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1402', name: 'Triple Cash', denom: 1, size: '2.4x4', vendor: 'pb', units: 18000000, payout: 62.0, topPrize: 5000, features: [], delivery: 'in_production', po: 'PO-2026-0102', launch: null, close: null, end: null, prodStatus: 'in_production' },
-    { num: '1403', name: 'Bingo Blast', denom: 1, size: '2.4x4', vendor: 'sg', units: 18000000, payout: 60.5, topPrize: 7500, features: ['Extended Play (Crossword/Bingo)'], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
-    { num: '1380', name: 'Cash Craze', denom: 1, size: '2.4x4', vendor: 'pb', units: 18000000, payout: 61.5, topPrize: 5000, features: [], delivery: 'received', po: 'PO-2025-0103', launch: '2025-06-01', close: '2026-01-15', end: '2026-04-15', prodStatus: 'ended' },
+    // $1 games
+    { num: '1401', name: 'Cashword', denom: 1, size: '2.4x4', vendor: 'sg', units: 24000000, payout: 60.0, topPrize: 5000, features: ['Extended Play (Crossword/Bingo)'], delivery: 'received', po: 'PO-2026-0101', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1402', name: 'Lucky 7s', denom: 1, size: '2.4x4', vendor: 'pb', units: 18000000, payout: 61.0, topPrize: 5000, features: [], delivery: 'in_production', po: 'PO-2026-0102', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1403', name: 'Bingo', denom: 1, size: '2.4x4', vendor: 'sg', units: 18000000, payout: 60.5, topPrize: 5000, features: ['Extended Play (Crossword/Bingo)'], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+    { num: '1380', name: 'Loose Change', denom: 1, size: '2.4x4', vendor: 'pb', units: 18000000, payout: 60.0, topPrize: 1000, features: [], delivery: 'received', po: 'PO-2025-0103', launch: '2025-06-01', close: '2026-01-15', end: '2026-04-15', prodStatus: 'ended' },
+    { num: '1404', name: 'Tic Tac Toe', denom: 1, size: '2.4x4', vendor: 'sg', units: 12000000, payout: 60.5, topPrize: 3000, features: [], delivery: 'in_production', po: 'PO-2026-0104', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1405', name: 'Double Doubler', denom: 1, size: '2.4x4', vendor: 'pb', units: 15000000, payout: 61.0, topPrize: 4000, features: [], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+    
     // $2 games
-    { num: '1410', name: 'Double Gold', denom: 2, size: '4x4', vendor: 'pb', units: 24000000, payout: 64.0, topPrize: 25000, features: ['Metallic Ink'], delivery: 'received', po: 'PO-2026-0201', launch: '2026-05-01', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1411', name: 'Crossword Frenzy', denom: 2, size: '4x4', vendor: 'sg', units: 18000000, payout: 63.5, topPrize: 25000, features: ['Extended Play (Crossword/Bingo)'], delivery: 'received', po: 'PO-2026-0202', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1412', name: 'Wild Cherry', denom: 2, size: '4x4', vendor: 'igt', units: 18000000, payout: 64.5, topPrize: 20000, features: ['Sparkle/Glitter Coating'], delivery: 'in_production', po: 'PO-2026-0203', launch: null, close: null, end: null, prodStatus: 'in_production' },
-    { num: '1390', name: 'Sapphire Blue', denom: 2, size: '4x4', vendor: 'sg', units: 18000000, payout: 63.0, topPrize: 20000, features: [], delivery: 'received', po: 'PO-2025-0204', launch: '2025-07-01', close: '2026-03-01', end: null, prodStatus: 'closed' },
+    { num: '1410', name: 'Win $1,000 A Week For Life', denom: 2, size: '4x4', vendor: 'pb', units: 24000000, payout: 62.0, topPrize: 52000, features: [], delivery: 'received', po: 'PO-2026-0201', launch: '2026-05-01', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1411', name: 'Wild Cherry', denom: 2, size: '4x4', vendor: 'sg', units: 18000000, payout: 63.0, topPrize: 20000, features: [], delivery: 'received', po: 'PO-2026-0202', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1412', name: 'Double Doubler', denom: 2, size: '4x4', vendor: 'sg', units: 18000000, payout: 62.5, topPrize: 10000, features: [], delivery: 'in_production', po: 'PO-2026-0203', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1390', name: '7-11-21', denom: 2, size: '4x4', vendor: 'pb', units: 18000000, payout: 62.0, topPrize: 21000, features: [], delivery: 'received', po: 'PO-2025-0204', launch: '2025-07-01', close: '2026-03-01', end: null, prodStatus: 'closed' },
+    { num: '1413', name: '10X The Money', denom: 2, size: '4x4', vendor: 'sg', units: 16000000, payout: 62.8, topPrize: 25000, features: [], delivery: 'in_production', po: 'PO-2026-0204', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1414', name: 'Quick $100', denom: 2, size: '4x4', vendor: 'pb', units: 14000000, payout: 62.2, topPrize: 10000, features: [], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+
+    // $3 games
+    { num: '1420', name: 'Crossword', denom: 3, size: '6x4', vendor: 'sg', units: 15000000, payout: 64.0, topPrize: 50000, features: ['Extended Play (Crossword/Bingo)'], delivery: 'received', po: 'PO-2026-0301', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1421', name: 'Bingo X10', denom: 3, size: '6x4', vendor: 'pb', units: 12000000, payout: 64.5, topPrize: 60000, features: ['Extended Play (Crossword/Bingo)'], delivery: 'in_production', po: 'PO-2026-0302', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1422', name: 'Bonus Write-In', denom: 3, size: '6x4', vendor: 'sg', units: 10000000, payout: 64.2, topPrize: 55000, features: [], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+    { num: '1423', name: 'Corner Cash', denom: 3, size: '6x4', vendor: 'pb', units: 14000000, payout: 63.8, topPrize: 45000, features: [], delivery: 'in_production', po: 'PO-2026-0303', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1391', name: 'Cash Wheel', denom: 3, size: '6x4', vendor: 'sg', units: 12000000, payout: 64.0, topPrize: 40000, features: [], delivery: 'received', po: 'PO-2025-0304', launch: '2025-08-01', close: '2026-02-15', end: '2026-05-15', prodStatus: 'ended' },
+
     // $5 games
     { num: '1430', name: 'Empire State Gold', denom: 5, size: '6x4', vendor: 'sg', units: 24000000, payout: 67.0, topPrize: 200000, features: ['Holographic Foil'], delivery: 'received', po: 'PO-2026-0401', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1431', name: 'Cash Explosion', denom: 5, size: '6x4', vendor: 'pb', units: 18000000, payout: 67.5, topPrize: 200000, features: ['Metallic Ink'], delivery: 'received', po: 'PO-2026-0402', launch: '2026-05-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1432', name: '$500 Frenzy', denom: 5, size: '6x4', vendor: 'sg', units: 24000000, payout: 68.0, topPrize: 150000, features: [], delivery: 'in_production', po: 'PO-2026-0403', launch: null, close: null, end: null, prodStatus: 'in_production' },
-    { num: '1433', name: 'Monopoly Jackpot', denom: 5, size: '6x4', vendor: 'pb', units: 18000000, payout: 67.0, topPrize: 250000, features: ['Licensed Property Usage', 'Holographic Foil'], delivery: 'shipped', po: 'PO-2026-0404', launch: null, close: null, end: null, prodStatus: 'shipped' },
-    { num: '1370', name: 'Triple 777', denom: 5, size: '6x4', vendor: 'igt', units: 12000000, payout: 66.5, topPrize: 100000, features: [], delivery: 'received', po: 'PO-2025-0405', launch: '2025-04-01', close: '2025-12-15', end: '2026-03-15', prodStatus: 'ended' },
+    { num: '1431', name: 'Set For Life', denom: 5, size: '6x4', vendor: 'pb', units: 18000000, payout: 67.0, topPrize: 260000, features: [], delivery: 'received', po: 'PO-2026-0402', launch: '2026-05-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1432', name: 'Payday', denom: 5, size: '6x4', vendor: 'sg', units: 24000000, payout: 66.5, topPrize: 150000, features: [], delivery: 'in_production', po: 'PO-2026-0403', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1433', name: 'Golden Bar', denom: 5, size: '6x4', vendor: 'pb', units: 18000000, payout: 67.0, topPrize: 250000, features: ['Holographic Foil'], delivery: 'shipped', po: 'PO-2026-0404', launch: null, close: null, end: null, prodStatus: 'shipped' },
+    { num: '1370', name: 'Cash Vault', denom: 5, size: '6x4', vendor: 'sg', units: 12000000, payout: 66.5, topPrize: 100000, features: [], delivery: 'received', po: 'PO-2025-0405', launch: '2025-04-01', close: '2025-12-15', end: '2026-03-15', prodStatus: 'ended' },
+    { num: '1434', name: 'Triple 777', denom: 5, size: '6x4', vendor: 'pb', units: 16000000, payout: 67.5, topPrize: 300000, features: ['Metallic Ink'], delivery: 'in_production', po: 'PO-2026-0405', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1435', name: 'Bingo X20', denom: 5, size: '6x4', vendor: 'sg', units: 15000000, payout: 66.8, topPrize: 250000, features: ['Extended Play (Crossword/Bingo)'], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+
     // $10 games
-    { num: '1440', name: '$1,000,000 Mania', denom: 10, size: '8x4', vendor: 'sg', units: 18000000, payout: 69.0, topPrize: 1000000, features: ['Holographic Foil', 'Metallic Ink'], delivery: 'received', po: 'PO-2026-0501', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1441', name: 'Platinum Payout', denom: 10, size: '8x4', vendor: 'pb', units: 18000000, payout: 69.5, topPrize: 1000000, features: ['Holographic Foil'], delivery: 'received', po: 'PO-2026-0502', launch: '2026-05-01', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1442', name: 'Wild 10X', denom: 10, size: '8x4', vendor: 'igt', units: 12000000, payout: 68.5, topPrize: 500000, features: ['Sparkle/Glitter Coating'], delivery: 'in_production', po: 'PO-2026-0503', launch: null, close: null, end: null, prodStatus: 'in_production' },
-    { num: '1443', name: '100X The Cash', denom: 10, size: '8x4', vendor: 'sg', units: 18000000, payout: 70.0, topPrize: 2000000, features: ['Holographic Foil', 'Oversized Format'], delivery: 'shipped', po: 'PO-2026-0504', launch: null, close: null, end: null, prodStatus: 'shipped' },
+    { num: '1440', name: 'Set For Life', denom: 10, size: '8x4', vendor: 'sg', units: 18000000, payout: 68.0, topPrize: 1000000, features: ['Holographic Foil', 'Metallic Ink'], delivery: 'received', po: 'PO-2026-0501', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1441', name: 'Triple Play', denom: 10, size: '8x4', vendor: 'pb', units: 18000000, payout: 68.5, topPrize: 1000000, features: ['Holographic Foil'], delivery: 'received', po: 'PO-2026-0502', launch: '2026-05-01', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1442', name: 'Cash', denom: 10, size: '8x4', vendor: 'sg', units: 12000000, payout: 68.0, topPrize: 1000000, features: [], delivery: 'in_production', po: 'PO-2026-0503', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1443', name: '100X', denom: 10, size: '8x4', vendor: 'sg', units: 18000000, payout: 69.0, topPrize: 2000000, features: ['Holographic Foil', 'Oversized Format'], delivery: 'shipped', po: 'PO-2026-0504', launch: null, close: null, end: null, prodStatus: 'shipped' },
+    { num: '1444', name: '50X The Money', denom: 10, size: '8x4', vendor: 'pb', units: 14000000, payout: 68.8, topPrize: 1000000, features: [], delivery: 'in_production', po: 'PO-2026-0505', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1445', name: '$1,000,000 Money Mania', denom: 10, size: '8x4', vendor: 'sg', units: 15000000, payout: 68.2, topPrize: 1000000, features: ['Holographic Foil'], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+
     // $20 games
-    { num: '1450', name: '$5,000,000 Jackpot', denom: 20, size: '8x4', vendor: 'sg', units: 12000000, payout: 71.0, topPrize: 5000000, features: ['Holographic Foil', 'Metallic Ink'], delivery: 'received', po: 'PO-2026-0601', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1451', name: 'Ultimate Millions', denom: 20, size: '8x4', vendor: 'pb', units: 12000000, payout: 71.5, topPrize: 5000000, features: ['Holographic Foil', 'Sparkle/Glitter Coating'], delivery: 'received', po: 'PO-2026-0602', launch: '2026-05-01', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1452', name: 'Gold Rush Supreme', denom: 20, size: '8x4', vendor: 'igt', units: 12000000, payout: 70.5, topPrize: 2000000, features: ['Holographic Foil'], delivery: 'in_production', po: 'PO-2026-0603', launch: null, close: null, end: null, prodStatus: 'in_production' },
-    { num: '1360', name: 'Cash Bonanza', denom: 20, size: '8x4', vendor: 'sg', units: 12000000, payout: 71.0, topPrize: 3000000, features: ['Holographic Foil'], delivery: 'received', po: 'PO-2025-0604', launch: '2025-04-15', close: '2026-02-01', end: '2026-05-01', prodStatus: 'ended' },
+    { num: '1450', name: 'Set For Life', denom: 20, size: '8x4', vendor: 'sg', units: 12000000, payout: 71.0, topPrize: 5000000, features: ['Holographic Foil', 'Metallic Ink'], delivery: 'received', po: 'PO-2026-0601', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1451', name: 'VIP Millions', denom: 20, size: '8x4', vendor: 'pb', units: 12000000, payout: 71.5, topPrize: 5000000, features: ['Holographic Foil', 'Sparkle/Glitter Coating'], delivery: 'received', po: 'PO-2026-0602', launch: '2026-05-01', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1452', name: '$5,000,000 Cash Blowout', denom: 20, size: '8x4', vendor: 'pb', units: 12000000, payout: 71.0, topPrize: 5000000, features: ['Holographic Foil'], delivery: 'in_production', po: 'PO-2026-0603', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1360', name: '100X', denom: 20, size: '8x4', vendor: 'sg', units: 12000000, payout: 70.5, topPrize: 3000000, features: ['Holographic Foil'], delivery: 'received', po: 'PO-2025-0604', launch: '2025-04-15', close: '2026-02-01', end: '2026-05-01', prodStatus: 'ended' },
+    { num: '1453', name: 'Cash Club', denom: 20, size: '8x4', vendor: 'sg', units: 10000000, payout: 70.8, topPrize: 2000000, features: [], delivery: 'in_production', po: 'PO-2026-0604', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1454', name: 'Spectacular Riches', denom: 20, size: '8x4', vendor: 'pb', units: 12000000, payout: 71.2, topPrize: 5000000, features: ['Holographic Foil'], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+
     // $30 games
-    { num: '1460', name: '$10,000,000 Colossal Cash', denom: 30, size: '8x4', vendor: 'sg', units: 12000000, payout: 73.0, topPrize: 10000000, features: ['Holographic Foil', 'Metallic Ink', 'Oversized Format'], delivery: 'received', po: 'PO-2026-0701', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
-    { num: '1461', name: 'Mega Multiplier', denom: 30, size: '8x4', vendor: 'pb', units: 12000000, payout: 73.5, topPrize: 10000000, features: ['Holographic Foil', 'Sparkle/Glitter Coating'], delivery: 'in_production', po: 'PO-2026-0702', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1460', name: '300X The Money', denom: 30, size: '8x4', vendor: 'sg', units: 12000000, payout: 73.0, topPrize: 10000000, features: ['Holographic Foil', 'Metallic Ink', 'Oversized Format'], delivery: 'received', po: 'PO-2026-0701', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1461', name: '$10,000,000 Colossal Cash', denom: 30, size: '8x4', vendor: 'pb', units: 12000000, payout: 73.0, topPrize: 10000000, features: ['Holographic Foil', 'Sparkle/Glitter Coating'], delivery: 'in_production', po: 'PO-2026-0702', launch: null, close: null, end: null, prodStatus: 'in_production' },
+    { num: '1462', name: '10 Million Dollar Cash', denom: 30, size: '8x4', vendor: 'sg', units: 10000000, payout: 72.8, topPrize: 10000000, features: ['Holographic Foil'], delivery: 'planned', po: null, launch: null, close: null, end: null, prodStatus: 'planned' },
+    { num: '1350', name: 'Millionaire Maker', denom: 30, size: '8x4', vendor: 'pb', units: 8000000, payout: 72.5, topPrize: 5000000, features: [], delivery: 'received', po: 'PO-2025-0703', launch: '2025-05-01', close: '2026-01-31', end: '2026-04-30', prodStatus: 'ended' },
+
     // $50 games
     { num: '1470', name: '$25,000,000 Empire', denom: 50, size: '12x8', vendor: 'sg', units: 12000000, payout: 75.0, topPrize: 25000000, features: ['Holographic Foil', 'Metallic Ink', 'Oversized Format', 'Die-Cut Ticket'], delivery: 'received', po: 'PO-2026-0801', launch: '2026-04-15', close: null, end: null, prodStatus: 'on_sale' },
+    { num: '1471', name: 'Super Triple 777', denom: 50, size: '12x8', vendor: 'pb', units: 8000000, payout: 75.0, topPrize: 25000000, features: ['Holographic Foil', 'Sparkle/Glitter Coating'], delivery: 'in_production', po: 'PO-2026-0802', launch: null, close: null, end: null, prodStatus: 'in_production' }
   ];
 
   let gameCount = 0;

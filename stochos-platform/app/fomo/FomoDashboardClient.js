@@ -12,6 +12,9 @@ export default function FomoDashboardClient({ stats, recentVisits, openException
       {/* Action Buttons Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/fomo/map" className="btn btn-primary">
+            🗺️ VCRM Partner Map
+          </Link>
           <Link href="/fomo/retailers" className="btn btn-secondary">
             🏪 Retailer Registry
           </Link>

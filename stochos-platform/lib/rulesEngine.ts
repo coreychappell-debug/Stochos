@@ -22,9 +22,15 @@ export async function evaluateValidationRules(jurisdictionId: string, periodDate
   let commissions = 0;
 
   for (const r of records) {
-    if (r.accountCode === '4-1000') grossSales += parseFloat(r.balance.toString());
-    if (r.accountCode === '5-2000') prizeExpense += parseFloat(r.balance.toString());
-    if (r.accountCode === '5-2100') commissions += parseFloat(r.balance.toString());
+    const code = r.accountCode || '';
+    const val = parseFloat(r.balance.toString());
+    if (code === '4-1000' || code.startsWith('40000') || code.startsWith('40100')) {
+      grossSales += val;
+    } else if (code === '5-2000' || code.startsWith('6410')) {
+      prizeExpense += val;
+    } else if (code === '5-2100' || code.startsWith('6420')) {
+      commissions += val;
+    }
   }
 
   const results: RuleResult[] = [];

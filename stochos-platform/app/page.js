@@ -12,6 +12,12 @@ export default async function DashboardPage() {
 
   const userName = session?.user?.name || "User";
 
+  // Fetch logged in user details including division and role
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { role: true }
+  });
+
   // Fetch summary counts
   const [contractCount, vendorCount, productCount] = await Promise.all([
     prisma.contract.count().catch(() => 0),
@@ -46,6 +52,59 @@ export default async function DashboardPage() {
   const overBudgetItems = allActiveLineItems.filter(li => 
     li.budgetAmount && li.spentAmount && Number(li.spentAmount) > Number(li.budgetAmount)
   );
+
+  // Assemble Action Center items
+  const actionItems = [];
+  const isFinanceOrExec = user?.division === "FINANCE" || user?.division === "EXECUTIVE" || user?.role?.name === "admin";
+
+  if (user) {
+    if (isFinanceOrExec) {
+      // Fetch submitted proposals awaiting approval
+      const submittedProposals = await prisma.budgetProposal.findMany({
+        where: { status: "submitted", fiscalYear: 2027 }
+      });
+      submittedProposals.forEach(p => {
+        actionItems.push({
+          id: p.id,
+          type: "budget_approval",
+          title: `Pending Review: ${p.division} Budget Proposal`,
+          description: `Division submitted their FY2027 proposal. Verify line items and approve or reject.`,
+          link: "/budgeting"
+        });
+      });
+    } else {
+      // Fetch division manager's own proposal status
+      const myProposal = await prisma.budgetProposal.findFirst({
+        where: { division: user.division, fiscalYear: 2027 }
+      });
+
+      if (!myProposal || myProposal.status === "draft" || myProposal.status === "rejected") {
+        actionItems.push({
+          id: myProposal?.id || "new-proposal",
+          type: "budget_draft",
+          title: `Action Required: Submit ${user.division} Budget Proposal`,
+          description: myProposal?.status === "rejected"
+            ? `Your proposal was rejected: "${myProposal.notes || 'No comments provided'}" - Please revise and resubmit.`
+            : `Create and submit your division's operational budget proposal for FY2027.`,
+          link: "/budgeting"
+        });
+      }
+    }
+
+    // Fetch assigned pending approvals (contracts/invoices)
+    const pendingApprovals = await prisma.approval.findMany({
+      where: { approverId: user.id, status: "pending" }
+    });
+    pendingApprovals.forEach(a => {
+      actionItems.push({
+        id: a.id,
+        type: "general_approval",
+        title: `Approval Required: Pending ${a.entityType.replace(/_/g, " ")}`,
+        description: `Approval request assigned to you on ${new Date(a.createdAt).toLocaleDateString()}.`,
+        link: a.entityType === "contract" ? `/contracts/${a.entityId}` : "/contracts"
+      });
+    });
+  }
 
   const marketingModules = [
     {
@@ -129,10 +188,41 @@ export default async function DashboardPage() {
         </div>
 
         <div className="page-body">
+          {/* Action Center - Gilded task list */}
+          <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--gold)" }}>
+            <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ color: "var(--gold)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>⚡</span> My Action Center
+              </h3>
+              <span className="badge" style={{ backgroundColor: actionItems.length > 0 ? "var(--gold)" : "var(--green)", color: "#fff" }}>
+                {actionItems.length} active tasks
+              </span>
+            </div>
+            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {actionItems.length === 0 ? (
+                <div style={{ padding: "12px 0", color: "var(--text-secondary)", fontSize: 14 }}>
+                  ✓ You are all caught up! No pending workflow tasks or approvals.
+                </div>
+              ) : (
+                actionItems.map(item => (
+                  <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", borderRadius: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                    <div>
+                      <strong style={{ display: "block", color: "var(--text)", fontSize: 14 }}>{item.title}</strong>
+                      <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{item.description}</span>
+                    </div>
+                    <Link href={item.link} className="btn btn-primary" style={{ padding: "6px 12px", fontSize: 12 }}>
+                      View Task
+                    </Link>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           {(expiringContracts.length > 0 || expiringDocs.length > 0 || overBudgetItems.length > 0) && (
-            <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--gold)" }}>
+            <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid #ef4444" }}>
               <div className="card-header">
-                <h3 style={{ color: "var(--gold)" }}>⚠️ Operational Alerts</h3>
+                <h3 style={{ color: "#ef4444" }}>⚠️ Operational Alerts</h3>
               </div>
               <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {expiringContracts.map(c => (
@@ -185,7 +275,7 @@ export default async function DashboardPage() {
             </div>
             <div className="kpi-card kpi-purple">
               <div className="kpi-label">Active Modules</div>
-              <div className="kpi-value">8</div>
+              <div className="kpi-value">10</div>
               <div className="kpi-subtitle">Fully integrated systems</div>
             </div>
           </div>

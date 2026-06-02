@@ -47,6 +47,8 @@ model Jurisdiction {
   reportPackages     ReportPackage[]
   metricRegistry     MetricRegistryEntry[]
   formatPresets      FormatPreset[]
+  drawGameScenarios  DrawGameScenario[]
+  budgetProposals    BudgetProposal[]
 
   @@map("jurisdictions")
 }
@@ -67,6 +69,7 @@ model Product {
   lineItems          ContractLineItem[]
   campaigns          Campaign[]          @relation("CampaignProducts")
   instantTicketGames InstantTicketGame[]
+  drawGameProjectedItems DrawGameProjectedItem[]
 
   @@map("products")
 }
@@ -139,6 +142,7 @@ model User {
   contractAccess   ContractAccess[]
   vehicles         Vehicle[]
   assets           Asset[]
+  budgetProposals  BudgetProposal[] @relation("BudgetProposalCreator")
 
   managerId              String?                   @map("manager_id")
   manager                User?                     @relation("ManagerStaff", fields: [managerId], references: [id])
@@ -181,6 +185,7 @@ model Contract {
   totalValue     Decimal?     @map("total_value") @db.Decimal(14, 2)
   budgetCap      Decimal?     @map("budget_cap") @db.Decimal(14, 2)
   terms          Json?        @default("{}") // flexible key-value
+  division       String?
   createdById    String       @map("created_by")
   createdBy      User         @relation("ContractCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime     @default(now()) @map("created_at")
@@ -1311,4 +1316,56 @@ model LockedReportSnapshot {
   createdAt          DateTime @default(now()) @map("created_at")
 
   @@map("locked_report_snapshots")
+}
+
+// ─────────────────────────────────────────────
+// CONNECTED BUDGETING & DRAW PLANNING EXTENSIONS
+// ─────────────────────────────────────────────
+
+model DrawGameScenario {
+  id             String                  @id @default(uuid())
+  jurisdictionId String                  @map("jurisdiction_id")
+  jurisdiction   Jurisdiction            @relation(fields: [jurisdictionId], references: [id])
+  fiscalYear     Int                     @map("fiscal_year")
+  name           String                  // "FY2027 Base Draw Plan"
+  status         String                  @default("draft") // draft, approved
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  games          DrawGameProjectedItem[]
+
+  @@map("draw_game_scenarios")
+}
+
+model DrawGameProjectedItem {
+  id                 String            @id @default(uuid())
+  scenarioId         String            @map("scenario_id")
+  scenario           DrawGameScenario  @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  productId          String?           @map("product_id")
+  product            Product?          @relation(fields: [productId], references: [id])
+  name               String            // e.g. "Mega Millions"
+  projectedSales     Decimal           @map("projected_sales") @db.Decimal(14, 2)
+  prizePayoutPercent Decimal           @map("prize_payout_percent") @db.Decimal(5, 2)
+  retailerCommPercent Decimal          @default(5.0) @map("retailer_comm_percent") @db.Decimal(5, 2)
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  @@map("draw_game_projected_items")
+}
+
+model BudgetProposal {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  division       String       // "MARKETING", "OPERATIONS", "IT", "PROCUREMENT"
+  fiscalYear     Int          @map("fiscal_year")
+  status         String       @default("draft") // draft, submitted, approved, rejected
+  proposalData   Json         @default("[]") // [{category: "Software", desc: "Licenses", amount: 15000}]
+  submittedById  String       @map("submitted_by_id")
+  submittedBy    User         @relation("BudgetProposalCreator", fields: [submittedById], references: [id])
+  reviewedById   String?      @map("reviewed_by_id")
+  notes          String?      @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([jurisdictionId, division, fiscalYear])
+  @@map("budget_proposals")
 }

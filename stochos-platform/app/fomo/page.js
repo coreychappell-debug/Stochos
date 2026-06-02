@@ -83,8 +83,8 @@ export default async function FomoDashboardPage() {
   return (
     <AppShell>
       <div className="page-header">
-        <h2>Field Operations, Merchandising & Oversight (FOMO)</h2>
-        <p>SaaS Overlay Registry, Audits, and Field Assets Supervision</p>
+        <h2>Visitations, Coaching & Relationship Management (VCRM)</h2>
+        <p>Partner Success, Route Freshness & Active Support Opportunities</p>
       </div>
       <div className="page-body">
         <FomoDashboardClient 

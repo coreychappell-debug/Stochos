@@ -14,8 +14,15 @@ dbExecute(con, "LOAD spatial;")
 dbExecute(con, "INSTALL json;")
 dbExecute(con, "LOAD json;")
 
-run_id <- paste0("RUN_", format(Sys.time(), "%Y%m%d_%H%M%S", tz = "UTC"))
-ingest_timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+# Fetch the latest run_id and timestamp from ny_normalized_emergencies
+run_id_df <- dbGetQuery(con, "SELECT MAX(run_id) AS run_id, MAX(ingest_timestamp) AS ingest_timestamp FROM ny_normalized_emergencies")
+run_id <- run_id_df$run_id[1]
+ingest_timestamp <- format(run_id_df$ingest_timestamp[1], "%Y-%m-%d %H:%M:%S")
+
+if (is.na(run_id)) {
+  run_id <- paste0("RUN_", format(Sys.time(), "%Y%m%d_%H%M%S", tz = "UTC"))
+  ingest_timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+}
 
 message("Starting Spatial Risk Evaluation for NY Retailers...")
 
@@ -23,7 +30,7 @@ message("Starting Spatial Risk Evaluation for NY Retailers...")
 # 1 degree of lat/long is approx 111,000 meters (111 km).
 # Using ST_Point(longitude, latitude) cast on-the-fly for ny_retailer_dim.
 # We intersect points with warning polygons and compute distance in meters.
-dbExecute(con, sprintf("
+dbExecute(con, "
 INSERT INTO ny_retailer_risk_history (
     run_id, ingest_timestamp, retailer_id, emergency_id, source_name, hazard_type, status,
     inside_polygon, distance_to_boundary_meters, within_buffer, action_level
@@ -34,17 +41,20 @@ WITH projected_emergencies AS (
         source_name, 
         hazard_type, 
         status, 
+        event_name,
         severity_rank, 
         geom,
         COALESCE((raw_metadata->>'$.mag')::DOUBLE, 2.5) AS eq_mag
     FROM ny_normalized_emergencies
-    -- Evaluate alerts from the latest run and filter out empty geometries
+    -- Evaluate alerts from the latest run and filter out empty geometries, historic events, and small earthquakes
     WHERE run_id = (SELECT MAX(run_id) FROM ny_normalized_emergencies)
       AND NOT ST_IsEmpty(geom)
+      AND status != 'Historic'
+      AND (hazard_type != 'earthquake' OR COALESCE((raw_metadata->>'$.mag')::DOUBLE, 2.5) >= 4.5)
 )
 SELECT 
-    '%s' AS run_id,
-    '%s'::TIMESTAMP AS ingest_timestamp,
+    ? AS run_id,
+    ?::TIMESTAMP AS ingest_timestamp,
     r.retailer_id,
     e.emergency_id,
     e.source_name,
@@ -72,7 +82,7 @@ SELECT
                 -- Major (> 6.0): Widespread damage
                 WHEN e.eq_mag >= 6.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 30000 THEN 'CRITICAL'
                 WHEN e.eq_mag >= 6.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 80000 THEN 'WARNING'
-                WHEN e.eq_mag >= 6.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <= 150000 THEN 'MONITOR'
+                WHEN e.eq_mag >= 6.0 AND ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 150000 THEN 'MONITOR'
                 ELSE 'INFO'
             END
         
@@ -86,7 +96,7 @@ WHERE ST_Distance(ST_Point(r.longitude, r.latitude), e.geom) * 111000 <=
         WHEN e.hazard_type = 'earthquake' AND e.eq_mag >= 6.0 THEN 150000
         ELSE 100000 
     END;
-", run_id, ingest_timestamp))
+", list(run_id, ingest_timestamp))
 
 message("- Inserted evaluations into ny_retailer_risk_history")
 
@@ -152,6 +162,17 @@ LEFT JOIN ranked_risks rr ON r.retailer_id = rr.retailer_id AND rr.rnk = 1;
 ")
 
 message("- Updated ny_retailer_risk_current View")
+
+# Always insert a system run-marker record to ensure run_id is registered in risk history
+dbExecute(con, "
+  INSERT INTO ny_retailer_risk_history (
+    run_id, ingest_timestamp, retailer_id, emergency_id, source_name, hazard_type, status,
+    inside_polygon, distance_to_boundary_meters, within_buffer, action_level
+  ) VALUES (
+    ?, ?::TIMESTAMP, 'SYSTEM', ?, 'system', 'none', 'SAFE',
+    FALSE, 999999.0, FALSE, 'SAFE'
+  )
+", list(run_id, ingest_timestamp, paste0("run_marker_", run_id)))
 
 dbDisconnect(con)
 message("Risk Logic Execution Complete.")

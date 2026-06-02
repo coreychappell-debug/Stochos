@@ -12,32 +12,33 @@ export default function PrepClient() {
   const [pipelineName, setPipelineName] = useState('New York Lottery Ingest Crosswalk');
   const [pipelineDescription, setPipelineDescription] = useState('Standard mapping for NY Lottery CSV trial balance');
 
-  // Raw file mock data (like a Trial Balance CSV)
+  // Raw file mock data (matching their GL Trial Balance format)
   const rawData = [
-    { account: '4-1000-NY-SALES', name: 'Gross Sales HQ', balance: 850000000 },
-    { account: '5-2000-NY-PRIZES', name: 'Prize Exp - HQ', balance: 520000000 },
-    { account: '5-2100-NY-COMM', name: 'Retailer Comm - HQ', balance: 48000000 },
+    { account: '40100-00-00-0000-1159', name: 'California Scratchers Sales', balance: 88807547.70 },
+    { account: '64100-00-00-0000-1401', name: 'California Scratchers Prize Expense', balance: 13828617.83 },
+    { account: '64200-00-00-0000-1401', name: 'California Scratchers Retailer Commission', balance: 1070347.50 },
   ];
 
-  // Visual transformation nodes state
+  // Visual transformation nodes state (configured to replace California and Scratchers, and flip signage)
   const [nodes, setNodes] = useState([
     { 
-      id: 'split_1', 
-      type: 'split', 
-      field: 'account', 
-      delimiter: '-', 
-      names: ['account_code', 'jurisdiction', 'label'] 
+      id: 'replace_cal', 
+      type: 'replace_text', 
+      field: 'name', 
+      pattern: 'California', 
+      replacement: 'New York' 
     },
     { 
-      id: 'map_acct_1', 
-      type: 'map_account', 
-      field: 'account_code', 
-      mapping: { '4-1000': '4-1000', '5-2000': '5-2000', '5-2100': '5-2100' } 
+      id: 'replace_scrat', 
+      type: 'replace_text', 
+      field: 'name', 
+      pattern: 'Scratchers', 
+      replacement: 'Instant Ticket' 
     },
     {
       id: 'norm_sign_1',
       type: 'normalize_sign',
-      field: 'account_code'
+      field: 'account'
     }
   ]);
 
@@ -91,7 +92,9 @@ export default function PrepClient() {
     } else if (type === 'aggregate') {
       newNode = { ...newNode, keys: ['account_code'], sumField: 'balance' };
     } else if (type === 'normalize_sign') {
-      newNode = { ...newNode, field: 'account_code' };
+      newNode = { ...newNode, field: 'account' };
+    } else if (type === 'replace_text') {
+      newNode = { ...newNode, field: 'name', pattern: 'Scratchers', replacement: 'Instant Ticket' };
     } else if (type === 'pivot') {
       newNode = { ...newNode, columns: ['Segment 1'], valueField: 'balance' };
     } else if (type === 'unpivot') {
@@ -189,11 +192,21 @@ export default function PrepClient() {
             const code = String(row[step.field] || '');
             const val = parseFloat(String(row.balance || 0));
             // Standard accounting signage: Prize Expense & Commissions are debits (flips sign to negative for ACFR representation)
-            const isNegative = code.startsWith('5'); 
+            const isNegative = code.startsWith('5') || code.startsWith('6'); 
             return {
               ...row,
               balance: isNegative ? -Math.abs(val) : Math.abs(val)
             };
+          });
+        }
+        else if (step.type === 'replace_text') {
+          processed = processed.map(row => {
+            const val = String(row[step.field] || '');
+            const pattern = step.pattern || '';
+            const replacement = step.replacement || '';
+            const newRow = { ...row };
+            newRow[step.field] = val.replaceAll(pattern, replacement);
+            return newRow;
           });
         }
       } catch (err) {
@@ -355,6 +368,17 @@ export default function PrepClient() {
                   </div>
                 )}
 
+                {step.type === 'replace_text' && (
+                  <div>
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>Target Field</label>
+                    <input type="text" value={step.field} onChange={(e) => updateNode(step.id, { field: e.target.value })} style={{ width: '100%', padding: '6px', background: 'var(--card-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '6px', outline: 'none' }} />
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>Search For</label>
+                    <input type="text" value={step.pattern} onChange={(e) => updateNode(step.id, { pattern: e.target.value })} style={{ width: '100%', padding: '6px', background: 'var(--card-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '6px', outline: 'none' }} />
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>Replace With</label>
+                    <input type="text" value={step.replacement} onChange={(e) => updateNode(step.id, { replacement: e.target.value })} style={{ width: '100%', padding: '6px', background: 'var(--card-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none' }} />
+                  </div>
+                )}
+
                 {step.type === 'regex_extract' && (
                   <div>
                     <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>Source Field</label>
@@ -418,6 +442,7 @@ export default function PrepClient() {
               <button onClick={() => addNode('exclude_row')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>🚫 Exclude Row</button>
               <button onClick={() => addNode('aggregate')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>∑ Aggregate</button>
               <button onClick={() => addNode('normalize_sign')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>➕ Flips sign</button>
+              <button onClick={() => addNode('replace_text')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', gridColumn: 'span 2' }}>✍️ Replace Text</button>
             </div>
 
           </div>

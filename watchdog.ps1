@@ -229,23 +229,38 @@ if (-not $devComposeNeeded) {
     }
 }
 
-# 6. Check if Next.js port 3000 is active (using TCP socket check to avoid compilation trigger)
+# 6. Check if Next.js port 3000 is active and healthy (using HTTP health check)
 $nextResponding = $false
 try {
+    # 6.1 Run a quick TCP pre-check to avoid slow timeouts if server is completely offline
     $tcpClient = New-Object System.Net.Sockets.TcpClient
     $connect = $tcpClient.BeginConnect("127.0.0.1", 3000, $null, $null)
-    $wait = $connect.AsyncWaitHandle.WaitOne(2000, $false)
+    $wait = $connect.AsyncWaitHandle.WaitOne(1000, $false)
+    $tcpConnected = $false
     if ($wait) {
         $tcpClient.EndConnect($connect)
-        $nextResponding = $true
-        Log-Message "[OK] Next.js platform is responding on port 3000."
-    } else {
-        Log-Message "[WARNING] Next.js platform is NOT responding on port 3000. Attempting to start it..."
+        $tcpConnected = $true
     }
     $tcpClient.Close()
+
+    if ($tcpConnected) {
+        # 6.2 Execute HTTP GET query to the public health check endpoint
+        $healthUrl = "http://localhost:3000/api/health/"
+        $response = Invoke-RestMethod -Uri $healthUrl -TimeoutSec 5 -ErrorAction Stop
+        
+        if ($response -and $response.status -eq "healthy") {
+            $nextResponding = $true
+            Log-Message "[OK] Next.js platform is healthy on port 3000 (Database Connected, Schema Synced)."
+        } else {
+            Log-Message "[WARNING] Next.js platform health status returned: $($response.status). Restarting..."
+        }
+    } else {
+        Log-Message "[WARNING] Next.js platform is NOT responding on port 3000 (TCP Offline). Attempting to start it..."
+    }
 } catch {
-    Log-Message "[WARNING] Next.js platform is NOT responding on port 3000. Attempting to start it..."
+    Log-Message "[WARNING] Next.js health check failed: $_. Attempting to restart..."
 }
+
 
 if (-not $nextResponding) {
     # 6.1 Clean up any hung Next.js processes on port 3000

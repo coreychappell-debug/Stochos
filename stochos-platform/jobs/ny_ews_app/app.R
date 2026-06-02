@@ -17,6 +17,17 @@ library(jsonlite)
 # Canonical New York database path
 db_path <- "/srv/stochos/data/duckdb/stochos_lottery.duckdb"
 
+# Load NY county outlines for LMR territories once at start
+counties_sf <- tryCatch({
+  sf::st_read("/srv/stochos/new-york-counties.geojson", quiet = TRUE)
+}, error = function(e) {
+  NULL
+})
+if (!is.null(counties_sf)) {
+  counties_sf$county_clean <- gsub(" County", "", counties_sf$name)
+}
+
+
 # 1. UI Definition (shinydashboard)
 ui <- dashboardPage(
   skin = "black",
@@ -98,6 +109,20 @@ ui <- dashboardPage(
           document.documentElement.classList.add('light-theme');
         }
         
+        // Client-side embed detection
+        const embed = urlParams.get('embed');
+        if (embed === '1') {
+          document.documentElement.classList.add('embed-mode');
+          const style = document.createElement('style');
+          style.innerHTML = `
+            .main-header, .main-sidebar { display: none !important; }
+            .content-wrapper, .right-side { margin-left: 0 !important; padding-top: 0 !important; }
+            .wrapper { background: transparent !important; }
+            .content-wrapper { background: transparent !important; }
+          `;
+          document.head.appendChild(style);
+        }
+        
         // Add ADA compliance attributes to dynamically rendered maps and tables
         $(document).on('shiny:idle', function() {
           $('.leaflet-container').attr({
@@ -127,6 +152,24 @@ ui <- dashboardPage(
 
 # 2. Server Definition
 server <- function(input, output, session) {
+  
+  # Reactive function to fetch county regions data for LMR territories
+  county_regions_data <- reactive({
+    con <- dbConnect(duckdb(), db_path, read_only = TRUE)
+    on.exit(dbDisconnect(con))
+    tryCatch({
+      dbGetQuery(con, "
+        SELECT r.county, r.region, r.lmr_district, r.rep_count,
+               COUNT(DISTINCT ret.retailer_id) AS retailer_count
+        FROM ny_county_regions_dim r
+        LEFT JOIN ny_retailer_dim ret ON r.county = ret.county
+        GROUP BY r.county, r.region, r.lmr_district, r.rep_count
+      ")
+    }, error = function(e) {
+      data.frame(county=character(), region=character(), lmr_district=character(), rep_count=numeric(), retailer_count=numeric())
+    })
+  })
+
   
   # Polling function: Check if a new run_id exists in the history table
   check_latest_run <- function() {
@@ -163,18 +206,23 @@ server <- function(input, output, session) {
     dbExecute(con, "LOAD json;")
     
     query <- "
-      SELECT emergency_id, source_name, hazard_type, event_name, status, ST_AsText(geom) as wkt 
+      SELECT emergency_id, source_name, hazard_type, event_name, status, ST_AsText(geom) as wkt,
+             (raw_metadata->>'$.mag')::DOUBLE as eq_mag
       FROM ny_normalized_emergencies 
       WHERE run_id = (SELECT MAX(run_id) FROM ny_normalized_emergencies)
+        AND status != 'Historic'
     "
     df <- dbGetQuery(con, query)
     
     if(nrow(df) > 0) {
-      sf_obj <- st_as_sf(df, wkt = "wkt", crs = 4326)
-      return(sf_obj)
-    } else {
-      return(NULL)
+      # Filter out small earthquakes (< 4.5 magnitude)
+      df <- df %>% filter(hazard_type != "earthquake" | is.na(eq_mag) | eq_mag >= 4.5)
+      if (nrow(df) > 0) {
+        sf_obj <- st_as_sf(df, wkt = "wkt", crs = 4326)
+        return(sf_obj)
+      }
     }
+    return(NULL)
   }
 
   # Create the reactive poll for risks
@@ -233,6 +281,10 @@ server <- function(input, output, session) {
       addDrawToolbar(
         targetGroup = "drawn_features",
         editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions())
+      ) %>%
+      addLayersControl(
+        overlayGroups = c("LMR Territories", "Risk Buffers", "Threat Polygons", "Retailers"),
+        options = layersControlOptions(collapsed = FALSE)
       )
   })
   
@@ -258,7 +310,43 @@ server <- function(input, output, session) {
     
     map_proxy <- leafletProxy("risk_map")
     
-    map_proxy %>% clearGroup("Risk Buffers") %>% clearGroup("Threat Polygons") %>% clearGroup("Retailers") %>% clearControls()
+    map_proxy %>% 
+      clearGroup("Risk Buffers") %>% 
+      clearGroup("Threat Polygons") %>% 
+      clearGroup("Retailers") %>% 
+      clearGroup("LMR Territories") %>% 
+      clearControls()
+      
+    # Plot LMR Staffing Territories
+    regions_df <- county_regions_data()
+    if (!is.null(counties_sf) && !is.null(regions_df) && nrow(regions_df) > 0) {
+      merged_regions <- merge(counties_sf, regions_df, by.x = "county_clean", by.y = "county", all.x = TRUE)
+      
+      # Fill palette by region (5 official NY regions)
+      reg_factors <- factor(merged_regions$region, levels = c("NYC", "Suburban", "Central", "Western", "Upstate Eastern"))
+      pal_regions <- colorFactor(
+        palette = c("#4cc9f0", "#4895ef", "#4361ee", "#3f37c9", "#7209b7"), 
+        domain = reg_factors, 
+        na.color = "transparent"
+      )
+      
+      map_proxy %>% addPolygons(
+        data = merged_regions,
+        group = "LMR Territories",
+        fillColor = ~pal_regions(reg_factors),
+        fillOpacity = 0.2,
+        color = "#888888",
+        weight = 1,
+        highlightOptions = highlightOptions(weight = 3, color = "#ffffff", bringToFront = FALSE),
+        label = ~paste0(
+          "<strong>County:</strong> ", county_clean, "<br>",
+          "<strong>Region:</strong> ", region, "<br>",
+          "<strong>LMR District:</strong> ", lmr_district, "<br>",
+          "<strong>LMR Reps:</strong> ", rep_count, "<br>",
+          "<strong>Retailers per Rep:</strong> ", ifelse(rep_count > 0, round(retailer_count / rep_count, 1), "N/A (Shared)")
+        ) %>% lapply(htmltools::HTML)
+      )
+    }
     
     # Plot Custom Drawn Polygon Buffer
     custom_geom <- drawn_polygon()

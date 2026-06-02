@@ -26,6 +26,23 @@ function saveFileLocally(filename, content, hash) {
 
 export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const batchId = searchParams.get('batchId');
+
+    if (batchId) {
+      const batch = await prisma.importBatch.findUnique({
+        where: { id: batchId }
+      });
+      if (!batch) {
+        return NextResponse.json({ error: 'Import batch not found' }, { status: 404 });
+      }
+      const traces = await prisma.cellImportTrace.findMany({
+        where: { batchId },
+        orderBy: { sourceRowNumber: 'asc' }
+      });
+      return NextResponse.json({ success: true, batch, traces });
+    }
+
     const batches = await prisma.importBatch.findMany({
       orderBy: { uploadedAt: 'desc' }
     });
@@ -153,7 +170,7 @@ export async function POST(request) {
       skip_empty_lines: true,
       trim: true,
       cast: (value, context) => {
-        if (context.column.toLowerCase().includes('balance')) {
+        if (context.column && typeof context.column === 'string' && context.column.toLowerCase().includes('balance')) {
           return parseFloat(value.replace(/[^0-9.-]+/g, '')) || 0;
         }
         return value;
@@ -234,14 +251,23 @@ export async function POST(request) {
               });
               processed = Object.values(groups);
             } else if (step.type === 'normalize_sign') {
+               processed = processed.map(row => {
+                 const code = String(row[step.field] || '');
+                 const val = parseFloat(String(row.balance || 0));
+                 const isNegative = code.startsWith('5') || code.startsWith('6'); 
+                 return {
+                   ...row,
+                   balance: isNegative ? -Math.abs(val) : Math.abs(val)
+                 };
+               });
+            } else if (step.type === 'replace_text') {
               processed = processed.map(row => {
-                const code = String(row[step.field] || '');
-                const val = parseFloat(String(row.balance || 0));
-                const isNegative = code.startsWith('5'); 
-                return {
-                  ...row,
-                  balance: isNegative ? -Math.abs(val) : Math.abs(val)
-                };
+                const val = String(row[step.field] || '');
+                const pattern = step.pattern || '';
+                const replacement = step.replacement || '';
+                const newRow = { ...row };
+                newRow[step.field] = val.replaceAll(pattern, replacement);
+                return newRow;
               });
             }
           } catch (e) {

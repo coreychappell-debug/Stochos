@@ -15,9 +15,9 @@ try {
     $connections = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
     if ($connections) {
         $pids = $connections | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($pid in $pids) {
-            Write-Host "  -> Killing Process ID: $pid" -ForegroundColor DarkYellow
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        foreach ($procId in $pids) {
+            Write-Host "  -> Killing Process ID: $procId" -ForegroundColor DarkYellow
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
         }
         Write-Host "  [OK] Next.js process terminated." -ForegroundColor Green
     } else {

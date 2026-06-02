@@ -35,8 +35,14 @@ export async function PATCH(request, { params }) {
       let commissions = 0;
 
       for (const r of records) {
-        if (r.accountCode === '4-1000') grossSales = Math.abs(parseFloat(r.balance.toString()));
-        if (r.accountCode === '5-2100') commissions = Math.abs(parseFloat(r.balance.toString()));
+        const code = r.accountCode || '';
+        const bal = Math.abs(parseFloat(r.balance.toString()));
+        if (code === '4-1000' || code.startsWith('40000') || code.startsWith('40100')) {
+          grossSales += bal;
+        }
+        if (code === '5-2100' || code.startsWith('6420')) {
+          commissions += bal;
+        }
       }
 
       // Hardcoded budget assumptions for validation variance checks

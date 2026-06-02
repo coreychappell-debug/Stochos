@@ -9,33 +9,40 @@ const navItems = [
     section: "Platform",
     items: [
       { href: "/", label: "Dashboard", icon: "📊" },
-      { href: "/analytics", label: "Analytics", icon: "📈" },
+      { href: "/organization", label: "Organization & Leadership", icon: "🏛️" },
     ],
   },
   {
     section: "Finance & Reporting",
     items: [
+      { href: "/analytics/overview", label: "Executive Overview", icon: "📈" },
+      { href: "/analytics/retailers", label: "Retailer Profitability", icon: "🏪" },
+      { href: "/analytics/portfolio", label: "Portfolio Mix", icon: "📦" },
       { href: "/reporting", label: "Governed Financial & Performance Administration (GFPA)", icon: "📑" },
       { href: "/reporting/prep", label: "Data Prep Studio", icon: "⚙️" },
       { href: "/reporting/grid", label: "Governed Grid", icon: "📊" },
       { href: "/reporting/workflow", label: "Workflow & Binders", icon: "🗂️" },
+      { href: "/budgeting", label: "Divisional Budgeting", icon: "💼" },
     ],
   },
   {
     section: "Marketing",
     items: [
+      { href: "/analytics/geography", label: "Geography & Network", icon: "🗺️" },
+      { href: "/analytics/forecast", label: "Forecast & Outlook", icon: "🔮" },
       { href: "/marketing", label: "Marketing MRM", icon: "📢" },
       { href: "/instant-tickets", label: "Instant Tickets", icon: "🎫" },
+      { href: "/draw-planning", label: "Draw Game Planning", icon: "🎰" },
+      { href: "/products", label: "Products", icon: "🎰" },
     ],
   },
   {
     section: "Operations",
     items: [
-      { href: "/fomo", label: "Field Operations, Merchandising & Oversight (FOMO)", icon: "🤝" },
+      { href: "/fomo", label: "Visitations, Coaching & Relationship Management (VCRM)", icon: "🤝" },
       { href: "/contracts", label: "Contracts", icon: "📋" },
       { href: "/fleet", label: "Fleet", icon: "🚗" },
       { href: "/vendors", label: "Vendors", icon: "🏢" },
-      { href: "/products", label: "Products", icon: "🎰" },
       { href: "/spatial-ops", label: "Spatial Ops, Logistics & Risk (SOLR)", icon: "🌐" },
     ],
   },
@@ -50,10 +57,10 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [theme, setThemeState] = useState("dark");
+  const [theme, setThemeState] = useState("light");
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "dark";
+    const savedTheme = localStorage.getItem("theme") || "light";
     setThemeState(savedTheme);
     if (savedTheme === "light") {
       document.body.classList.add("light-theme");

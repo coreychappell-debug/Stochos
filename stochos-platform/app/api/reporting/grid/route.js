@@ -49,7 +49,7 @@ export async function GET(request) {
       }
     });
 
-    // 2. Sum balances by account code
+    // 2. Sum balances by account code (supporting original ERP codes starting with 4 or 6)
     const actuals = {
       '4-1000': 0, // Gross Ticket Sales
       '5-2000': 0, // Prize Expense
@@ -57,8 +57,14 @@ export async function GET(request) {
     };
 
     for (const r of records) {
-      if (actuals[r.accountCode] !== undefined) {
-        actuals[r.accountCode] += parseFloat(r.balance.toString());
+      const code = r.accountCode || '';
+      const bal = parseFloat(r.balance.toString());
+      if (code === '4-1000' || code.startsWith('40000') || code.startsWith('40100')) {
+        actuals['4-1000'] += bal;
+      } else if (code === '5-2000' || code.startsWith('6410')) {
+        actuals['5-2000'] += bal;
+      } else if (code === '5-2100' || code.startsWith('6420')) {
+        actuals['5-2100'] += bal;
       }
     }
 

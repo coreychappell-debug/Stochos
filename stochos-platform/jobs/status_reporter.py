@@ -108,6 +108,64 @@ def get_db_stats():
         
     return stats
 
+def get_ews_health():
+    """Checks DuckDB for the last successful EWS run and determines if it is stale (> 2 hours old)."""
+    db_path = "/srv/stochos/data/duckdb/stochos_lottery.duckdb"
+    health = {
+        "status": "success",
+        "last_run_time": "Unknown",
+        "last_run_id": "None",
+        "details": "No runs recorded."
+    }
+    
+    if not os.path.exists(db_path):
+        health["status"] = "failure"
+        health["details"] = f"DuckDB file not found at {db_path}"
+        return health
+        
+    try:
+        import duckdb
+        con = duckdb.connect(db_path, read_only=True)
+        res = con.execute("SELECT run_id, ingest_timestamp FROM ny_retailer_risk_history ORDER BY ingest_timestamp DESC LIMIT 1;").fetchone()
+        con.close()
+        
+        if res:
+            run_id, ingest_timestamp = res[0], res[1]
+            health["last_run_id"] = run_id
+            
+            if isinstance(ingest_timestamp, str):
+                try:
+                    dt = datetime.datetime.strptime(ingest_timestamp.split(".")[0], "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    dt = None
+            else:
+                dt = ingest_timestamp
+                
+            if dt:
+                health["last_run_time"] = dt.strftime("%Y-%m-%d %H:%M:%S")
+                now = datetime.datetime.now()
+                diff = now - dt
+                diff_hours = diff.total_seconds() / 3600.0
+                
+                if diff_hours > 2.0:
+                    health["status"] = "warning"
+                    health["details"] = f"EWS pipeline data is stale (last run was {diff_hours:.1f} hours ago)."
+                else:
+                    health["status"] = "success"
+                    health["details"] = f"EWS pipeline is healthy. Last run: {run_id} ({diff_hours:.1f} hours ago)."
+            else:
+                health["last_run_time"] = str(ingest_timestamp)
+                health["details"] = "EWS pipeline timestamp could not be parsed."
+        else:
+            health["status"] = "warning"
+            health["details"] = "No run history found in ny_retailer_risk_history."
+            
+    except Exception as e:
+        health["status"] = "failure"
+        health["details"] = f"Failed to query EWS database health: {e}"
+        
+    return health
+
 def parse_watchdog_logs():
     """Reads recent lines from watchdog log file to detect recovery warnings or errors."""
     log_content = []
@@ -288,12 +346,12 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                      maint_log, maint_status,
                      ingest_log, ingest_status,
                      duckdb_log, duckdb_status, net_contrib,
-                     geodata_log, geodata_status):
+                     geodata_log, geodata_status, ews_health):
     """Formats the system status metrics and job logs into a beautiful HTML email."""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Check overall health status
-    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status]
+    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_health["status"]]
     if has_watchdog_issues or "failure" in all_statuses or stats is None:
         status_badge = '<span style="background-color: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; border: 1px solid #f87171;">🔴 CRITICAL ALERT</span>'
         status_bg = '#fef2f2'
@@ -402,7 +460,8 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                     {db_metrics_html}
                     
                     <div style="margin-top: 12px; font-size: 13px; color: #475569; font-family: sans-serif;">
-                        <strong>Analytical Contribution (NY):</strong> <span style="color: #2563eb; font-weight: bold;">{net_contrib}</span>
+                        <strong>Analytical Contribution (NY):</strong> <span style="color: #2563eb; font-weight: bold;">{net_contrib}</span><br>
+                        <strong>EWS Pipeline Status:</strong> <span style="color: {'#eab308' if ews_health['status'] == 'warning' else '#ef4444' if ews_health['status'] == 'failure' else '#16a34a'}; font-weight: bold;">{ews_health['details']}</span>
                     </div>
                     {watchdog_html}
                 </div>
@@ -431,6 +490,10 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 8px; color: #334155; font-weight: bold;">Nightly Retailer Geodata Audit (1,000 max)</td>
                             <td style="padding: 8px; text-align: right;">{get_status_light(geodata_status)}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 8px; color: #334155; font-weight: bold;">Early Warning System (EWS) Risk Pipeline</td>
+                            <td style="padding: 8px; text-align: right;">{get_status_light(ews_health["status"])}</td>
                         </tr>
                     </table>
                 </div>
@@ -484,7 +547,7 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
     """
     return html
 
-def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_status, has_watchdog_issues):
+def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_status, ews_status, has_watchdog_issues):
     """Sends the status report via Google SMTP."""
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     try:
@@ -504,7 +567,7 @@ def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_st
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     
     # Subject prefixes depending on status
-    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status]
+    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_status]
     if "failure" in all_statuses or has_watchdog_issues:
         subj_prefix = "🚨 [CRITICAL ALERT]"
     elif "warning" in all_statuses:
@@ -565,6 +628,9 @@ def main():
     print("Parsing geodata cron logs...")
     geodata_log, geodata_status = parse_geodata_logs()
     
+    print("Checking EWS database health telemetry...")
+    ews_health = get_ews_health()
+    
     # 5. Generate HTML email body
     print("Building HTML email body...")
     html_body = build_email_body(
@@ -573,7 +639,8 @@ def main():
         maint_log, maint_status,
         ingest_log, ingest_status,
         duckdb_log, duckdb_status, net_contrib,
-        geodata_log, geodata_status
+        geodata_log, geodata_status,
+        ews_health
     )
     
     # 6. Dispatch email
@@ -583,6 +650,7 @@ def main():
         ingest_status, 
         duckdb_status, 
         geodata_status, 
+        ews_health["status"],
         has_watchdog_issues
     )
     print("=== System Status Reporter Complete ===")

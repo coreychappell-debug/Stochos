@@ -31,7 +31,7 @@
 | **Secrets management** | 🟡 Partial | `.env` files only; no vault or rotation | `NEXTAUTH_SECRET` is a placeholder; DB password is hardcoded `stochos_dev_2026` | Secrets manager (HashiCorp Vault, AWS Secrets Manager, or Docker secrets); key rotation schedule |
 | **Multi-user auth** | 🟡 Partial | Single seed user; no registration flow | 1 admin user (`admin@stochos.io`); 4 roles defined but only admin is populated | User management UI; invitation flow; password reset; session timeout policy |
 | **Backup automation** | 🟡 Partial | Manual pg_dump only; no scheduled backups | Documented backup commands in OPERATIONS.md §10; never automated | Cron-scheduled daily pg_dump; off-site backup copy; retention policy; automated restore verification |
-| **Monitoring** | 🔴 Not started | No metrics, no log aggregation, no alerting | Container health checks exist (PostgreSQL `pg_isready`); no application-level monitoring | Health endpoint (`/api/health`); structured logging; metrics collection (Prometheus/Grafana or equivalent); uptime alerting |
+| **Monitoring** | 🟡 Partial | Health endpoint `/api/health` exists; EWS database freshness telemetry checks implemented in status reporter | Container health checks exist (PostgreSQL `pg_isready`); EWS telemetry alerts on data stale-outs | Structured logging; metrics collection (Prometheus/Grafana or equivalent); uptime alerting integration |
 | **Disaster recovery** | 🔴 Not started | No restore drill performed; no RTO/RPO defined | Backup procedures documented but never tested end-to-end | Documented RTO/RPO targets; tested restore procedure; failover plan |
 | **CI/CD** | 🔴 Not started | Manual deploy only | `npm run dev` on local machine; no build pipeline | Git-based deployment; automated build + test + deploy; staging environment |
 | **Multi-tenant isolation** | ⬜ Conceptual | Architecture supports it but never tested | `jurisdiction_id` on contracts, users, products; no row-level security enforced | Row-level security policies in PostgreSQL; tenant-scoped API middleware; data isolation verification tests |
@@ -91,7 +91,7 @@ These gates must be cleared in sequence. Each gate builds on the previous one.
 
 - [ ] Create demo user accounts (not seed credentials)
 - [ ] Populate realistic demo data (contracts, vendors, line items)
-- [ ] Add `/api/health` endpoint for uptime monitoring
+- [x] Add `/api/health` endpoint for uptime monitoring
 - [ ] Perform one complete backup + restore drill
 - [ ] Review and redact any dev artifacts visible in UI
 

@@ -95,7 +95,7 @@ if (!is.null(nws_data) && nrow(nws_data) > 0) {
 
 # --- USGS Earthquakes Ingestion ---
 message("\nProcessing source: usgs_earthquakes")
-usgs_url <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson"
+usgs_url <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson"
 res_eq <- tryCatch({
   GET(usgs_url)
 }, error = function(e) NULL)
@@ -114,8 +114,9 @@ if (!is.null(usgs_data) && nrow(usgs_data) > 0) {
   usgs_data$lng <- coords[, 1]
   usgs_data$lat <- coords[, 2]
   
+  # Filter for NY region and restrict to magnitude 4.0+
   ny_eqs <- usgs_data %>%
-    filter(lat >= 40.0 & lat <= 45.5 & lng >= -80.0 & lng <= -71.5)
+    filter(lat >= 40.0 & lat <= 45.5 & lng >= -80.0 & lng <= -71.5 & mag >= 4.0)
   
   if (nrow(ny_eqs) > 0) {
     message(paste("Fetched", nrow(ny_eqs), "USGS features in NY region. Processing..."))
@@ -129,7 +130,8 @@ if (!is.null(usgs_data) && nrow(usgs_data) > 0) {
         source_name = "usgs_earthquakes",
         source_feature_id = as.character(id),
         emergency_id = paste("usgs", id, sep = "_"),
-        status = "Active",
+        # Set status to Historic if event occurred more than 24 hours ago (86400 seconds)
+        status = ifelse((as.numeric(Sys.time()) - (time / 1000)) > 86400, "Historic", "Active"),
         event_name = paste("M", mag, "-", place),
         county = "Unknown",
         geometry_type = as.character(st_geometry_type(ny_eqs)),
@@ -158,6 +160,15 @@ if (!is.null(usgs_data) && nrow(usgs_data) > 0) {
 } else {
   message("No earthquake data fetched.")
 }
+
+# Always insert a system run-marker record to ensure run_id is registered
+dbExecute(con, "
+  INSERT INTO ny_normalized_emergencies (
+    run_id, emergency_id, source_name, source_feature_id, hazard_type, status, severity_rank, event_name, county, geometry_type, source_timestamp, ingest_timestamp, raw_metadata, geom
+  ) VALUES (
+    ?, ?, 'system', 'marker', 'none', 'Active', 999, 'System Run Marker', 'None', 'Point', ?::TIMESTAMP, ?::TIMESTAMP, '{}'::JSON, ST_Point(0, 0)
+  )
+", list(run_id, paste0("run_marker_", run_id), ingest_timestamp, ingest_timestamp))
 
 dbDisconnect(con)
 message("\nIngestion Run Completed.")

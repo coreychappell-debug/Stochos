@@ -433,19 +433,39 @@ cat("\n--- Sprint 4: Geographic Analytics ---\n")
 cat("  Building mart_ny_county_summary...")
 dbExecute(con, "
 CREATE OR REPLACE TABLE mart_ny_county_summary AS
+WITH base AS (
+    SELECT
+        COALESCE(r_dim.county, 'Unknown')        AS county,
+        SUM(t.gross_revenue)                     AS gross_revenue,
+        SUM(t.net_contribution)                  AS net_contribution,
+        COUNT(DISTINCT t.retailer_id)            AS retailer_count
+    FROM v_unified_lottery_truth t
+    LEFT JOIN ny_retailer_dim r_dim ON t.retailer_id = r_dim.retailer_id
+    WHERE t.gross_revenue > 0
+    GROUP BY COALESCE(r_dim.county, 'Unknown')
+)
 SELECT
-    COALESCE(county, 'Unknown')              AS county,
-    SUM(gross_revenue)                       AS gross_revenue,
-    SUM(net_contribution)                    AS net_contribution,
-    COUNT(DISTINCT retailer_id)              AS retailer_count,
-    SUM(gross_revenue) /
-        NULLIF(COUNT(DISTINCT retailer_id), 0) AS avg_sales_per_retailer,
-    RANK() OVER (ORDER BY SUM(gross_revenue) DESC)      AS rank_sales,
-    RANK() OVER (ORDER BY SUM(net_contribution) DESC)   AS rank_contribution
-FROM v_unified_lottery_truth
-WHERE gross_revenue > 0
-GROUP BY county
-ORDER BY gross_revenue DESC
+    b.county,
+    b.gross_revenue,
+    b.net_contribution,
+    b.retailer_count,
+    b.gross_revenue / NULLIF(b.retailer_count, 0) AS avg_sales_per_retailer,
+    RANK() OVER (ORDER BY b.gross_revenue DESC) AS rank_sales,
+    RANK() OVER (ORDER BY b.net_contribution DESC) AS rank_contribution,
+    d.population,
+    d.land_area,
+    d.median_income,
+    r.region,
+    r.lmr_district,
+    r.rep_count,
+    b.gross_revenue / NULLIF(d.population, 0) AS sales_per_capita,
+    b.net_contribution / NULLIF(d.population, 0) AS net_contribution_per_capita,
+    b.retailer_count / NULLIF(d.land_area, 0) AS retailers_per_sq_mile,
+    d.population / NULLIF(b.retailer_count, 0) AS residents_per_retailer
+FROM base b
+LEFT JOIN ny_county_demographics_dim d ON b.county = d.county
+LEFT JOIN ny_county_regions_dim r ON b.county = r.county
+ORDER BY b.gross_revenue DESC
 ")
 cat(" done.\n")
 
@@ -462,16 +482,17 @@ cat("  Building mart_ny_city_summary...")
 dbExecute(con, "
 CREATE OR REPLACE TABLE mart_ny_city_summary AS
 SELECT
-    COALESCE(city, 'Unknown')                AS city,
-    COALESCE(county, 'Unknown')              AS county,
-    SUM(gross_revenue)                       AS gross_revenue,
-    SUM(net_contribution)                    AS net_contribution,
-    COUNT(DISTINCT retailer_id)              AS retailer_count,
-    SUM(gross_revenue) /
-        NULLIF(COUNT(DISTINCT retailer_id), 0) AS avg_sales_per_retailer
-FROM v_unified_lottery_truth
-WHERE gross_revenue > 0
-GROUP BY city, county
+    COALESCE(r_dim.city, 'Unknown')          AS city,
+    COALESCE(r_dim.county, 'Unknown')        AS county,
+    SUM(t.gross_revenue)                     AS gross_revenue,
+    SUM(t.net_contribution)                  AS net_contribution,
+    COUNT(DISTINCT t.retailer_id)            AS retailer_count,
+    SUM(t.gross_revenue) /
+        NULLIF(COUNT(DISTINCT t.retailer_id), 0) AS avg_sales_per_retailer
+FROM v_unified_lottery_truth t
+LEFT JOIN ny_retailer_dim r_dim ON t.retailer_id = r_dim.retailer_id
+WHERE t.gross_revenue > 0
+GROUP BY COALESCE(r_dim.city, 'Unknown'), COALESCE(r_dim.county, 'Unknown')
 ORDER BY gross_revenue DESC
 ")
 cat(" done.\n")

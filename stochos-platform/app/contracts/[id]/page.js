@@ -44,12 +44,19 @@ export default async function ContractDetailPage({ params }) {
     orderBy: { name: "asc" },
   });
 
+  const approvals = await prisma.approval.findMany({
+    where: { entityType: "contract", entityId: id },
+    include: { approver: { select: { name: true, email: true, division: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
   return (
     <AppShell>
       <ContractDetailClient
         contract={JSON.parse(JSON.stringify(contract))}
         auditLog={JSON.parse(JSON.stringify(auditLog))}
         products={JSON.parse(JSON.stringify(products))}
+        approvals={JSON.parse(JSON.stringify(approvals))}
       />
     </AppShell>
   );
