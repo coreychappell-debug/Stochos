@@ -463,7 +463,7 @@ SELECT
     b.retailer_count / NULLIF(d.land_area, 0) AS retailers_per_sq_mile,
     d.population / NULLIF(b.retailer_count, 0) AS residents_per_retailer
 FROM base b
-LEFT JOIN ny_county_demographics_dim d ON b.county = d.county
+LEFT JOIN v_ny_county_demographics_latest d ON b.county = d.county
 LEFT JOIN ny_county_regions_dim r ON b.county = r.county
 ORDER BY b.gross_revenue DESC
 ")

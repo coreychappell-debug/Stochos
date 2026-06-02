@@ -7,9 +7,9 @@ on.exit(dbDisconnect(con))
 
 cat("=== Starting Demographics & Regional Mart Verification ===\n\n")
 
-# 1. Check ny_county_demographics_dim
-demographics_count <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM ny_county_demographics_dim")$count[1]
-cat("1. ny_county_demographics_dim row count: ", demographics_count, " (Expected: 62)\n")
+# 1. Check v_ny_county_demographics_latest
+demographics_count <- dbGetQuery(con, "SELECT COUNT(*) AS count FROM v_ny_county_demographics_latest")$count[1]
+cat("1. v_ny_county_demographics_latest row count: ", demographics_count, " (Expected: 62)\n")
 stopifnot(demographics_count == 62)
 
 # 2. Check ny_county_regions_dim

@@ -216,6 +216,26 @@ Check `/srv/stochos/logs/status_reporter.log` inside WSL to review execution log
 
 ---
 
+### 5.7 US Census Demographics Data Updates
+
+#### 1. Ingestion and Trend Tracking
+Demographic statistics (population, median household income) are stored historically to enable trend and time-series analysis. 
+* **Table:** `ny_county_demographics_dim` (composite primary key `(county, data_year)`).
+* **View:** `v_ny_county_demographics_latest` (returns the latest year's metrics per county, used to prevent duplicate rows during dashboard database joins).
+
+#### 2. US Census API Key Configuration
+The US Census Bureau API requires an API key to query high-volume American Community Survey (ACS) 5-Year estimates.
+* **API Key Variable:** `CENSUS_API_KEY` (configured in `.env.local`).
+* **Signup Portal:** Anyone can register for a key instantly at [https://api.census.gov/data/key_signup.html](https://api.census.gov/data/key_signup.html).
+* **Fallback Behavior:** If `CENSUS_API_KEY` is not present, the ingestion script automatically falls back to sourcing 2020 county demographics from a local/cached copy of the CORGIS dataset, maintaining an out-of-the-box functional demo environment.
+
+#### 3. Census Bureau Release Schedule
+The US Census Bureau releases ACS 5-Year estimates annually. 
+* **Release Timing:** The ACS 5-Year estimates for a given calendar year are officially released in **December** of the *following* calendar year (e.g., 2022 ACS data was released in December 2023, 2023 ACS data in December 2024, etc.).
+* **Process:** Update the API key, run `/usr/bin/python3 /srv/stochos/jobs/ny_demographics_ingest.py`, and rebuild dashboard marts to compile the latest statistical trends.
+
+---
+
 
 
 ## 6. Dashboard Deployment & Scaling
