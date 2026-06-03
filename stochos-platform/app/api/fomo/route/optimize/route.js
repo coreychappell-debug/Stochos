@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 
 // Global queue and throttling for OSRM public API to avoid rate-limiting under concurrent usage
 class CallQueue {
@@ -240,10 +241,14 @@ export async function POST(req) {
         }
       }
     } catch (e) {
-      console.warn("[ROUTE OPTIMIZER] OSRM table fetch failed, falling back to Haversine matrix. Error:", e.message);
+      logger.warn("OSRM table fetch failed, falling back to Haversine matrix", { error: e.message });
     }
 
     if (!matrix) {
+      logger.warn("OSRM routing server offline/failed. Falling back to local Haversine matrix calculations.", {
+        startPoint: startPoint.name,
+        stopsCount: validWaypoints.length
+      });
       // Offline fallback: Use Haversine distance matrix converted to driving duration
       matrix = buildFallbackMatrix(allPoints);
       isFallback = true;
@@ -287,7 +292,7 @@ export async function POST(req) {
           }
         }
       } catch (e) {
-        console.warn("[ROUTE OPTIMIZER] OSRM route fetch failed, fallback to straight line geometry. Error:", e.message);
+        logger.warn("OSRM route fetch failed, fallback to straight line geometry", { error: e.message });
       }
     }
 
@@ -324,6 +329,14 @@ export async function POST(req) {
     const waypointsParam = intermediateStops.map(p => `${p.lat},${p.lng}`).join("|");
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypointsParam ? `&waypoints=${encodeURIComponent(waypointsParam)}` : ""}`;
 
+    logger.info("Route optimization completed successfully", {
+      stopsCount: validWaypoints.length,
+      roundTrip,
+      totalDistanceMiles,
+      totalDurationMinutes,
+      isFallback
+    });
+
     return NextResponse.json({
       optimizedWaypoints,
       routeGeometry,
@@ -334,7 +347,7 @@ export async function POST(req) {
     });
 
   } catch (error) {
-    console.error("Route optimization API error:", error);
+    logger.error("Route optimization API error", { error: error.message, stack: error.stack });
     return NextResponse.json({ error: "Internal server error during route optimization" }, { status: 500 });
   }
 }

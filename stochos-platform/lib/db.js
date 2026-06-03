@@ -13,7 +13,29 @@ const globalForPrisma = globalThis;
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   const adapter = new PrismaPg({ connectionString });
-  return new PrismaClient({ adapter });
+  
+  const client = new PrismaClient({
+    adapter,
+    log: [
+      { emit: 'event', level: 'query' },
+      { emit: 'stdout', level: 'error' },
+      { emit: 'stdout', level: 'warn' }
+    ]
+  });
+
+  const logger = require('./logger');
+
+  client.$on('query', (e) => {
+    if (e.duration >= 1000) {
+      logger.warn(`Slow Database Query (${e.duration}ms)`, {
+        query: e.query,
+        params: e.params,
+        durationMs: e.duration
+      });
+    }
+  });
+
+  return client;
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient();

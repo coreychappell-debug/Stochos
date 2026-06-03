@@ -1,5 +1,6 @@
 import "./globals.css";
 import Providers from "./components/Providers";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 export const metadata = {
   title: "Stochos — Lottery Business Platform",
@@ -10,7 +11,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="light-theme" suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <ErrorBoundary>
+          <Providers>{children}</Providers>
+        </ErrorBoundary>
       </body>
     </html>
   );

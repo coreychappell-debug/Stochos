@@ -71,14 +71,55 @@ EXEC_COLORS <- list(
 # HELPERS
 # ==========================================================================
 
+# Structured logging utility for Shiny errors and warning telemetry
+write_shiny_log <- function(level, message, detail = list()) {
+  log_file <- "/srv/stochos/logs/observability_shiny.log"
+  log_dir <- dirname(log_file)
+  
+  if (!dir.exists(log_dir)) {
+    try(dir.create(log_dir, recursive = TRUE), silent = TRUE)
+  }
+  
+  timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  
+  detail_str <- ""
+  if (length(detail) > 0) {
+    items <- sapply(names(detail), function(n) {
+      val <- detail[[n]]
+      val_clean <- gsub("\"", "\\\"", as.character(val), fixed = TRUE)
+      val_clean <- gsub("\n", " ", val_clean, fixed = TRUE)
+      paste0('"', n, '":"', val_clean, '"')
+    })
+    detail_str <- paste0(",", paste(items, collapse = ","))
+  }
+  
+  log_entry <- paste0('{"timestamp":"', timestamp, '","level":"', level, '","message":"', gsub("\"", "\\\"", message, fixed = TRUE), '"', detail_str, '}')
+  
+  # Print to stderr for container console outputs
+  cat(paste0("[", timestamp, "] [", level, "] ", message, "\n"), file = stderr())
+  
+  # Append JSON Line to the log file
+  try(cat(paste0(log_entry, "\n"), file = log_file, append = TRUE), silent = TRUE)
+}
+
 safe_query <- function(con, sql) {
-  tryCatch(
+  start_time <- proc.time()
+  res <- tryCatch(
     dbGetQuery(con, sql),
     error = function(e) {
-      warning("Query failed: ", conditionMessage(e))
-      data.frame()
+      err_msg <- conditionMessage(e)
+      write_shiny_log("ERROR", paste0("Database query failed: ", err_msg), list(query = sql))
+      warning("Query failed: ", err_msg)
+      return(data.frame())
     }
   )
+  duration_ms <- as.numeric((proc.time() - start_time)["elapsed"]) * 1000
+  
+  if (duration_ms >= 2000) {
+    write_shiny_log("WARN", paste0("Slow Database Query (", round(duration_ms), "ms)"), list(query = sql, durationMs = round(duration_ms)))
+  }
+  
+  return(res)
 }
 
 fmt_dollar <- function(x) {

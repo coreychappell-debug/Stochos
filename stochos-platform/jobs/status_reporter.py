@@ -41,6 +41,16 @@ GEODATA_LOG_PATHS = [
     "/srv/stochos/logs/geodata_audit.log"
 ]
 
+OBSERVABILITY_PLATFORM_LOG_PATHS = [
+    "/mnt/c/Users/corey/Downloads/Corey - Code Stuff/R Server Project folder/New York Scripts and Process/stochos-platform/logs/observability.log",
+    "./logs/observability.log",
+    "/srv/stochos/analyst_lab/stochos-platform/logs/observability.log"
+]
+
+OBSERVABILITY_SHINY_LOG_PATHS = [
+    "/srv/stochos/logs/observability_shiny.log"
+]
+
 def load_dotenv():
     """Load environment variables from env files without external dependencies."""
     loaded = False
@@ -342,16 +352,104 @@ def parse_geodata_logs():
                 
     return log_summary, status
 
+def parse_observability_logs():
+    """Reads Platform & Shiny observability JSON logs to capture recent errors and slow query telemetry."""
+    status = "success"
+    recent_entries = []
+    
+    # Target window: past 24 hours (UTC comparison)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cutoff = now - datetime.timedelta(hours=24)
+    
+    error_count = 0
+    warning_count = 0
+    
+    # 1. Parse Platform Logs
+    for path in OBSERVABILITY_PLATFORM_LOG_PATHS:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            import json
+                            entry = json.loads(line)
+                            ts_str = entry.get("timestamp", "")
+                            if ts_str.endswith("Z"):
+                                ts_str = ts_str[:-1] + "+00:00"
+                            ts = datetime.datetime.fromisoformat(ts_str)
+                            
+                            if ts >= cutoff:
+                                lvl = entry.get("level", "INFO")
+                                msg = entry.get("message", "")
+                                if lvl == "ERROR":
+                                    error_count += 1
+                                    recent_entries.append(f"🔴 [Platform] {msg}")
+                                elif lvl == "WARN":
+                                    warning_count += 1
+                                    recent_entries.append(f"🟡 [Platform] {msg}")
+                        except Exception:
+                            pass
+                break
+            except Exception as e:
+                print(f"Error reading platform observability log at {path}: {e}")
+                
+    # 2. Parse Shiny Logs
+    for path in OBSERVABILITY_SHINY_LOG_PATHS:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            import json
+                            entry = json.loads(line)
+                            ts_str = entry.get("timestamp", "")
+                            if ts_str.endswith("Z"):
+                                ts_str = ts_str[:-1] + "+00:00"
+                            ts = datetime.datetime.fromisoformat(ts_str)
+                            
+                            if ts >= cutoff:
+                                lvl = entry.get("level", "INFO")
+                                msg = entry.get("message", "")
+                                if lvl == "ERROR":
+                                    error_count += 1
+                                    recent_entries.append(f"🔴 [Shiny] {msg}")
+                                elif lvl == "WARN":
+                                    warning_count += 1
+                                    recent_entries.append(f"🟡 [Shiny] {msg}")
+                        except Exception:
+                            pass
+                break
+            except Exception as e:
+                print(f"Error reading Shiny observability log at {path}: {e}")
+
+    # Limit to last 20 events to avoid bloating the email
+    recent_entries = recent_entries[-20:]
+    log_summary = "\n".join(recent_entries) if recent_entries else "No errors or warnings logged in the last 24 hours."
+    
+    if error_count > 0:
+        status = "failure"
+    elif warning_count > 0:
+        status = "warning"
+        
+    return log_summary, status, error_count, warning_count
+
 def build_email_body(stats, watchdog_alerts, has_watchdog_issues, 
                      maint_log, maint_status,
                      ingest_log, ingest_status,
                      duckdb_log, duckdb_status, net_contrib,
-                     geodata_log, geodata_status, ews_health):
+                     geodata_log, geodata_status, ews_health,
+                     observability_log, observability_status):
     """Formats the system status metrics and job logs into a beautiful HTML email."""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Check overall health status
-    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_health["status"]]
+    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_health["status"], observability_status]
     if has_watchdog_issues or "failure" in all_statuses or stats is None:
         status_badge = '<span style="background-color: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; border: 1px solid #f87171;">🔴 CRITICAL ALERT</span>'
         status_bg = '#fef2f2'
@@ -495,6 +593,10 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                             <td style="padding: 8px; color: #334155; font-weight: bold;">Early Warning System (EWS) Risk Pipeline</td>
                             <td style="padding: 8px; text-align: right;">{get_status_light(ews_health["status"])}</td>
                         </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 8px; color: #334155; font-weight: bold;">Next.js & Shiny Observability Telemetry</td>
+                            <td style="padding: 8px; text-align: right;">{get_status_light(observability_status)}</td>
+                        </tr>
                     </table>
                 </div>
 
@@ -533,6 +635,14 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                         </div>
                         <pre style="margin: 0; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: #334155; max-height: 100px; overflow-y: auto; background-color: #fafafa;">{geodata_log}</pre>
                     </div>
+
+                    <!-- Platform & Shiny Observability Log -->
+                    <div style="margin-top: 10px; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
+                        <div style="background-color: #f8fafc; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569; font-weight: bold;">
+                            observability.log & observability_shiny.log (Recent Warnings/Errors)
+                        </div>
+                        <pre style="margin: 0; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: #334155; max-height: 150px; overflow-y: auto; background-color: #fafafa;">{observability_log}</pre>
+                    </div>
                 </div>
 
                 <p style="margin-top: 25px; font-size: 11px; color: #94a3b8; text-align: center; font-family: sans-serif;">
@@ -547,7 +657,7 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
     """
     return html
 
-def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_status, ews_status, has_watchdog_issues):
+def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_status, ews_status, observability_status, has_watchdog_issues):
     """Sends the status report via Google SMTP."""
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     try:
@@ -567,7 +677,7 @@ def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_st
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     
     # Subject prefixes depending on status
-    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_status]
+    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_status, observability_status]
     if "failure" in all_statuses or has_watchdog_issues:
         subj_prefix = "🚨 [CRITICAL ALERT]"
     elif "warning" in all_statuses:
@@ -631,6 +741,9 @@ def main():
     print("Checking EWS database health telemetry...")
     ews_health = get_ews_health()
     
+    print("Parsing Next.js & R/Shiny observability logs...")
+    observability_log, observability_status, error_count, warning_count = parse_observability_logs()
+    
     # 5. Generate HTML email body
     print("Building HTML email body...")
     html_body = build_email_body(
@@ -640,7 +753,9 @@ def main():
         ingest_log, ingest_status,
         duckdb_log, duckdb_status, net_contrib,
         geodata_log, geodata_status,
-        ews_health
+        ews_health,
+        observability_log,
+        observability_status
     )
     
     # 6. Dispatch email
@@ -651,6 +766,7 @@ def main():
         duckdb_status, 
         geodata_status, 
         ews_health["status"],
+        observability_status,
         has_watchdog_issues
     )
     print("=== System Status Reporter Complete ===")
