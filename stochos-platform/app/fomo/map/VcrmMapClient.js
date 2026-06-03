@@ -163,11 +163,14 @@ export default function VcrmMapClient() {
           <div style="font-family:Inter, sans-serif; font-size:12px; color:var(--text); line-height:1.4;">
             <strong style="font-size:13px; color:var(--primary);">${ret.name}</strong><br/>
             <span>${ret.address}, ${ret.city}</span><br/>
+            <strong>County:</strong> ${ret.county || 'Unknown'}<br/>
+            <strong>DMA:</strong> ${ret.dma || 'Unknown'}<br/>
+            <strong>Service Center:</strong> ${ret.serviceCenter || 'Unknown'}<br/>
             <strong>Route Order:</strong> Sequence #${ret.routeOrder}<br/>
             <strong>Visit Cadence:</strong> ${ret.visitCadence}<br/>
             <strong>Coaching Status:</strong> <span style="font-weight:bold; color:${markerColors[ret.freshness]}">${statusLabels[ret.freshness]}</span><br/>
-            <strong>Last Visited:</strong> ${ret.lastVisitDate ? new Date(ret.lastVisitDate).toLocaleDateString() : "Never"}<br/>
-            <strong>Training:</strong> ${ret.trainingStatus === "trained" ? "🟢 Ask-for-Sale Trained" : "⚪ Untrained"}<br/>
+            <strong>Last Visited:</strong> ${ret.lastVisitDate ? new Date(ret.lastVisitDate).toLocaleDateString() : 'Never'}<br/>
+            <strong>Training:</strong> ${ret.trainingStatus === 'trained' ? '🟢 Ask-for-Sale Trained' : '⚪ Untrained'}<br/>
             ${discrepanciesList}
           </div>
         `;

@@ -26,21 +26,24 @@ export default async function CrmRetailersPage() {
   return (
     <AppShell>
       <div className="page-header">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2>FOMO Retailer Registry</h2>
-            <p>Active store accounts, configurations, and territory assignments</p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link href="/fomo/mismatches" className="btn btn-secondary">
-              🗺️ Geodata Audit
-            </Link>
-            <Link href="/fomo" className="btn btn-secondary">
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </div>
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+           <div>
+             <h2>FOMO Retailer Registry</h2>
+             <p>Active store accounts, configurations, and territory assignments</p>
+           </div>
+           <div style={{ display: "flex", gap: 8 }}>
+             <Link href="/fomo/mismatches" className="btn btn-secondary">
+               🗺️ Geodata Audit
+             </Link>
+             <Link href="/fomo/planner" className="btn btn-secondary">
+               🚗 Trip Planner
+             </Link>
+             <Link href="/fomo" className="btn btn-secondary">
+               Back to Dashboard
+             </Link>
+           </div>
+         </div>
+       </div>
       <div className="page-body">
         <FomoRetailerListClient 
           initialRetailers={JSON.parse(JSON.stringify(retailers))}

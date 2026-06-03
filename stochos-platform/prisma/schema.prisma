@@ -704,6 +704,9 @@ model CrmRetailer {
   geodataStandardAddress         String?          @map("geodata_standard_address")
   geodataStandardLatitude        Float?           @map("geodata_standard_latitude")
   geodataStandardLongitude       Float?           @map("geodata_standard_longitude")
+  county                         String?
+  dma                            String?
+  serviceCenter                  String?          @map("service_center")
   createdAt                      DateTime         @default(now()) @map("created_at")
   updatedAt                      DateTime         @updatedAt @map("updated_at")
 

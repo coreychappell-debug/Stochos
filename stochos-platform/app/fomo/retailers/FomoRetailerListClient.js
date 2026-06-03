@@ -134,6 +134,9 @@ export default function FomoRetailerListClient({ initialRetailers, routes, chain
                     <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
                       {r.address}, {r.city}
                     </div>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                      📍 {r.county ? `${r.county} Co` : 'No County'} | 📺 {r.dma || 'No DMA'} | 🏢 {r.serviceCenter || 'No Service Center'} | 🌐 {r.latitude && r.longitude ? `${r.latitude.toFixed(5)}, ${r.longitude.toFixed(5)}` : 'No Coordinates'}
+                    </div>
                   </td>
                   <td>{r.chain?.name || "Independent"}</td>
                   <td>

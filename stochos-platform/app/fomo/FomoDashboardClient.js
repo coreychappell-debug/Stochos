@@ -24,6 +24,9 @@ export default function FomoDashboardClient({ stats, recentVisits, openException
           <Link href="/fomo/import" className="btn btn-secondary">
             📥 Importer Console
           </Link>
+          <Link href="/fomo/planner" className="btn btn-secondary">
+            🚗 Trip Planner
+          </Link>
         </div>
       </div>
 

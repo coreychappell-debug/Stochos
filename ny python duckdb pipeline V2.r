@@ -5,18 +5,20 @@ from pathlib import Path
 import duckdb
 import sys
 from datetime import datetime
+import subprocess
 
 """
-NY Lottery Data Normalization, Reporting Mart, and Canonical Build Script (v10)
+NY Lottery Data Normalization, Reporting Mart, and Canonical Build Script (v11)
 -----------------------------------------------------------------------------
 PURPOSE:
 Builds the New York Lottery warehouse module in DuckDB from raw CSV files.
 
 This script does four things:
-1. Loads raw staging tables from CSV
+1. Loads raw staging tables from CSV (bypassing corrupt lines)
 2. Builds NY-local dimensions, facts, enriched tables, views, and summary marts
 3. Builds geospatial and retailer summary marts for reporting
 4. Builds shared canonical tables for future cross-state comparative reporting
+5. Syncs solved retailer metadata (county, DMA, service center) to PostgreSQL
 
 OPERATING PRINCIPLES:
 - Python performs ETL and warehouse refresh
@@ -147,12 +149,14 @@ def create_raw_tables(con: duckdb.DuckDBPyConnection) -> None:
     con.execute(f"DROP TABLE IF EXISTS {RAW_SALES_TABLE}")
     con.execute(f"DROP TABLE IF EXISTS {RAW_RETAILER_TABLE}")
 
+    print(f"Loading raw sales data (ignoring bad rows)...")
     con.execute(f"""
     CREATE TABLE {RAW_SALES_TABLE} AS
     SELECT *
-    FROM read_csv_auto({qstr(str(SALES_CSV))}, header=true)
+    FROM read_csv_auto({qstr(str(SALES_CSV))}, header=true, ignore_errors=true)
     """)
 
+    print(f"Loading raw retailers data...")
     con.execute(f"""
     CREATE TABLE {RAW_RETAILER_TABLE} AS
     SELECT *
@@ -164,25 +168,82 @@ def create_raw_tables(con: duckdb.DuckDBPyConnection) -> None:
 # -----------------------------------------------------------------------------
 
 def build_dimensions(con: duckdb.DuckDBPyConnection) -> None:
-    # New York retailer dimension with geographic fields preserved
+    # 1. Execute SQL Seed file to create/refresh ny_county_regions_dim
+    seed_path = Path("/srv/stochos/data/seeds/lmr_districts.sql")
+    if not seed_path.exists():
+        # Fallback path inside the workspace
+        seed_path = Path(__file__).parent / "stochos-platform" / "data" / "seeds" / "lmr_districts.sql"
+    
+    if seed_path.exists():
+        print(f"Seeding county regions from {seed_path}...")
+        con.execute("INSTALL spatial; LOAD spatial;")
+        sql_content = seed_path.read_text()
+        for statement in sql_content.split(";"):
+            stmt = statement.strip()
+            if stmt:
+                con.execute(stmt)
+    else:
+        print("[WARNING] lmr_districts.sql seed file not found. Schema update skipped.")
+
+    # 2. Build ny_retailer_dim using historical lookup and automated spatial joins
+    print("Building ny_retailer_dim with spatial boundaries & regions...")
+    con.execute("INSTALL spatial; LOAD spatial;")
     con.execute(f"""
     CREATE OR REPLACE TABLE {NY_RETAILER_DIM_TABLE} AS
-    SELECT DISTINCT
-        '{STATE_CODE}' AS state_code,
-        CAST({qident('Retailer')} AS VARCHAR) AS retailer_id,
-        {qident('Name')} AS retailer_name,
-        {qident('Street')} AS street,
-        {qident('City')} AS city,
-        {qident('State')} AS state,
-        CAST({qident('Zip')} AS VARCHAR) AS zip_code,
-        {qident('Quick Draw')} AS quick_draw,
-        TRY_CAST({qident('Latitude')} AS DOUBLE) AS latitude,
-        TRY_CAST({qident('Longitude')} AS DOUBLE) AS longitude,
-        {qident('Georeference')} AS georeference,
-        NULL::VARCHAR AS county,
-        NULL::VARCHAR AS business_type
-    FROM {RAW_RETAILER_TABLE}
-    WHERE CAST({qident('Retailer')} AS VARCHAR) IS NOT NULL
+    WITH raw_retailers AS (
+        SELECT DISTINCT
+            '{STATE_CODE}' AS state_code,
+            CAST({qident('Retailer')} AS VARCHAR) AS retailer_id,
+            {qident('Name')} AS retailer_name,
+            {qident('Street')} AS street,
+            {qident('City')} AS city,
+            {qident('State')} AS state,
+            CAST({qident('Zip')} AS VARCHAR) AS zip_code,
+            {qident('Quick Draw')} AS quick_draw,
+            TRY_CAST({qident('Latitude')} AS DOUBLE) AS latitude,
+            TRY_CAST({qident('Longitude')} AS DOUBLE) AS longitude,
+            {qident('Georeference')} AS georeference,
+            NULL::VARCHAR AS business_type
+        FROM {RAW_RETAILER_TABLE}
+        WHERE CAST({qident('Retailer')} AS VARCHAR) IS NOT NULL
+    ),
+    spatial_lookup AS (
+        SELECT 
+            r.retailer_id,
+            REPLACE(c.name, ' County', '') AS spatial_county
+        FROM raw_retailers r
+        JOIN ST_Read('/srv/stochos/new-york-counties.geojson') c
+          ON ST_Within(ST_Point(r.longitude, r.latitude), c.geom)
+        WHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+    ),
+    resolved_county AS (
+        SELECT
+            r.*,
+            COALESCE(lk.county, sp.spatial_county) AS county,
+            CASE WHEN lk.county IS NULL AND sp.spatial_county IS NOT NULL THEN TRUE ELSE FALSE END AS is_new_connection
+        FROM raw_retailers r
+        LEFT JOIN tmp_ny_retailer_county_lookup lk ON r.retailer_id = lk.retailer_id
+        LEFT JOIN spatial_lookup sp ON r.retailer_id = sp.retailer_id
+    )
+    SELECT
+        rc.state_code,
+        rc.retailer_id,
+        rc.retailer_name,
+        rc.street,
+        rc.city,
+        rc.state,
+        rc.zip_code,
+        rc.quick_draw,
+        rc.latitude,
+        rc.longitude,
+        rc.georeference,
+        rc.county,
+        rc.business_type,
+        reg.dma,
+        reg.service_center,
+        rc.is_new_connection
+    FROM resolved_county rc
+    LEFT JOIN ny_county_regions_dim reg ON rc.county = reg.county
     """)
 
     # Generic-style retailer table retained for compatibility with prior work
@@ -201,7 +262,10 @@ def build_dimensions(con: duckdb.DuckDBPyConnection) -> None:
         latitude,
         longitude,
         georeference,
-        business_type
+        business_type,
+        dma,
+        service_center,
+        is_new_connection
     FROM {NY_RETAILER_DIM_TABLE}
     """)
 
@@ -317,6 +381,9 @@ def build_fact_table(con: duckdb.DuckDBPyConnection) -> None:
         r.quick_draw,
         r.latitude,
         r.longitude,
+        r.dma,
+        r.service_center,
+        r.is_new_connection,
         f.game_code,
         f.game_name,
         f.game_family,
@@ -353,6 +420,9 @@ def create_unified_view(con: duckdb.DuckDBPyConnection) -> None:
         quick_draw,
         latitude,
         longitude,
+        dma,
+        service_center,
+        is_new_connection,
         game_code,
         game_name,
         game_family,
@@ -514,7 +584,10 @@ def build_reporting_marts(con: duckdb.DuckDBPyConnection) -> None:
         s.active_days,
         s.game_count,
         tg.game_code AS top_game_code,
-        tg.game_name AS top_game
+        tg.game_name AS top_game,
+        r.dma,
+        r.service_center,
+        r.is_new_connection
     FROM {NY_RETAILER_DIM_TABLE} r
     LEFT JOIN retailer_sales s
       ON r.retailer_id = s.retailer_id
@@ -573,7 +646,10 @@ def build_reporting_marts(con: duckdb.DuckDBPyConnection) -> None:
         CASE WHEN COUNT(DISTINCT e.sales_date) > 0
              THEN SUM(CASE WHEN e.metric_class IN ('sales', 'add_on') THEN e.amount ELSE 0 END) / COUNT(DISTINCT e.sales_date)
              ELSE NULL END AS avg_daily_sales,
-        MAX(CASE WHEN tg.rn = 1 THEN tg.game_name END) AS top_game
+        MAX(CASE WHEN tg.rn = 1 THEN tg.game_name END) AS top_game,
+        MAX(e.dma) AS dma,
+        MAX(e.service_center) AS service_center,
+        MAX(CAST(e.is_new_connection AS INTEGER))::BOOLEAN AS is_new_connection
     FROM {NY_ENRICHED_FACT_TABLE} e
     LEFT JOIN retailer_top_game tg
       ON e.retailer_id = tg.retailer_id
@@ -739,7 +815,7 @@ def print_checks(con: duckdb.DuckDBPyConnection) -> None:
 def main() -> int:
     con = duckdb.connect(str(DB_PATH))
     try:
-        print(f"Normalizing {STATE_CODE} warehouse and canonical layer (v10)...")
+        print(f"Normalizing {STATE_CODE} warehouse and canonical layer (v11)...")
         create_raw_tables(con)
         build_dimensions(con)
         build_fact_table(con)
@@ -747,10 +823,33 @@ def main() -> int:
         build_reporting_marts(con)
         build_canonical_tables(con)
         print_checks(con)
+        
+        # Close connection to release file lock before triggering child sync process
+        con.close()
+        
+        # Trigger Postgres Sync script
+        print("Triggering PostgreSQL sync...")
+        sync_script = Path("/srv/stochos/jobs/sync_crm_retailers.py")
+        if not sync_script.exists():
+            sync_script = Path(__file__).parent / "stochos-platform" / "jobs" / "sync_crm_retailers.py"
+        
+        if sync_script.exists():
+            subprocess.run([sys.executable, str(sync_script)], check=False)
+        else:
+            # Fallback path if run locally
+            sync_script = Path(__file__).parent / "sync_crm_retailers.py"
+            if sync_script.exists():
+                subprocess.run([sys.executable, str(sync_script)], check=False)
+            else:
+                print("[WARNING] sync_crm_retailers.py script not found.")
+                
         print("\nDone.")
         return 0
     finally:
-        con.close()
+        try:
+            con.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

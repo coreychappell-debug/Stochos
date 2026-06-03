@@ -458,6 +458,8 @@ SELECT
     r.region,
     r.lmr_district,
     r.rep_count,
+    r.dma,
+    r.service_center,
     b.gross_revenue / NULLIF(d.population, 0) AS sales_per_capita,
     b.net_contribution / NULLIF(d.population, 0) AS net_contribution_per_capita,
     b.retailer_count / NULLIF(d.land_area, 0) AS retailers_per_sq_mile,
@@ -471,6 +473,59 @@ cat(" done.\n")
 
 n <- dbGetQuery(con, "SELECT COUNT(*) AS n FROM mart_ny_county_summary")
 cat("    counties:", n$n, "\n")
+
+
+# --------------------------------------------------------------------------
+# 9b. mart_ny_dma_marketing_summary
+#     DMA-level marketing metrics.
+# --------------------------------------------------------------------------
+
+cat("  Building mart_ny_dma_marketing_summary...")
+dbExecute(con, "
+CREATE OR REPLACE TABLE mart_ny_dma_marketing_summary AS
+WITH dma_sales AS (
+    SELECT
+        COALESCE(r.dma, 'Unknown DMA') AS dma,
+        COUNT(DISTINCT t.retailer_id) AS retailer_count,
+        SUM(t.gross_revenue) AS total_sales,
+        SUM(CASE WHEN t.standard_category = 'scratch_off' THEN t.gross_revenue ELSE 0 END) AS scratch_sales,
+        SUM(CASE WHEN t.standard_category = 'monitor' THEN t.gross_revenue ELSE 0 END) AS monitor_sales,
+        SUM(CASE WHEN t.standard_category NOT IN ('scratch_off', 'monitor') THEN t.gross_revenue ELSE 0 END) AS draw_sales
+    FROM v_unified_lottery_truth t
+    LEFT JOIN ny_retailer_dim r ON t.retailer_id = r.retailer_id
+    WHERE t.gross_revenue > 0
+    GROUP BY COALESCE(r.dma, 'Unknown DMA')
+),
+dma_demographics AS (
+    SELECT
+        r.dma,
+        SUM(d.population) AS population,
+        SUM(d.population * d.median_income) / NULLIF(SUM(d.population), 0) AS median_income
+    FROM ny_county_regions_dim r
+    LEFT JOIN v_ny_county_demographics_latest d ON r.county = d.county
+    GROUP BY r.dma
+)
+SELECT
+    ds.dma,
+    ds.retailer_count,
+    ds.total_sales,
+    ds.scratch_sales,
+    ds.monitor_sales,
+    ds.draw_sales,
+    ds.total_sales / NULLIF(ds.retailer_count, 0) AS avg_sales_per_retailer,
+    ds.scratch_sales / NULLIF(ds.retailer_count, 0) AS avg_scratch_sales_per_retailer,
+    ds.monitor_sales / NULLIF(ds.retailer_count, 0) AS avg_monitor_sales_per_retailer,
+    ds.draw_sales / NULLIF(ds.retailer_count, 0) AS avg_draw_sales_per_retailer,
+    DENSE_RANK() OVER (ORDER BY ds.total_sales DESC) AS dma_sales_rank,
+    dd.population,
+    dd.median_income,
+    ds.total_sales / NULLIF(dd.population, 0) AS sales_per_capita,
+    dd.population / NULLIF(ds.retailer_count, 0) AS residents_per_retailer
+FROM dma_sales ds
+LEFT JOIN dma_demographics dd ON ds.dma = dd.dma
+ORDER BY ds.total_sales DESC
+")
+cat(" done.\n")
 
 
 # --------------------------------------------------------------------------

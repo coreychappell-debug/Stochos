@@ -1856,29 +1856,12 @@ server <- function(input, output, session) {
     
     # Get county summary data
     county_data <- safe_query(con, "SELECT * FROM mart_ny_county_summary")
+    # Get county regions dimensions for full DMA/Service Center mapping
+    county_regions <- safe_query(con, "SELECT county, dma, service_center FROM ny_county_regions_dim")
     
-    # Merge county boundary geometries with aggregated summary metrics
+    # Merge county boundary geometries with aggregated summary metrics and region mappings
     merged <- merge(counties_sf, county_data, by.x = "county_clean", by.y = "county", all.x = TRUE)
-    
-    # Setup static DMA mappings
-    get_dma <- function(co) {
-      nyc <- c("Bronx", "Kings", "New York", "Queens", "Richmond", "Nassau", "Suffolk", "Westchester", "Rockland", "Orange", "Putnam", "Dutchess", "Sullivan", "Ulster")
-      albany <- c("Albany", "Rensselaer", "Schenectady", "Saratoga", "Warren", "Washington", "Clinton", "Essex", "Franklin", "Fulton", "Montgomery", "Schoharie", "Greene", "Columbia", "Delaware", "Otsego", "Hamilton")
-      buffalo <- c("Erie", "Niagara", "Chautauqua", "Cattaraugus", "Allegany", "Wyoming")
-      rochester <- c("Monroe", "Wayne", "Ontario", "Orleans", "Genesee", "Livingston", "Yates", "Seneca")
-      syracuse <- c("Onondaga", "Cayuga", "Cortland", "Madison", "Oswego", "Jefferson", "Lewis", "St. Lawrence", "Tompkins")
-      binghamton <- c("Broome", "Chenango", "Tioga", "Schuyler", "Chemung")
-      utica <- c("Oneida", "Herkimer")
-      if (co %in% nyc) return("New York City DMA")
-      if (co %in% albany) return("Albany-Schenectady-Troy DMA")
-      if (co %in% buffalo) return("Buffalo DMA")
-      if (co %in% rochester) return("Rochester DMA")
-      if (co %in% syracuse) return("Syracuse DMA")
-      if (co %in% binghamton) return("Binghamton DMA")
-      if (co %in% utica) return("Utica DMA")
-      return("Other/Upstate DMA")
-    }
-    merged$dma <- sapply(merged$county_clean, get_dma)
+    merged <- merge(merged, county_regions, by.x = "county_clean", by.y = "county", all.x = TRUE)
     
     # Safe defaults for missing attributes
     merged$sales_per_capita[is.na(merged$sales_per_capita)] <- 0
@@ -1896,6 +1879,9 @@ server <- function(input, output, session) {
     
     dma_factors <- factor(merged$dma)
     pal_dma <- colorFactor(palette = "Set3", domain = dma_factors)
+    
+    service_center_factors <- factor(merged$service_center)
+    pal_service_center <- colorFactor(palette = "Set2", domain = service_center_factors)
     
     tile_provider <- if (theme_mode() == "light") providers$CartoDB.Positron else providers$CartoDB.DarkMatter
     
@@ -1963,7 +1949,24 @@ server <- function(input, output, session) {
       fillColor = ~pal_dma(dma_factors),
       fillOpacity = 0.4, color = "#444", weight = 2,
       highlightOptions = highlightOptions(weight = 4, color = "#fff", bringToFront = TRUE),
-      label = ~paste0("<strong>County:</strong> ", county_clean, "<br><strong>DMA:</strong> ", dma) %>% lapply(htmltools::HTML)
+      label = ~paste0(
+        "<strong>County:</strong> ", county_clean, "<br>",
+        "<strong>DMA:</strong> ", dma, "<br>",
+        "<strong>Service Center:</strong> ", service_center
+      ) %>% lapply(htmltools::HTML)
+    )
+    
+    # 6. Service Center Boundaries
+    m <- m %>% addPolygons(
+      group = "Service Center Boundaries",
+      fillColor = ~pal_service_center(service_center_factors),
+      fillOpacity = 0.4, color = "#444", weight = 2,
+      highlightOptions = highlightOptions(weight = 4, color = "#fff", bringToFront = TRUE),
+      label = ~paste0(
+        "<strong>County:</strong> ", county_clean, "<br>",
+        "<strong>Service Center:</strong> ", service_center, "<br>",
+        "<strong>DMA:</strong> ", dma
+      ) %>% lapply(htmltools::HTML)
     )
     
     m %>% addLayersControl(
@@ -1972,7 +1975,8 @@ server <- function(input, output, session) {
         "Retailer Density (Residents/Retailer)", 
         "Median Household Income", 
         "Education Earmarks (Aid)",
-        "DMA Boundaries"
+        "DMA Boundaries",
+        "Service Center Boundaries"
       ),
       options = layersControlOptions(collapsed = FALSE)
     )

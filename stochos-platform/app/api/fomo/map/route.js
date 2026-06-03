@@ -52,6 +52,9 @@ export async function GET(req) {
           routeOrder: ret.routeOrder,
           trainingStatus: ret.trainingStatus,
           freshness,
+          county: ret.county,
+          dma: ret.dma,
+          serviceCenter: ret.serviceCenter,
           discrepancies: ret.discrepancies.map(d => ({
             id: d.id,
             status: d.status,
