@@ -48,23 +48,37 @@ def main():
         print(f"[ERROR] Failed to connect to PostgreSQL: {e}")
         sys.exit(1)
         
-    # 4. Perform batch update in PostgreSQL
+    # 4. Perform set-based batch update in PostgreSQL via temporary staging table
     print("Syncing metadata to PostgreSQL...")
-    update_query = """
-        UPDATE crm_retailers
-        SET 
-            county = %s,
-            dma = %s,
-            service_center = %s
-        WHERE external_id = %s;
-    """
-    
-    sync_count = 0
     try:
-        for retailer_id, county, dma, service_center in retailers:
-            pg_cur.execute(update_query, (county, dma, service_center, retailer_id))
-            sync_count += pg_cur.rowcount
-            
+        # Create staging table
+        pg_cur.execute("""
+            CREATE TEMP TABLE temp_retailer_sync (
+                external_id VARCHAR,
+                county VARCHAR,
+                dma VARCHAR,
+                service_center VARCHAR
+            ) ON COMMIT DROP;
+        """)
+        
+        # Bulk load metadata into the temp table
+        from psycopg2.extras import execute_values
+        insert_query = "INSERT INTO temp_retailer_sync (external_id, county, dma, service_center) VALUES %s"
+        execute_values(pg_cur, insert_query, retailers)
+        
+        # Execute single set-based update query
+        update_query = """
+            UPDATE crm_retailers AS r
+            SET 
+                county = t.county,
+                dma = t.dma,
+                service_center = t.service_center
+            FROM temp_retailer_sync AS t
+            WHERE r.external_id = t.external_id;
+        """
+        pg_cur.execute(update_query)
+        sync_count = pg_cur.rowcount
+        
         pg_conn.commit()
         print(f"Successfully synced {sync_count} retailer records in PostgreSQL.")
     except Exception as e:
