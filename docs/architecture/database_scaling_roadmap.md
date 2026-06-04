@@ -57,6 +57,49 @@ graph TD
 
 ---
 
+---
+
+## Core Database Engineering Standards & Best Practices
+
+To prevent database locks, maximize ingestion speeds, and control infrastructure overhead, all developers and scripts must adhere to the following four engineering standards.
+
+### 1. Set-Based Updates via Staging Tables (No Row-by-Row Looping)
+When syncing datasets from the analytical warehouse (DuckDB) to the operational database (PostgreSQL), developers **must not execute update statements inside a loop**.
+* **The Problem:** Row-by-row updates (e.g. `for row in data: UPDATE...`) generate heavy network chatter and connection overload. A 10,000-row update will choke in cloud deployments due to latency.
+* **The Standard:** All batch data synchronizations must load data into a temporary staging table first (e.g., using `execute_values` in a single query), followed by a single, set-based join-update inside the database.
+```python
+# Standard Pattern:
+# 1. Create a temp staging table: CREATE TEMP TABLE temp_sync (...)
+# 2. Bulk load data: execute_values(cursor, "INSERT INTO temp_sync VALUES %s", data)
+# 3. Perform a single join update:
+#    UPDATE target_table SET col = temp_sync.col FROM temp_sync WHERE target.id = temp_sync.id;
+```
+
+### 2. "Blue-Green" Database Swapping (Zero-Downtime DuckDB)
+Because DuckDB is an embedded database, a write command locks the file completely. If a user queries the R/Shiny dashboard during a database refresh, it will crash.
+* **The Problem:** Single-writer limits cause database contention and Shiny server downtime.
+* **The Standard:** Data refresh scripts must write to a temporary "Green" database file first (e.g. `stochos_lottery_temp.duckdb`). Once the refresh, indexing, and sanity checks are 100% complete, close the connection and atomically replace the active "Blue" database file:
+```bash
+mv -f stochos_lottery_temp.duckdb stochos_lottery.duckdb
+```
+Because a filesystem move on the same volume is an atomic, metadata-only operation, the replacement takes **under 1 millisecond**, resulting in zero user downtime.
+
+### 3. Safe Staging for Large File Copies (No Synced-Drive Collisions)
+Copying large database archives (e.g., 20+ GB backups) directly into folders monitored by cloud sync clients (like Google Drive or OneDrive) causes immediate filesystem deadlocks.
+* **The Problem:** The sync client locks the file to start uploading it *while the copy script is still writing data*, causing WSL and Windows file systems to hang.
+* **The Standard:** Large file copies must be written to an unsynced local staging folder first (e.g., `C:\stochos_backup_temp`). Once the write is complete and closed, execute an atomic `mv` into the synced directory. The sub-millisecond rename prevents the sync client from locking the file during writing.
+
+### 4. Backup Rules: Exclude Rebuildable Warehouses
+To keep infrastructure overhead low and prevent storage/network costs from scaling exponentially, **do not back up compiled warehouse binaries**.
+* **The Problem:** Backing up and uploading a changing 35 GB DuckDB binary consumes massive bandwidth and storage.
+* **The Standard:** Backups must exclude `.duckdb` databases and raw cache directories. Only the following must be backed up:
+  1. PostgreSQL database structure and row dumps (`.sql`).
+  2. Core configuration files and application code.
+  3. Raw, immutable log/sales feed CSV files.
+  * *Reasoning:* If a server fails, recovery scripts will spin up empty databases and execute the refresh pipelines to recompile the DuckDB files from source.
+
+---
+
 ## Implementation Roadmap & Action Items
 
 ### Phase 1: Ingestion Partitioning & Active Windowing (Near-Term)
@@ -64,6 +107,8 @@ graph TD
     *   `daily_sales_active.duckdb` (keeps rolling 365 days of data).
     *   `daily_sales_archive.duckdb` (keeps the full historical sequence).
 *   [ ] **Dashboard Source Selection:** Update R/Shiny connection logic to read from `daily_sales_active.duckdb` for SOLR/Map views, and only query `daily_sales_archive.duckdb` if the user selects a date range extending beyond 12 months.
+*   [ ] **Refactor sync_crm_retailers.py:** Rewrite the synchronization script to use set-based staging table updates instead of a row-by-row update loop.
+*   [ ] **Refactor ny_duckdb_refresh.py:** Implement the Blue-Green staging swap logic for `stochos_lottery.duckdb` to ensure zero reader crashes during refresh cycles.
 
 ### Phase 2: Parquet Archiving Pipeline (Mid-Term)
 *   [ ] **Write Archive Script:** Build a python script (`archive_old_data.py`) that exports records older than 3 years from DuckDB to partitioned Parquet files (e.g., partitioned by `/year=YYYY/month=MM/`).
