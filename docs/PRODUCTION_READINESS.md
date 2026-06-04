@@ -97,13 +97,15 @@ These gates must be cleared in sequence. Each gate builds on the previous one.
 
 ### Gate 3: Pilot-Ready (required before handling real client data)
 
-- [ ] Implement automated daily backups with off-site copy
+- [x] Implement automated daily/weekly backups with off-site copy (Staged weekly staging-then-move logic verified)
 - [ ] Define RTO and RPO targets
 - [ ] Add structured logging (JSON format, parseable)
 - [ ] Implement input validation (Zod) on all API routes
 - [ ] Wire audit log into all mutation endpoints
 - [ ] Add role-based permission checks to API handlers
-- [ ] Switch to Prisma Migrate for versioned schema changes
+- [ ] Switch to Prisma Migrate for versioned schema changes (Prioritize before next schema update)
+- [x] Perform Database Index Audit and apply indexes to `crm_retailers` queries (Done)
+- [x] Implement Blue-Green database staging swaps for zero-downtime DuckDB refreshes (Done)
 - [ ] Complete security review
 - [ ] Implement active daily sales windowing (rolling 12 months) in active DuckDB database (see [Database Scaling Roadmap](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/docs/architecture/database_scaling_roadmap.md))
 
@@ -111,6 +113,7 @@ These gates must be cleared in sequence. Each gate builds on the previous one.
 
 - [ ] CI/CD pipeline operational
 - [ ] Staging environment mirrors production
+- [ ] Deploy private containerized OSRM routing engine to eliminate external API dependencies and rate limits
 - [ ] Monitoring and alerting configured
 - [ ] SSO integration available (if enterprise client)
 - [ ] Multi-tenant row-level security tested (if multi-jurisdiction)
