@@ -107,6 +107,7 @@ For full GUI access to the Windows host machine:
 │   │                                                                │   │
 │   │   Docker Containers:                                           │   │
 │   │   ├─ PostgreSQL (stochos_postgres)       → localhost:5433      │   │
+│   │   ├─ OSRM Routing Engine (local_osrm)    → localhost:5001      │   │
 │   │   │                                                            │   │
 │   │   ├─ Production Stack (/home/analyst1/analyst_lab):            │   │
 │   │   │  ├─ Shiny (analyst_lab_prod_shiny)   → localhost:3838      │   │
@@ -138,6 +139,7 @@ For full GUI access to the Windows host machine:
 | RStudio (Corey Dev) | 8585 | HTTP | Docker/WSL2 | Analytics (Dev) |
 | RStudio (Tyler Dev) | 8586 | HTTP | Docker/WSL2 | Analytics (Dev) |
 | PostgreSQL | 5433 | TCP | Docker/WSL2 | Platform |
+| OSRM Routing Engine | 5001 | HTTP | Docker/WSL2 | Platform |
 
 ---
 
@@ -263,7 +265,10 @@ To update or add new packages:
 | COMSPEC environment error (`ENOENT`) | Windows host has corrupted/altered shell variables. Avoid cmd wrappers: spawn processes like `wsl` directly rather than executing through the shell. |
 | Geodata audit logs / status | Inspect logs in WSL: `cat /srv/stochos/logs/geodata_audit.log` to check nightly progress. |
 | WSL2 stops running / idle sleep | A hidden background process `wsl.exe -d Ubuntu-22.04 -u root sleep 1000d` must run on the Windows host to keep WSL alive. Check if this task/process is active on the host. |
-| docker-compose up fails with KeyError: 'ContainerConfig' | Compose v1 bug. Clean up project containers first via: `docker ps -a --filter 'name=...' -q \| xargs -r docker rm -f` then run `docker-compose up -d`. |
+| docker-compose up fails with KeyError: 'ContainerConfig' | Clean up project containers first via: `docker ps -a --filter 'name=...' -q \| xargs -r docker rm -f` then run `docker-compose up -d`. |
+| WSL Docker error 125 on pull | Docker commands inside WSL output a credential helper execution error (referencing `desktop.exe`). Rename or back up `/root/.docker/config.json` inside Ubuntu to disable the Windows credentials bridge. |
+| OSRM compiler missing profile | When compiling road graphs, ensure the container volume path points to the standard profile `/opt/car.lua` inside the image, rather than `/profile/car.lua`. |
+| OSRM API connection refused | Check that the `local_osrm` container is running in WSL. Verify connection via `node verify_osrm_api.js` on the Windows host. |
 
 ---
 

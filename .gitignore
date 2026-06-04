@@ -36,3 +36,12 @@ Thumbs.db
 
 # Step logs
 step_*.txt
+
+# OSRM data directory
+osrm-data/
+
+# Python compiled files
+**/__pycache__/
+*.pyc
+
+

@@ -52,3 +52,18 @@ This document catalogs all API keys, database secrets, and credentials used acro
 * **Obtaining a Key:** Anyone can request a free API key instantly at [https://api.census.gov/data/key_signup.html](https://api.census.gov/data/key_signup.html).
 * **Fallback Behavior:** If missing, the ingestion script defaults to the local/cached 2020 CORGIS county demographics CSV file, allowing the platform to run out-of-the-box without manual API key setup.
 * **Rotation Policy:** None required unless leaked.
+
+---
+
+## 5. OSRM_URL
+
+* **Purpose:** Specifies the base connection endpoint for the Open Source Routing Machine (OSRM) driving calculation server.
+* **Scope:** Next.js Platform Route Optimizer API (`app/api/fomo/route/optimize/route.js`).
+* **Configuration File:** `stochos-platform/.env.local`
+* **Variable Name:** `OSRM_URL`
+* **Format:** URL protocol string (e.g. `http://[host]:[port]`).
+* **Default Values:**
+  * **Development / Testing fallback:** `http://router.project-osrm.org` (public OSRM server).
+  * **Private local container / Production:** `http://localhost:5001` (WSL `local_osrm` docker port) or a private Cloud VPC container endpoint (e.g., `http://10.x.x.x:5000`), ensuring coordinate queries remain within the enterprise boundary and avoid public network latency.
+* **Rotation/Change Policy:** None required unless host configuration or container ports change.
+

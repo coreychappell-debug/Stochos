@@ -250,3 +250,113 @@ cd /home/analyst1/analyst_lab && docker-compose up -d
 ```
 Deleting the old container metadata completely bypasses the Compose convergence phase and forces a clean build from scratch, avoiding the `ContainerConfig` parser error.
 
+---
+
+## 10. Google Drive Sync I/O Deadlock during Large Backups
+
+**Date discovered:** 2026-06-02  
+**Severity:** High (caused total server and filesystem hang)  
+**Status:** Resolved
+
+### Problem
+
+When backing up the 21+ GB analytical databases and workspaces, copying the files directly into the active Google Drive synchronized folder triggered complete system deadlocks. The WSL VM and Windows host disk I/O would spike to 100% and freeze.
+
+### Root Cause
+
+The Google Drive cloud client immediately detects new writes in the synced folder and attempts to lock the file to calculate hashes and start chunk uploads. It does this *while* the backup script is still actively writing, causing file system access contentions and deadlocks between the host and WSL virtual disk mount.
+
+### Resolution
+
+Modified `/usr/local/bin/stochos-backup` to stage all writes through an un-synced temporary workspace directory (`C:\stochos_backup_temp` or `/mnt/c/stochos_backup_temp`). Once compression and compilation are 100% complete and closed, the backup performs a sub-millisecond atomic rename (`mv`) into the target synced directory. Google Drive only sees the file after it is fully written.
+
+---
+
+## 11. WSL2 Docker Credential Helper Exec Format Error (Error 125)
+
+**Date discovered:** 2026-06-03  
+**Severity:** Medium (blocked docker run/pull operations inside WSL)  
+**Status:** Resolved
+
+### Problem
+
+Running `docker run` or `docker pull` inside WSL2 Ubuntu terminal returned execution error `125` indicating a script execution error.
+
+### Root Cause
+
+The user's home or root Docker configuration (`/root/.docker/config.json`) was generated with a credential helper bridge pointing to the Windows Host `docker-credential-desktop.exe` binary. Since WSL runs in a pure Linux environment, attempting to execute the Windows `.exe` helper natively causes an exec format error, crashing the docker command process.
+
+### Resolution
+
+Renamed or backed up the `/root/.docker/config.json` configuration file, which disables the credential helper bridge. The Linux Docker daemon now executes standard registry queries directly.
+
+---
+
+## 12. OSRM Profile Resolution Error in Compiler Containers
+
+**Date discovered:** 2026-06-03  
+**Severity:** Medium (prevented local OSRM road graph compilation)  
+**Status:** Resolved
+
+### Problem
+
+Executing the map compiler container (`osrm/osrm-backend`) with the profile argument `/profile/car.lua` crashed instantly, reporting that the script file was missing.
+
+### Root Cause
+
+Legacy documentations reference the car profile path at `/profile/car.lua` inside the container image, but newer versions of `osrm/osrm-backend` have updated the internal container structure, relocating the car profile template to `/opt/car.lua`.
+
+### Resolution
+
+Updated `setup_local_osrm.ps1` to mount and call `/opt/car.lua` for the OSRM compiler containers.
+
+---
+
+## 13. DuckDB User Reading Crashes during Ingest Refreshes
+
+**Date discovered:** 2026-06-04  
+**Severity:** High (crashed active user dashboards during data syncs)  
+**Status:** Resolved
+
+### Problem
+
+When the automated pipeline executed daily or weekly lottery log refreshes to the DuckDB analytical warehouse, active users viewing the dashboards faced query timeouts or crash exceptions.
+
+### Root Cause
+
+DuckDB does not support concurrent write transactions on a single file due to its single-writer design. Running updates directly on the active database locks the file. When analytical readers (Shiny dashboards) attempt to read during this write lock, they crash.
+
+### Resolution
+
+Implemented a **Blue-Green Database Staging Swap** inside the `ny_duckdb_refresh.py` script. The ingestion script now performs all writes and compilations into a temporary staging database file (`stochos_lottery_temp.duckdb`). Once finalized and closed, it replaces the active `stochos_lottery.duckdb` file via a sub-millisecond atomic rename (`mv -f`). Active readers experience zero interruptions.
+
+---
+
+## 14. CRM Retailer Sync Timeout/Latency in Cloud Environments
+
+**Date discovered:** 2026-06-04  
+**Severity:** Medium (caused database timeouts when syncing larger datasets)  
+**Status:** Resolved
+
+### Problem
+
+Syncing metadata (e.g. county, DMA, service center information) for 13,000+ New York lottery retailers from the analytical warehouse to the operational PostgreSQL database took minutes and risked connection timeouts.
+
+### Root Cause
+
+The initial sync script queried the list from DuckDB and ran updates in a row-by-row looping pattern (e.g. `UPDATE crm_retailers SET county = ... WHERE external_id = ...` inside a loop of 13,000 iterations). This generated massive database network overhead and transaction logging.
+
+### Resolution
+
+Refactored `sync_crm_retailers.py` to use a temporary staging table pattern. It bulk loads the 13,000+ metadata rows into PostgreSQL (`CREATE TEMP TABLE temp_retailer_sync`) in a single query via `psycopg2.extras.execute_values`, then runs a single set-based update:
+```sql
+UPDATE crm_retailers AS r
+SET 
+    county = t.county,
+    dma = t.dma,
+    service_center = t.service_center
+FROM temp_retailer_sync AS t
+WHERE r.external_id = t.external_id;
+```
+This optimization reduced total sync runtime from minutes to under 1.5 seconds.
+

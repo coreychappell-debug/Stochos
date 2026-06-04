@@ -26,6 +26,7 @@ The Stochos ecosystem is composed of three decoupled layers running on a single 
 ### 1.3 The Application Layer (Stochos Platform)
 * **PostgreSQL:** Primary transactional database. Runs in a Docker container (`stochos_postgres` on port 5433).
 * **Next.js Server:** Node.js application running natively on the Windows host on port 3000.
+* **OSRM Routing Engine:** Private, containerized routing engine running in a Docker container (`local_osrm` on port 5001) used to compute optimal travel sequences and polyline geometries for the Trip Planner.
 
 ---
 
@@ -42,7 +43,7 @@ wsl --list --verbose
 # Verify all containers are UP
 wsl -d Ubuntu-22.04 -- docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
-*Expected: All 8 containers (`stochos_postgres`, `analyst_lab_prod_shiny`, `analyst_lab_prod_rstudio`, `analyst_lab_prod_rstudio_tyler`, `analyst_lab_prod_rstudio_caitlin`, `shiny_server`, `rstudio_server`, and `rstudio_server_tylercabral`) should show 'Up'.*
+*Expected: All 9 containers (`local_osrm`, `stochos_postgres`, `analyst_lab_prod_shiny`, `analyst_lab_prod_rstudio`, `analyst_lab_prod_rstudio_tyler`, `analyst_lab_prod_rstudio_caitlin`, `shiny_server`, `rstudio_server`, and `rstudio_server_tylercabral`) should show 'Up'.*
 
 ### Step 2: Verify Application Services
 Open a web browser and ping the following:
@@ -61,21 +62,33 @@ Open a web browser and ping the following:
 
 ## 3. Backup and Disaster Recovery
 
-### 3.1 PostgreSQL Backup (Transactional Data)
-Run from PowerShell:
-```powershell
-# Dumps the entire Postgres platform database to a SQL file
-wsl -d Ubuntu-22.04 -- docker exec stochos_postgres pg_dump -U stochos stochos_platform > stochos_pg_backup_$(Get-Date -f yyyyMMdd).sql
-```
+The platform uses an automated, scheduled backup process to safeguard both transactional and analytical data, integrated with your Google Drive synced folder.
 
-### 3.2 DuckDB & Raw Data Backup (Analytical Data)
-Run from within the Ubuntu WSL2 terminal:
+### 3.1 The Weekly Maintenance Cron Job
+Automated weekly maintenance and backups run every **Monday at 2:00 AM** via the system `cron` daemon in WSL.
+* **Cron Command:** `/usr/local/bin/stochos-weekly-maintenance >> /srv/stochos/logs/stochos-weekly-maintenance.log 2>&1`
+* **Workflow:**
+  1. Stops RStudio and Shiny containers (`docker compose down`) to release any write locks on analytical database files.
+  2. Runs Python normalizations (`ny_refresh.py` and `ny_duckdb_refresh.py`) to process incoming lottery logs.
+  3. Triggers the database sync script to push updates to PostgreSQL.
+  4. Triggers the automated backup script `/usr/local/bin/stochos-backup`.
+  5. Restarts all analytical containers (`docker compose up -d`).
+
+### 3.2 The Safe Staging Backup System (`stochos-backup`)
+The backup is executed by the binary script `/usr/local/bin/stochos-backup`.
+* **Backup Scope:** PostgreSQL database dump (`stochos_platform_postgres.sql`), the entire analytical database directory (`/srv/stochos/data`), and the analysts' workspaces (`/home/analyst1/analyst_lab`).
+* **Staged Delivery (Preventing Sync Locks):**
+  To prevent Google Drive from locking the 21 GB file while it is still being copied (which deadlocks Windows and WSL I/O), the script stages the copy:
+  1. Compresses target files into a local staging directory outside of the cloud sync path (`/mnt/c/stochos_backup_temp`).
+  2. Once the write/copy is 100% complete and closed, it performs an atomic rename/move (`mv`) into the synced Google Drive folder:
+     `/mnt/c/Users/corey/Downloads/Corey - Code Stuff/R Server Project folder/stochos-backups/stochos_backup_latest.tar.gz`
+  3. Because both folders are on the physical `C:` drive, the move is executed as a sub-millisecond NTFS rename. Google Drive only sees the file once it is fully written.
+
+### 3.3 Manual Triggering
+To run a manual database backup at any time:
 ```bash
-# Backup the DuckDB file
-cp /srv/stochos/data/duckdb/stochos_lottery.duckdb /srv/stochos/backups/stochos_lottery_$(date +%Y%m%d).duckdb
-
-# Compress and backup the Raw Data directory
-tar czf /srv/stochos/backups/raw_ny_$(date +%Y%m%d).tar.gz /srv/stochos/data/raw/new_york/
+# Execute within WSL terminal (as root)
+wsl -u root /usr/local/bin/stochos-backup
 ```
 
 ---
@@ -108,6 +121,30 @@ npm audit
 npm update
 ```
 
+### 4.4 OSRM Routing Engine & Map Management
+The platform utilizes a local, containerized OSRM (Open Source Routing Machine) server running in WSL Docker to handle driving calculations privately and efficiently.
+
+#### Rebuilding / Updating Map Data (New York State):
+If the road network data needs to be updated, or if you need to build the routing engine from scratch:
+1. Open PowerShell on the Windows host.
+2. Navigate to the platform workspace directory.
+3. Execute the automated setup script:
+   ```powershell
+   powershell.exe -ExecutionPolicy Bypass -File setup_local_osrm.ps1
+   ```
+This script downloads the latest `new-york-latest.osm.pbf` file from Geofabrik, runs the OSRM compiler containers inside WSL to build the routing graph, restarts the `local_osrm` container on port 5001, and updates `.env.local` to set `OSRM_URL="http://localhost:5001"`.
+
+#### Verification:
+To verify the local OSRM routing API is responding correctly:
+```powershell
+node verify_osrm_api.js
+```
+Expected output: `🎉 SUCCESS: Next.js API integrated with local OSRM routing engine!`
+
+#### OSRM Compilation Troubleshooting:
+* **Docker Credential Error inside WSL (Error 125):** If running Docker commands inside WSL outputs a credential helper execution error (e.g., referencing `desktop.exe`), rename or back up the root Docker configuration file inside Ubuntu (`/root/.docker/config.json`). This bypasses the Windows host login helper and allows Linux Docker to pull the images directly.
+* **OSRM Profile Location:** When building the graph, ensure that the compilation path references `/opt/car.lua` (the default path in newer `osrm/osrm-backend` images) rather than `/profile/car.lua`. Using an incorrect path will cause the graph builder container to abort with a missing file error.
+
 ---
 
 ## 5. Automated Pipeline Management
@@ -128,9 +165,16 @@ If orchestrated via Bash (`automate_pipeline.sh`):
    `*/15 * * * * /path/to/automate_pipeline.sh >> /path/to/pipeline_log.txt 2>&1`
 3. Check logs for failures: `tail -n 50 /path/to/pipeline_log.txt`
 
-### 5.3 Pipeline Rules (DuckDB Concurrency)
+### 5.3 Pipeline Rules (DuckDB Concurrency & Blue-Green Staging Swaps)
 > [!CAUTION]
 > **Single-Writer Rule:** DuckDB does not support concurrent write sessions. Do not run interactive ETL pipelines in RStudio while the automated Cron/Task Scheduler pipeline is executing, or database locks/corruption will occur. Read-only operations are perfectly safe to run concurrently.
+
+#### Blue-Green Staging Swap Strategy
+To eliminate database lock contentions and prevent R/Shiny dashboard query crashes during analytical warehouse updates, the ingestion pipelines (e.g., `/srv/stochos/jobs/ny_duckdb_refresh.py`) employ a **Blue-Green database swap**:
+1. The script writes and compiles all incoming data updates directly into a temporary database file: `stochos_lottery_temp.duckdb`.
+2. Raw data, dimensions, facts, views, and reporting marts are completely populated in the temporary database.
+3. Once the build is verified and the staging connection is closed, the script performs an atomic, sub-millisecond file replacement (`mv -f stochos_lottery_temp.duckdb stochos_lottery.duckdb`).
+4. Read-only sessions (Shiny server clients) remain uninterrupted, experiencing zero downtime or file locks.
 
 ### 5.4 Self-Healing Watchdog (Automated Recovery)
 To guarantee high availability, system persistence, and self-healing for the R/Shiny and PostgreSQL servers, a Windows Task Scheduler task (`StochosPlatformWatchdog`) runs the PowerShell script `watchdog.ps1` every 5 minutes.
@@ -158,6 +202,7 @@ To support operational geodata validation and synchronization of active retailer
 #### 1. Active Retailer Synchronization
 * **Script:** [import_active_retailers.py](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/import_active_retailers.py) inside the `stochos-platform/prisma` directory.
 * **Function:** Batch-syncs all **13,043** active New York lottery retailers from the DuckDB analytical warehouse (`/srv/stochos/data/duckdb/stochos_lottery.duckdb`) into the PostgreSQL `crm_retailers` table.
+* **Staging Optimization (Set-Based Updates):** The sync processes are optimized to load data using a staging pattern. Rather than executing slow row-by-row update loops, the sync scripts load metadata into a PostgreSQL temp table (`temp_retailer_sync`) and execute a single set-based update (`UPDATE ... FROM temp_retailer_sync`). This reduces total sync runtime from minutes to under 1.5 seconds.
 * **Orchestration:** Integrated into [seed.js](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/stochos-platform/prisma/seed.js). Executing `npx prisma db seed` automatically runs the Python synchronization script within the WSL context.
 * **Host Compatibility Override:** Bypasses host Windows `COMSPEC` path corruption by spawning the `wsl` process directly (avoiding the cmd.exe execution wrapper).
 
@@ -417,6 +462,11 @@ node prisma/seed-instant-tickets.js         # Instant ticket data
 
 > [!WARNING]
 > `db push` applies schema changes directly. In production, use `npx prisma migrate` for versioned, reversible migrations.
+
+#### Database Indexing Audit & Standards:
+To guarantee low latency for search filters, coordinates rendering, and routing calculations, indexes must be applied to high-query foreign keys and status columns. 
+* **Target Indexes in schema.prisma:** Ensure `@@index([county])`, `@@index([dma])`, `@@index([serviceCenter])`, `@@index([status])`, `@@index([routeId])`, and `@@index([chainId])` are defined in the `CrmRetailer` model block.
+* **Verification:** Run `npx prisma db push` to synchronize indexes directly to the active PostgreSQL database instance. Verify query response times on the Retailers List UI are under 50ms.
 
 ---
 

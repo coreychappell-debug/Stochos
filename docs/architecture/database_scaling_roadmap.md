@@ -107,8 +107,9 @@ To keep infrastructure overhead low and prevent storage/network costs from scali
     *   `daily_sales_active.duckdb` (keeps rolling 365 days of data).
     *   `daily_sales_archive.duckdb` (keeps the full historical sequence).
 *   [ ] **Dashboard Source Selection:** Update R/Shiny connection logic to read from `daily_sales_active.duckdb` for SOLR/Map views, and only query `daily_sales_archive.duckdb` if the user selects a date range extending beyond 12 months.
-*   [ ] **Refactor sync_crm_retailers.py:** Rewrite the synchronization script to use set-based staging table updates instead of a row-by-row update loop.
-*   [ ] **Refactor ny_duckdb_refresh.py:** Implement the Blue-Green staging swap logic for `stochos_lottery.duckdb` to ensure zero reader crashes during refresh cycles.
+*   [x] **Refactor sync_crm_retailers.py:** Rewrite the synchronization script to use set-based staging table updates instead of a row-by-row update loop. (Completed)
+*   [x] **Refactor ny_duckdb_refresh.py:** Implement the Blue-Green staging swap logic for `stochos_lottery.duckdb` to ensure zero reader crashes during refresh cycles. (Completed)
+
 
 ### Phase 2: Parquet Archiving Pipeline (Mid-Term)
 *   [ ] **Write Archive Script:** Build a python script (`archive_old_data.py`) that exports records older than 3 years from DuckDB to partitioned Parquet files (e.g., partitioned by `/year=YYYY/month=MM/`).

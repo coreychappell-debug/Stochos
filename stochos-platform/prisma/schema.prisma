@@ -716,6 +716,12 @@ model CrmRetailer {
   discrepancies CrmDiscrepancyException[]
 
   @@map("crm_retailers")
+  @@index([county])
+  @@index([dma])
+  @@index([serviceCenter])
+  @@index([status])
+  @@index([routeId])
+  @@index([chainId])
 }
 
 model CrmEquipmentType {
