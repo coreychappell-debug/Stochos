@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 export default function FomoRetailerListClient({ initialRetailers, routes, chains }) {
+  const [inputValue, setInputValue] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [trainingFilter, setTrainingFilter] = useState("all");
@@ -11,6 +12,14 @@ export default function FomoRetailerListClient({ initialRetailers, routes, chain
   const [chainFilter, setChainFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
+
+  // Debounce search input to prevent UI lag on keypresses
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      search !== inputValue && setSearch(inputValue);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [inputValue, search]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -53,8 +62,8 @@ export default function FomoRetailerListClient({ initialRetailers, routes, chain
           className="search-input"
           style={{ flex: 1, minWidth: 200 }}
           placeholder="Search by name, address, external ID..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
         />
         <select
           className="form-select"
@@ -135,7 +144,7 @@ export default function FomoRetailerListClient({ initialRetailers, routes, chain
                       {r.address}, {r.city}
                     </div>
                     <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                      📍 {r.county ? `${r.county} Co` : 'No County'} | 📺 {r.dma || 'No DMA'} | 🏢 {r.serviceCenter || 'No Service Center'} | 🌐 {r.latitude && r.longitude ? `${r.latitude.toFixed(5)}, ${r.longitude.toFixed(5)}` : 'No Coordinates'}
+                      📍 {r.county ? `${r.county} Co` : 'No County'} | 📺 {r.dma || 'No DMA'} | 🏢 {r.serviceCenter || 'No Service Center'} | 🌐 {r.latitude && r.longitude ? <span style={{ fontVariantNumeric: "tabular-nums" }}>{r.latitude.toFixed(5)}, {r.longitude.toFixed(5)}</span> : 'No Coordinates'}
                     </div>
                   </td>
                   <td>{r.chain?.name || "Independent"}</td>
