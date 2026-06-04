@@ -227,7 +227,8 @@ export async function POST(req) {
 
     // 1. Fetch from OSRM Matrix API
     const coordsStr = allPoints.map(p => `${p.lng},${p.lat}`).join(";");
-    const osrmTableUrl = `http://router.project-osrm.org/table/v1/driving/${coordsStr}?annotations=duration`;
+    const osrmBaseUrl = process.env.OSRM_URL || "http://router.project-osrm.org";
+    const osrmTableUrl = `${osrmBaseUrl}/table/v1/driving/${coordsStr}?annotations=duration`;
 
     try {
       const res = await globalOsrmQueue.add(() => 
@@ -274,7 +275,7 @@ export async function POST(req) {
     }
 
     const orderedCoordsStr = orderedPoints.map(p => `${p.lng},${p.lat}`).join(";");
-    const osrmRouteUrl = `http://router.project-osrm.org/route/v1/driving/${orderedCoordsStr}?overview=full&geometries=geojson`;
+    const osrmRouteUrl = `${osrmBaseUrl}/route/v1/driving/${orderedCoordsStr}?overview=full&geometries=geojson`;
 
     if (!isFallback) {
       try {
