@@ -60,6 +60,20 @@
   --status-purple-bg:   rgba(123, 104, 238, 0.15);
   --status-purple-text: #7b68ee;
   --status-purple-border: rgba(123, 104, 238, 0.3);
+
+  /* Division Badges (Dark defaults) */
+  --badge-it-bg:          rgba(162, 0, 255, 0.15);
+  --badge-it-text:        #c470ff;
+  --badge-marketing-bg:   rgba(255, 0, 128, 0.15);
+  --badge-marketing-text: #ff60ad;
+  --badge-operations-bg:  rgba(0, 180, 216, 0.15);
+  --badge-operations-text: #48cae4;
+  --badge-finance-bg:     rgba(46, 196, 182, 0.15);
+  --badge-finance-text:   #2ec4b6;
+  --badge-executive-bg:   rgba(255, 159, 67, 0.15);
+  --badge-executive-text: #ff9f43;
+  --badge-procurement-bg: rgba(255, 107, 139, 0.15);
+  --badge-procurement-text: #ff6b8b;
 }
 
 body.light-theme {
@@ -105,6 +119,20 @@ body.light-theme {
   --status-purple-bg:   #f3e8ff;
   --status-purple-text: #7e22ce;
   --status-purple-border: #c084fc;
+
+  /* Division Badges (Light values) */
+  --badge-it-bg:          #f3e8ff;
+  --badge-it-text:        #7e22ce;
+  --badge-marketing-bg:   #fce7f3;
+  --badge-marketing-text: #be185d;
+  --badge-operations-bg:  #e0f2fe;
+  --badge-operations-text: #0369a1;
+  --badge-finance-bg:     #ccfbf1;
+  --badge-finance-text:   #0f766e;
+  --badge-executive-bg:   #fef3c7;
+  --badge-executive-text: #b45309;
+  --badge-procurement-bg: #fee2e2;
+  --badge-procurement-text: #b91c1c;
 }
 
 /* ─── Base ─── */
@@ -440,12 +468,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .badge-approved   { background: var(--green-dim); color: var(--green); }
 .badge-rejected   { background: var(--red-dim);   color: var(--red); }
 .badge-paid       { background: var(--purple-dim); color: var(--purple); }
-.badge-it         { background: rgba(162, 0, 255, 0.15); color: #c470ff; }
-.badge-marketing  { background: rgba(255, 0, 128, 0.15); color: #ff60ad; }
-.badge-operations { background: rgba(0, 180, 216, 0.15); color: #48cae4; }
-.badge-finance    { background: rgba(46, 196, 182, 0.15); color: #2ec4b6; }
-.badge-executive  { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
-.badge-procurement{ background: rgba(230, 57, 70, 0.15); color: #e63946; }
+.badge-it         { background: var(--badge-it-bg); color: var(--badge-it-text); }
+.badge-marketing  { background: var(--badge-marketing-bg); color: var(--badge-marketing-text); }
+.badge-operations { background: var(--badge-operations-bg); color: var(--badge-operations-text); }
+.badge-finance    { background: var(--badge-finance-bg); color: var(--badge-finance-text); }
+.badge-executive  { background: var(--badge-executive-bg); color: var(--badge-executive-text); }
+.badge-procurement{ background: var(--badge-procurement-bg); color: var(--badge-procurement-text); }
 
 /* ─── Tables ─── */
 .data-table {

@@ -255,8 +255,8 @@ export default function OrganizationClient({ initialUsers }) {
                   width: 52,
                   height: 52,
                   borderRadius: "50%",
-                  background: "rgba(255, 159, 67, 0.15)",
-                  color: "var(--gold)",
+                  background: "var(--badge-executive-bg)",
+                  color: "var(--badge-executive-text)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -269,7 +269,7 @@ export default function OrganizationClient({ initialUsers }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{COMMISSION_OVERSIGHT.name}</h4>
                     <span className="badge badge-executive">{COMMISSION_OVERSIGHT.role}</span>
-                    <span className="badge badge-expired" style={{ fontSize: 10, background: "rgba(230, 57, 70, 0.15)", color: "#e63946" }}>Statutory Board Oversight Only</span>
+                    <span className="badge badge-expired" style={{ fontSize: 10 }}>Statutory Board Oversight Only</span>
                   </div>
                   <p style={{ fontSize: 13, margin: "8px 0 0 0", color: "var(--text-secondary)", lineHeight: 1.5 }}>
                     {COMMISSION_OVERSIGHT.bio}
@@ -296,8 +296,8 @@ export default function OrganizationClient({ initialUsers }) {
                     width: 44,
                     height: 44,
                     borderRadius: "50%",
-                    background: "rgba(0,180,216,0.15)",
-                    color: "#48cae4",
+                    background: "var(--badge-operations-bg)",
+                    color: "var(--badge-operations-text)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -474,8 +474,8 @@ export default function OrganizationClient({ initialUsers }) {
                       width: 36,
                       height: 36,
                       borderRadius: "50%",
-                      background: `rgba(255,255,255,0.05)`,
-                      color: `var(--text)`,
+                      background: "var(--surface-3)",
+                      color: "var(--text)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
