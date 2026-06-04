@@ -118,8 +118,16 @@ export default function NewContractForm({ vendors, jurisdictions }) {
             </div>
           </div>
           <div className="flex gap-2" style={{ marginTop: 24 }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? "Creating..." : "Create Contract"}
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              {saving ? (
+                <>
+                  <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '12px', height: '12px', marginRight: '6px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                  </svg>
+                  Creating...
+                </>
+              ) : "Create Contract"}
             </button>
             <button type="button" className="btn btn-secondary" onClick={() => router.back()}>
               Cancel

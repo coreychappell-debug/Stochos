@@ -149,8 +149,16 @@ export default function NewVendorForm({ jurisdictions }) {
           </div>
 
           <div className="flex gap-2" style={{ marginTop: 24 }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? "Registering..." : "Register Vendor"}
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              {saving ? (
+                <>
+                  <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '12px', height: '12px', marginRight: '6px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                  </svg>
+                  Registering...
+                </>
+              ) : "Register Vendor"}
             </button>
             <Link href="/vendors" className="btn btn-secondary">
               Cancel
