@@ -58,8 +58,8 @@ EXEC_COLORS <- list(
   blue      = "#00b4d8",
   green     = "#06d6a0",
   gold      = "#ffd166",
-  red       = "#ef476f",
-  purple    = "#7b68ee",
+  red       = "#ff6b8b",
+  purple    = "#8c7bfa",
   text      = "#e0e6ed",
   muted     = "#667788",
   draw      = "#00b4d8",
@@ -133,6 +133,34 @@ fmt_dollar <- function(x) {
 }
 
 fmt_pct <- function(x) paste0(round(x * 100, 1), "%")
+
+stochos_colors <- function(theme = "dark") {
+  if (!is.null(theme) && theme == "light") {
+    list(
+      blue       = "#1a73e8",
+      green      = "#107c41",
+      gold       = "#b45309",
+      red        = "#b91c1c",
+      purple     = "#7e22ce",
+      draw       = "#1a73e8",
+      scratch    = "#b45309",
+      neutral_bg = "#e2e8f0",
+      series     = c("#1a73e8", "#b45309", "#107c41", "#0284c7", "#b91c1c", "#7e22ce", "#d97706")
+    )
+  } else {
+    list(
+      blue       = "#00b4d8",
+      green      = "#06d6a0",
+      gold       = "#ffd166",
+      red        = "#ff6b8b",
+      purple     = "#8c7bfa",
+      draw       = "#00b4d8",
+      scratch    = "#ffd166",
+      neutral_bg = "#1b263b",
+      series     = c("#00b4d8", "#ffd166", "#06d6a0", "#48cae4", "#ff6b8b", "#8c7bfa", "#f59e0b")
+    )
+  }
+}
 
 stochos_layout <- function(p, theme = "dark") {
   text_color <- if (!is.null(theme) && theme == "light") "#2b3a4a" else "#b0bec5"
@@ -1315,15 +1343,17 @@ server <- function(input, output, session) {
         .groups = "drop"
       )
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(monthly, x = ~month) %>%
       add_trace(y = ~gross_revenue, name = "Gross Revenue",
                 type = "scatter", mode = "lines+markers",
-                line = list(color = "#00b4d8", width = 2.5),
-                marker = list(color = "#00b4d8", size = 5)) %>%
+                line = list(color = cols$blue, width = 2.5),
+                marker = list(color = cols$blue, size = 5)) %>%
       add_trace(y = ~net_contribution, name = "Net Contribution",
                 type = "scatter", mode = "lines+markers",
-                line = list(color = "#06d6a0", width = 2.5),
-                marker = list(color = "#06d6a0", size = 5)) %>%
+                line = list(color = cols$green, width = 2.5),
+                marker = list(color = cols$green, size = 5)) %>%
       stochos_layout(theme = theme_mode()) %>%
       layout(
         xaxis = list(title = ""),
@@ -1352,11 +1382,13 @@ server <- function(input, output, session) {
 
     text_font_color <- if (theme_mode() == "light") "#2b3a4a" else "#8899aa"
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(wf, x = ~factor(step, levels = step), y = ~value,
             type = "waterfall", measure = ~measure,
-            increasing = list(marker = list(color = "#00b4d8")),
-            decreasing = list(marker = list(color = "#ef476f")),
-            totals     = list(marker = list(color = "#06d6a0")),
+            increasing = list(marker = list(color = cols$blue)),
+            decreasing = list(marker = list(color = cols$red)),
+            totals     = list(marker = list(color = cols$green)),
             textposition = "outside",
             text = ~paste0(ifelse(value >= 0, "+", ""), fmt_dollar(value)),
             textfont = list(color = text_font_color, size = 11),
@@ -1374,15 +1406,16 @@ server <- function(input, output, session) {
 
     df <- df %>% filter(product_group != "Other")
 
+    cols <- stochos_colors(theme_mode())
     text_font_color <- if (theme_mode() == "light") "#2b3a4a" else "#8899aa"
 
     plot_ly(df) %>%
       add_trace(x = ~product_group, y = ~pct_sales, name = "% of Sales",
-                type = "bar", marker = list(color = "#00b4d8"),
+                type = "bar", marker = list(color = cols$blue),
                 text = ~fmt_pct(pct_sales), textposition = "outside",
                 textfont = list(color = text_font_color, size = 11)) %>%
       add_trace(x = ~product_group, y = ~pct_contribution, name = "% of Contribution",
-                type = "bar", marker = list(color = "#06d6a0"),
+                type = "bar", marker = list(color = cols$green),
                 text = ~fmt_pct(pct_contribution), textposition = "outside",
                 textfont = list(color = text_font_color, size = 11)) %>%
       stochos_layout(theme = theme_mode()) %>%
@@ -1511,6 +1544,7 @@ server <- function(input, output, session) {
     df <- rtl_quad_filtered()
     validate(need(nrow(df) > 0, "No retailer data for selected filters."))
 
+    cols <- stochos_colors(theme_mode())
     median_line_color <- if (theme_mode() == "light") "rgba(0,0,0,0.25)" else "rgba(255,255,255,0.15)"
 
     plot_ly(df,
@@ -1519,10 +1553,10 @@ server <- function(input, output, session) {
       size = ~gross_revenue,
       color = ~quadrant_label,
       colors = c(
-        "High Draw / High Contribution"    = "#06d6a0",
-        "High Draw / Low Contribution"     = "#ffd166",
-        "High Scratch / High Contribution" = "#00b4d8",
-        "High Scratch / Low Contribution"  = "#ef476f"
+        "High Draw / High Contribution"    = cols$green,
+        "High Draw / Low Contribution"     = cols$gold,
+        "High Scratch / High Contribution" = cols$blue,
+        "High Scratch / Low Contribution"  = cols$red
       ),
       type = "scatter", mode = "markers",
       marker = list(opacity = 0.6, line = list(width = 0.5, color = "#0a1628")),
@@ -1562,13 +1596,14 @@ server <- function(input, output, session) {
     }
     df <- df %>% head(10)
 
+    cols <- stochos_colors(theme_mode())
     colorbar_text_color <- if (theme_mode() == "light") "#2b3a4a" else "#8899aa"
     bar_text_color <- if (theme_mode() == "light") "#ffffff" else "#e0e6ed"
 
     plot_ly(df, y = ~reorder(business_type, gross_revenue), x = ~gross_revenue,
             type = "bar", orientation = "h",
             marker = list(color = ~contribution_rate,
-                          colorscale = list(c(0, "#ef476f"), c(0.5, "#ffd166"), c(1, "#06d6a0")),
+                          colorscale = list(c(0, cols$red), c(0.5, cols$gold), c(1, cols$green)),
                           colorbar = list(title = list(text = "Contrib Rate", font = list(color = colorbar_text_color)),
                                           tickformat = ".0%", tickfont = list(color = colorbar_text_color)),
                           line = list(color = "#0a1628", width = 0.5)),
@@ -1779,10 +1814,12 @@ server <- function(input, output, session) {
       arrange(desc(contribution_rate))
     validate(need(nrow(df) > 0, "No data for selected filters."))
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(df, y = ~reorder(game_family, contribution_rate), x = ~contribution_rate,
             type = "bar", orientation = "h",
             marker = list(color = ~contribution_rate,
-                          colorscale = list(c(0, "#ef476f"), c(0.5, "#ffd166"), c(1, "#06d6a0")),
+                          colorscale = list(c(0, cols$red), c(0.5, cols$gold), c(1, cols$green)),
                           line = list(color = "#0a1628", width = 0.5)),
             text = ~fmt_pct(contribution_rate), textposition = "auto",
             textfont = list(color = "#e0e6ed", size = 10)
@@ -1798,8 +1835,10 @@ server <- function(input, output, session) {
 
     df <- df %>% filter(product_group %in% c("Draw", "Scratch"))
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(df, x = ~month, y = ~gross_revenue, color = ~product_group,
-            colors = c("Draw" = "#00b4d8", "Scratch" = "#ffd166"),
+            colors = c("Draw" = cols$draw, "Scratch" = cols$scratch),
             type = "scatter", mode = "lines+markers",
             line = list(width = 2.5), marker = list(size = 5)) %>%
       stochos_layout(theme = theme_mode()) %>%
@@ -2051,10 +2090,12 @@ server <- function(input, output, session) {
       arrange(desc(net_contribution)) %>% head(20)
     validate(need(nrow(df) > 0, "No county data for selected filters."))
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(df, y = ~reorder(county, net_contribution), x = ~net_contribution,
             type = "bar", orientation = "h",
             marker = list(color = ~contribution_rate,
-                          colorscale = list(c(0, "#1b263b"), c(0.5, "#00b4d8"), c(1, "#06d6a0")),
+                          colorscale = list(c(0, cols$neutral_bg), c(0.5, cols$blue), c(1, cols$green)),
                           line = list(color = "#0a1628", width = 0.5)),
             text = ~fmt_dollar(net_contribution), textposition = "auto",
             textfont = list(color = "#e0e6ed", size = 10),
@@ -2372,10 +2413,12 @@ server <- function(input, output, session) {
 
     df$pp_label <- paste0("$", format(df$price_point, nsmall = 2))
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(df, y = ~reorder(pp_label, price_point), x = ~contribution_rate,
             type = "bar", orientation = "h",
             marker = list(color = ~contribution_rate,
-                          colorscale = list(c(0, "#ef476f"), c(0.5, "#ffd166"), c(1, "#06d6a0")),
+                          colorscale = list(c(0, cols$red), c(0.5, cols$gold), c(1, cols$green)),
                           line = list(color = "#0a1628", width = 0.5)),
             text = ~fmt_pct(contribution_rate), textposition = "auto",
             textfont = list(color = "#e0e6ed", size = 11)
@@ -2442,8 +2485,9 @@ server <- function(input, output, session) {
       mutate(channel_pct = gross_revenue / sum(gross_revenue, na.rm = TRUE)) %>%
       ungroup()
 
-    pp_colors <- c("$0.50" = "#7b68ee", "$1.00" = "#00b4d8", "$2.00" = "#06d6a0",
-                   "$5.00" = "#ffd166")
+    cols <- stochos_colors(theme_mode())
+    pp_colors <- c("$0.50" = cols$purple, "$1.00" = cols$blue, "$2.00" = cols$green,
+                   "$5.00" = cols$gold)
 
     plot_ly(df, y = ~reorder(business_type, -gross_revenue),
             x = ~channel_pct, color = ~pp_label,
@@ -2556,10 +2600,12 @@ server <- function(input, output, session) {
 
     df$pp_label <- paste0("$", df$price_point)
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(df, y = ~reorder(pp_label, price_point), x = ~contribution_rate,
             type = "bar", orientation = "h",
             marker = list(color = ~contribution_rate,
-                          colorscale = list(c(0, "#ef476f"), c(0.5, "#ffd166"), c(1, "#06d6a0")),
+                          colorscale = list(c(0, cols$red), c(0.5, cols$gold), c(1, cols$green)),
                           line = list(color = "#0a1628", width = 0.5)),
             text = ~fmt_pct(contribution_rate), textposition = "auto",
             textfont = list(color = "#e0e6ed", size = 11)
@@ -2622,9 +2668,10 @@ server <- function(input, output, session) {
       mutate(channel_pct = gross_revenue / sum(gross_revenue, na.rm = TRUE)) %>%
       ungroup()
 
-    pp_colors <- c("$1" = "#f0ad4e", "$2" = "#d4a03c", "$3" = "#b89530",
-                   "$5" = "#9c8a24", "$10" = "#807f18", "$20" = "#64740c",
-                   "$30" = "#486900")
+    cols <- stochos_colors(theme_mode())
+    pp_colors <- c("$1" = cols$series[1], "$2" = cols$series[2], "$3" = cols$series[3],
+                   "$5" = cols$series[4], "$10" = cols$series[5], "$20" = cols$series[6],
+                   "$30" = cols$series[7])
 
     plot_ly(df, y = ~reorder(business_type, -gross_revenue),
             x = ~channel_pct, color = ~pp_label,
@@ -2935,13 +2982,15 @@ server <- function(input, output, session) {
   output$budget_cumulative_chart <- renderPlotly({
     df <- cumulative_data()
 
+    cols <- stochos_colors(theme_mode())
+
     plot_ly(df, x = ~date) %>%
       add_trace(y = ~cum_planned, name = "Planned Revenue (Budget)",
                 type = "scatter", mode = "lines",
-                line = list(color = "#00b4d8", width = 2.5, dash = "dash")) %>%
+                line = list(color = cols$blue, width = 2.5, dash = "dash")) %>%
       add_trace(y = ~cum_actual, name = "Actual Revenue",
                 type = "scatter", mode = "lines",
-                line = list(color = "#06d6a0", width = 3)) %>%
+                line = list(color = cols$green, width = 3)) %>%
       stochos_layout(theme = theme_mode()) %>%
       layout(
         xaxis = list(title = ""),
@@ -2961,6 +3010,8 @@ server <- function(input, output, session) {
       df <- df %>% filter(date <= max_actual_date)
     }
 
+    cols <- stochos_colors(theme_mode())
+
     monthly <- df %>%
       mutate(month = format(as.Date(date), "%Y-%m")) %>%
       group_by(month) %>%
@@ -2971,7 +3022,7 @@ server <- function(input, output, session) {
       ) %>%
       mutate(
         variance = actual - planned,
-        color = ifelse(variance >= 0, "#06d6a0", "#ef476f")
+        color = ifelse(variance >= 0, cols$green, cols$red)
       )
 
     plot_ly(monthly, x = ~month, y = ~variance, type = "bar",
@@ -2991,13 +3042,15 @@ server <- function(input, output, session) {
     df <- df %>% arrange(price_point)
     df$price_point_label <- paste0("$", df$price_point)
 
+    cols <- stochos_colors(theme_mode())
+
     p <- plot_ly(df, x = ~price_point_label) %>%
       add_trace(y = ~planned_revenue, name = "Planned Budget",
-                type = "bar", marker = list(color = "#00b4d8"))
+                type = "bar", marker = list(color = cols$blue))
 
     if (input$data_mode == "illustrative") {
       p <- p %>% add_trace(y = ~actual_revenue, name = "Actual Sales (Illustrative)",
-                            type = "bar", marker = list(color = "#06d6a0"))
+                            type = "bar", marker = list(color = cols$green))
     }
 
     p %>% stochos_layout(theme = theme_mode()) %>%
