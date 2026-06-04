@@ -2,13 +2,15 @@
 set -euo pipefail
 
 LOCAL_BACKUP=/srv/stochos/backups
-CLOUD_BACKUP=/mnt/c/Users/corey/OneDrive/STOCHOS_BACKUPS
+CLOUD_BACKUP="/mnt/c/Users/corey/Downloads/Corey - Code Stuff/R Server Project folder/stochos-backups"
+STAGING_DIR="/mnt/c/stochos_backup_temp"
 
 ARCHIVE_LOCAL="$LOCAL_BACKUP/stochos_backup_latest.tar.gz"
 ARCHIVE_CLOUD="$CLOUD_BACKUP/stochos_backup_latest.tar.gz"
 
 mkdir -p "$LOCAL_BACKUP"
 mkdir -p "$CLOUD_BACKUP"
+mkdir -p "$STAGING_DIR"
 
 # 1. Back up the PostgreSQL database if the container is running
 PG_DUMP_FILE="/srv/stochos/data/stochos_platform_postgres.sql"
@@ -39,7 +41,12 @@ TMP_ARCHIVE="$LOCAL_BACKUP/stochos_backup_latest.tmp.tar.gz"
 tar -czf "$TMP_ARCHIVE" "${BACKUP_ITEMS[@]}"
 
 mv -f "$TMP_ARCHIVE" "$ARCHIVE_LOCAL"
-cp -f "$ARCHIVE_LOCAL" "$ARCHIVE_CLOUD"
+
+# Copy to staging first to avoid locking during write, then atomically move to Google Drive
+echo "Copying backup to local staging directory..."
+cp -f "$ARCHIVE_LOCAL" "$STAGING_DIR/stochos_backup_latest.tar.gz"
+echo "Moving backup atomically to Google Drive folder..."
+mv -f "$STAGING_DIR/stochos_backup_latest.tar.gz" "$ARCHIVE_CLOUD"
 
 # 3. Clean up temporary pg_dump file to avoid duplicating data on disk
 if [ -f "$PG_DUMP_FILE" ]; then
