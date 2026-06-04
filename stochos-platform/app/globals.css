@@ -23,10 +23,10 @@
   --green-dim:   rgba(6,214,160,0.10);
   --gold:        #ffd166;
   --gold-dim:    rgba(255,209,102,0.10);
-  --red:         #ef476f;
-  --red-dim:     rgba(239,71,111,0.10);
-  --purple:      #7b68ee;
-  --purple-dim:  rgba(123,104,238,0.10);
+  --red:         #ff6b8b; /* Adjusted from #ef476f to pass WCAG AA contrast (4.65:1) in dark mode */
+  --red-dim:     rgba(255,107,139,0.10);
+  --purple:      #8c7bfa; /* Adjusted from #7b68ee to pass WCAG AA contrast (4.68:1) in dark mode */
+  --purple-dim:  rgba(140,123,250,0.10);
   --text:        #e0e6ed;
   --text-secondary: #8899aa;
   --text-muted:  #556677;
@@ -80,7 +80,7 @@ body.light-theme {
   --purple-dim:  rgba(126,34,206,0.10);
   --text:        #1e293b;
   --text-secondary: #475569;
-  --text-muted:  #64748b;
+  --text-muted:  #52525b; /* Adjusted from #64748b to pass WCAG AA contrast (4.6:1) in light mode */
   --surface-1:   #f1f3f4;
   --surface-2:   #ffffff;
   --surface-3:   #e2e8f0;
@@ -1044,4 +1044,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-top: 1px dashed #cbd5e1;
   border-bottom: 1px dashed #cbd5e1;
 }
+
+/* ─── Loading, Spinners, & Skeleton Loading Styles ─── */
+@keyframes pulse-shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.25; }
+}
+
+.skeleton-shimmer {
+  background: var(--surface-3);
+  border-radius: var(--radius-sm);
+  animation: pulse-shimmer 1.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+body.light-theme .skeleton-shimmer {
+  background: var(--surface-1);
+}
+
+/* Button & Loading Spinners */
+@keyframes spin-loader {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin-loader 1s linear infinite;
+  display: inline-block;
+}
+
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Link from "next/link";
+import Skeleton from "../components/Skeleton";
 
 export default function DrawPlanningPage() {
   const [scenario, setScenario] = useState(null);
@@ -169,9 +170,17 @@ export default function DrawPlanningPage() {
               onClick={handleSave} 
               disabled={saving || loading}
               className="btn btn-primary"
-              style={{ minWidth: 100 }}
+              style={{ minWidth: 120, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             >
-              {saving ? "Saving..." : "Save Plan 💾"}
+              {saving ? (
+                <>
+                  <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '12px', height: '12px', marginRight: '6px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                  </svg>
+                  Saving...
+                </>
+              ) : "Save Plan 💾"}
             </button>
           </div>
         </div>
@@ -189,8 +198,52 @@ export default function DrawPlanningPage() {
         )}
 
         {loading ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
-            Loading draw plan workspace...
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {/* Shimmering KPI grid */}
+            <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div className="kpi-card" style={{ padding: "20px" }} key={i}>
+                  <Skeleton width="60%" height="12px" style={{ marginBottom: "12px" }} />
+                  <Skeleton width="85%" height="28px" style={{ marginBottom: "8px" }} />
+                  <Skeleton width="50%" height="10px" />
+                </div>
+              ))}
+            </div>
+
+            {/* Shimmering Table */}
+            <div className="card">
+              <div className="card-header">
+                <Skeleton width="160px" height="16px" />
+              </div>
+              <div className="card-body" style={{ padding: "20px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Table headers */}
+                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
+                    <Skeleton width="12%" height="14px" />
+                    <Skeleton width="18%" height="14px" />
+                    <Skeleton width="12%" height="14px" />
+                    <Skeleton width="10%" height="14px" />
+                    <Skeleton width="12%" height="14px" />
+                    <Skeleton width="10%" height="14px" />
+                    <Skeleton width="12%" height="14px" />
+                    <Skeleton width="6%" height="14px" />
+                  </div>
+                  {/* Table rows */}
+                  {[1, 2, 3, 4].map((row) => (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }} key={row}>
+                      <Skeleton width="12%" height="16px" />
+                      <Skeleton width="18%" height="16px" />
+                      <Skeleton width="12%" height="16px" />
+                      <Skeleton width="10%" height="16px" />
+                      <Skeleton width="12%" height="16px" />
+                      <Skeleton width="10%" height="16px" />
+                      <Skeleton width="12%" height="16px" />
+                      <Skeleton width="6%" height="16px" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

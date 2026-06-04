@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { useSession } from "next-auth/react";
+import Skeleton from "../components/Skeleton";
 
 export default function BudgetingPage() {
   const { data: session } = useSession();
@@ -272,9 +273,17 @@ export default function BudgetingPage() {
                 onClick={handleCompileBudget} 
                 disabled={syncing || loading}
                 className="btn btn-primary"
-                style={{ backgroundColor: "var(--gold)", border: "none" }}
+                style={{ backgroundColor: "var(--gold)", border: "none", display: "inline-flex", alignItems: "center" }}
               >
-                {syncing ? "Compiling..." : "Compile & Roll Up Budget ⚡"}
+                {syncing ? (
+                  <>
+                    <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '14px', height: '14px', marginRight: '8px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                      <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                    </svg>
+                    Compiling...
+                  </>
+                ) : "Compile & Roll Up Budget ⚡"}
               </button>
             )}
           </div>
@@ -293,8 +302,46 @@ export default function BudgetingPage() {
         )}
 
         {loading ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
-            Loading budget workspaces...
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {/* Shimmering KPI grid */}
+            <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+              {[1, 2, 3].map((i) => (
+                <div className="kpi-card" style={{ padding: "20px" }} key={i}>
+                  <Skeleton width="50%" height="12px" style={{ marginBottom: "12px" }} />
+                  <Skeleton width="80%" height="28px" style={{ marginBottom: "8px" }} />
+                  <Skeleton width="40%" height="10px" />
+                </div>
+              ))}
+            </div>
+
+            {/* Shimmering Table */}
+            <div className="card">
+              <div className="card-header">
+                <Skeleton width="180px" height="16px" />
+              </div>
+              <div className="card-body" style={{ padding: "20px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Table headers */}
+                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
+                    <Skeleton width="15%" height="14px" />
+                    <Skeleton width="25%" height="14px" />
+                    <Skeleton width="15%" height="14px" />
+                    <Skeleton width="25%" height="14px" />
+                    <Skeleton width="10%" height="14px" />
+                  </div>
+                  {/* Table rows */}
+                  {[1, 2, 3, 4, 5].map((row) => (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }} key={row}>
+                      <Skeleton width="15%" height="16px" />
+                      <Skeleton width="22%" height="16px" />
+                      <Skeleton width="12%" height="16px" />
+                      <Skeleton width="28%" height="16px" />
+                      <Skeleton width="8%" height="16px" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -478,17 +525,33 @@ export default function BudgetingPage() {
                         onClick={handleSaveDraft}
                         disabled={saving}
                         className="btn"
-                        style={{ backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", minWidth: 100 }}
+                        style={{ backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", minWidth: 120, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                       >
-                        Save Draft 💾
+                        {saving ? (
+                          <>
+                            <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '12px', height: '12px', marginRight: '6px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                              <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                            </svg>
+                            Saving...
+                          </>
+                        ) : "Save Draft 💾"}
                       </button>
                       <button 
                         onClick={handleSubmitProposal}
                         disabled={saving}
                         className="btn btn-primary"
-                        style={{ minWidth: 150 }}
+                        style={{ minWidth: 160, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                       >
-                        Submit Proposal 📄
+                        {saving ? (
+                          <>
+                            <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '12px', height: '12px', marginRight: '6px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                              <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                            </svg>
+                            Submitting...
+                          </>
+                        ) : "Submit Proposal 📄"}
                       </button>
                     </div>
                   )}
