@@ -3,53 +3,60 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { 
+  LayoutDashboard, Users, BarChart3, Store, Package, 
+  FileSpreadsheet, Settings, Grid, Folders, Briefcase, 
+  Map, TrendingUp, Megaphone, Ticket, Dices, Layers, 
+  Handshake, FileText, Car, Building2, Globe, Monitor, 
+  BookOpen, Sun, Moon 
+} from "lucide-react";
 
 const navItems = [
   {
     section: "Platform",
     items: [
-      { href: "/", label: "Dashboard", icon: "📊" },
-      { href: "/organization", label: "Organization & Leadership", icon: "🏛️" },
+      { href: "/", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+      { href: "/organization", label: "Organization & Leadership", icon: <Users size={18} /> },
     ],
   },
   {
     section: "Finance & Reporting",
     items: [
-      { href: "/analytics/overview", label: "Executive Overview", icon: "📈" },
-      { href: "/analytics/retailers", label: "Retailer Profitability", icon: "🏪" },
-      { href: "/analytics/portfolio", label: "Portfolio Mix", icon: "📦" },
-      { href: "/reporting", label: "Governed Financial & Performance Administration (GFPA)", icon: "📑" },
-      { href: "/reporting/prep", label: "Data Prep Studio", icon: "⚙️" },
-      { href: "/reporting/grid", label: "Governed Grid", icon: "📊" },
-      { href: "/reporting/workflow", label: "Workflow & Binders", icon: "🗂️" },
-      { href: "/budgeting", label: "Divisional Budgeting", icon: "💼" },
+      { href: "/analytics/overview", label: "Executive Overview", icon: <BarChart3 size={18} /> },
+      { href: "/analytics/retailers", label: "Retailer Profitability", icon: <Store size={18} /> },
+      { href: "/analytics/portfolio", label: "Portfolio Mix", icon: <Package size={18} /> },
+      { href: "/reporting", label: "Governed Financial & Performance Administration (GFPA)", icon: <FileSpreadsheet size={18} /> },
+      { href: "/reporting/prep", label: "Data Prep Studio", icon: <Settings size={18} /> },
+      { href: "/reporting/grid", label: "Governed Grid", icon: <Grid size={18} /> },
+      { href: "/reporting/workflow", label: "Workflow & Binders", icon: <Folders size={18} /> },
+      { href: "/budgeting", label: "Divisional Budgeting", icon: <Briefcase size={18} /> },
     ],
   },
   {
     section: "Marketing",
     items: [
-      { href: "/analytics/geography", label: "Geography & Network", icon: "🗺️" },
-      { href: "/analytics/forecast", label: "Forecast & Outlook", icon: "🔮" },
-      { href: "/marketing", label: "Marketing MRM", icon: "📢" },
-      { href: "/instant-tickets", label: "Instant Tickets", icon: "🎫" },
-      { href: "/draw-planning", label: "Draw Game Planning", icon: "🎰" },
-      { href: "/products", label: "Products", icon: "🎰" },
+      { href: "/analytics/geography", label: "Geography & Network", icon: <Map size={18} /> },
+      { href: "/analytics/forecast", label: "Forecast & Outlook", icon: <TrendingUp size={18} /> },
+      { href: "/marketing", label: "Marketing MRM", icon: <Megaphone size={18} /> },
+      { href: "/instant-tickets", label: "Instant Tickets", icon: <Ticket size={18} /> },
+      { href: "/draw-planning", label: "Draw Game Planning", icon: <Dices size={18} /> },
+      { href: "/products", label: "Products", icon: <Layers size={18} /> },
     ],
   },
   {
     section: "Operations",
     items: [
-      { href: "/fomo", label: "Visitations, Coaching & Relationship Management (VCRM)", icon: "🤝" },
-      { href: "/contracts", label: "Contracts", icon: "📋" },
-      { href: "/fleet", label: "Fleet", icon: "🚗" },
-      { href: "/vendors", label: "Vendors", icon: "🏢" },
-      { href: "/spatial-ops", label: "Spatial Ops, Logistics & Risk (SOLR)", icon: "🌐" },
+      { href: "/fomo", label: "Visitations, Coaching & Relationship Management (VCRM)", icon: <Handshake size={18} /> },
+      { href: "/contracts", label: "Contracts", icon: <FileText size={18} /> },
+      { href: "/fleet", label: "Fleet", icon: <Car size={18} /> },
+      { href: "/vendors", label: "Vendors", icon: <Building2 size={18} /> },
+      { href: "/spatial-ops", label: "Spatial Ops, Logistics & Risk (SOLR)", icon: <Globe size={18} /> },
     ],
   },
   {
     section: "Information Technology",
     items: [
-      { href: "/assets", label: "IT Assets", icon: "💻" },
+      { href: "/assets", label: "IT Assets", icon: <Monitor size={18} /> },
     ],
   },
 ];
@@ -140,7 +147,7 @@ export default function Sidebar() {
           }}
           className="help-guide-btn"
         >
-          📖 Help & User Guide
+          <BookOpen size={16} /> Help & User Guide
         </Link>
 
         <button 
@@ -163,7 +170,7 @@ export default function Sidebar() {
           }}
           className="theme-toggle-btn"
         >
-          {theme === "dark" ? "☀️ Day Mode" : "🌙 Night Mode"}
+          {theme === "dark" ? <><Sun size={16} /> Day Mode</> : <><Moon size={16} /> Night Mode</>}
         </button>
 
         <div className="sidebar-user">
