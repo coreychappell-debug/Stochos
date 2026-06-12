@@ -238,8 +238,8 @@ export default async function DashboardPage() {
     {
       href: "/assets",
       icon: <Laptop size={24} style={{ color: "var(--blue)" }} />,
-      title: "IT Asset Registry",
-      description: "Inventory IT hardware, software licenses, lifecycle boundaries, and straight-line depreciation.",
+      title: "Asset Management",
+      description: "Inventory corporate hardware, EOL tracking, lifecycle boundaries, and label printing.",
       active: true,
     },
   ];

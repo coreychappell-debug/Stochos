@@ -56,7 +56,7 @@ const navItems = [
   {
     section: "Information Technology",
     items: [
-      { href: "/assets", label: "IT Assets", icon: <Monitor size={18} /> },
+      { href: "/assets", label: "Asset Management", icon: <Monitor size={18} /> },
     ],
   },
 ];

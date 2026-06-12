@@ -9,7 +9,7 @@ import FeatureBlocker from "../components/FeatureBlocker";
 export default async function AssetsPage({ searchParams }) {
   const isEnabled = await getFeatureFlag("feature_assets");
   if (!isEnabled) {
-    return <FeatureBlocker moduleName="IT Assets Registry" />;
+    return <FeatureBlocker moduleName="Asset Management" />;
   }
 
   const resolvedParams = searchParams instanceof Promise ? await searchParams : searchParams;

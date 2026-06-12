@@ -37,7 +37,7 @@ const FEATURE_META = {
   feature_vendors: { label: "Vendor Registry", section: "Operations", icon: <Building2 size={16} />, desc: "Shared profiles of lottery printers, agencies, and suppliers." },
   feature_spatial_ops: { label: "SOLR Risk & Logistics", section: "Operations", icon: <Globe size={16} />, desc: "Spatial Ops, Logistics & Risk dashboard for weather alerts." },
 
-  feature_assets: { label: "IT Assets Registry", section: "Information Technology", icon: <Monitor size={16} />, desc: "Corporate hardware inventory, EOL tracking, and label printing." }
+  feature_assets: { label: "Asset Management", section: "Information Technology", icon: <Monitor size={16} />, desc: "Corporate hardware inventory, EOL tracking, and label printing." }
 };
 
 const PRESETS = {
@@ -82,7 +82,7 @@ const PRESETS = {
   },
   light: {
     label: "Minimalist / Trial Demo",
-    desc: "A simplified trial version showcasing only IT Assets and core dashboards.",
+    desc: "A simplified trial version showcasing only Asset Management and core dashboards.",
     flags: {
       feature_organization: false, feature_analytics_overview: false, feature_analytics_retailers: false,
       feature_analytics_portfolio: false, feature_reporting: false, feature_reporting_prep: false,
