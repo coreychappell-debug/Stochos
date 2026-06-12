@@ -126,6 +126,15 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Sandbox pagination & Forecasting selected year states
+  const [sandboxPage, setSandboxPage] = useState(1);
+  const [sandboxPageSize, setSandboxPageSize] = useState(50);
+  const [selectedForecastYear, setSelectedForecastYear] = useState(new Date().getFullYear());
+  const [forecastingCategoryFilter, setForecastingCategoryFilter] = useState("all");
+  const [forecastPage, setForecastPage] = useState(1);
+  const forecastPageSize = 50;
+  const [inflationRate, setInflationRate] = useState(3.0);
+
   // Asset Photo-Audit Ingestion State
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
@@ -1067,14 +1076,6 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     return remainingMonths;
   };
 
-  // Sandbox pagination & Forecasting selected year states
-  const [sandboxPage, setSandboxPage] = useState(1);
-  const [sandboxPageSize, setSandboxPageSize] = useState(50);
-  const [selectedForecastYear, setSelectedForecastYear] = useState(new Date().getFullYear());
-  const [forecastingCategoryFilter, setForecastingCategoryFilter] = useState("all");
-  const [forecastPage, setForecastPage] = useState(1);
-  const forecastPageSize = 50;
-  const [inflationRate, setInflationRate] = useState(3.0);
 
   // Pre-calculate useful life dates and location names for fast indexing/rendering
   const enrichedAssets = useMemo(() => {
