@@ -232,9 +232,6 @@ export default async function DashboardPage() {
       description: "Monitor active weather/earthquake alerts, analyze retailer risk proximity, and coordinate logistics planning.",
       active: true,
     },
-  ];
-
-  const itModules = [
     {
       href: "/assets",
       icon: <Laptop size={24} style={{ color: "var(--blue)" }} />,
@@ -246,7 +243,6 @@ export default async function DashboardPage() {
 
   const filteredMarketingModules = marketingModules.filter(m => isEnabled(m.href));
   const filteredOperationsModules = operationsModules.filter(m => isEnabled(m.href));
-  const filteredItModules = itModules.filter(m => isEnabled(m.href));
 
   return (
     <div className="app-layout">
@@ -400,26 +396,7 @@ export default async function DashboardPage() {
               </div>
             )}
 
-            {filteredItModules.length > 0 && (
-              <div>
-                <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Laptop size={14} /> Information Technology
-                </h3>
-                <div className="module-grid">
-                  {filteredItModules.map((mod) => (
-                    <Link
-                      key={mod.title}
-                      href={mod.active ? mod.href : "#"}
-                      className={`module-card ${!mod.active ? "disabled" : ""}`}
-                    >
-                      <div className="module-card-icon">{mod.icon}</div>
-                      <h3>{mod.title}</h3>
-                      <p>{mod.description}</p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+
           </div>
         </div>
       </main>

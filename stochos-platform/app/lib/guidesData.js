@@ -107,18 +107,45 @@ export const guides = [
   {
     id: "fleet",
     category: "fleet",
-    title: "Fleet & IT Asset Registry",
-    summary: "Track physical hardware inventories, vehicle logs, and straight-line asset depreciation.",
+    title: "Fleet & Asset Management",
+    summary: "Track physical hardware inventories, vehicle logs, straight-line depreciation, and EOL forecasting.",
     content: {
-      overview: "The Asset Registry organizes physical assets, managing vehicles (fleet) and hardware (IT assets). It calculates straight-line financial depreciation, tracks custody histories, and forecasts equipment replacement schedules.",
+      overview: "The Fleet & Asset Management module organizes physical assets, managing delivery vehicles (fleet) and corporate/retail hardware assets. It calculates straight-line financial depreciation, tracks custody logs, hosts mobile photo-audits, and forecasts equipment replacement budgets.",
       steps: [
         "Fleet Registry: Log delivery vans, assigned personnel, mileage logs, and scheduled maintenance events.",
-        "IT Hardware Registry: Record serial keys, procurement costs, software builds, and useful life spans.",
+        "Asset Management: Record serial keys, categories, procurement costs, and useful life spans.",
         "Straight-Line Depreciation: The system automatically computes monthly depreciation values. Define the asset's acquisition price, expected salvage (scrap) value, and useful life (in years). The system divides the depreciable cost by the life in months.",
         "Replacement Cycle Forecasting: Mapped assets monitor replacement thresholds. If an asset exceeds its useful life or mileage cap, the system generates an 'End of Life (EOL) Replacement warning'."
       ],
-      examples: "Example Use Case: An administrator adds an IT server costing $25,000, with a salvage value of $1,000 and a 4-year useful life. The system automatically computes a monthly straight-line depreciation of $500.00 and logs the asset under the IT registry.",
-      tips: "Troubleshooting: If the depreciation field displays zero or throws an error, verify that the salvage value is less than the acquisition cost and that the useful life is set to an integer greater than zero."
+      examples: "Example Use Case: An administrator adds an asset costing $25,000, with a salvage value of $1,000 and a 4-year useful life. The system automatically computes a monthly straight-line depreciation of $500.00 and logs the asset under the registry.",
+      tips: "Troubleshooting: If the depreciation field displays zero or throws an error, verify that the salvage value is less than the acquisition cost and that the useful life is set to an integer greater than zero.",
+      comparison: [
+        {
+          capability: "Data Ingestion & Integrity",
+          standard: "Basic Uploads: Fails silently or rejects entire files if a single row has a typo (e.g. category spelling).",
+          stochos: "Import Sandbox: Interactive inline grid that highlights errors dynamically so users can edit cell typos before committing."
+        },
+        {
+          capability: "Physical Audit Verification",
+          standard: "Manual Sheet/Scan: Auditors carry clipboards or dedicated barcode scanner terminals requiring manual docking.",
+          stochos: "Mobile Photo-Audit & Geotags: In-browser EXIF GPS parsing with proximity snapping that aligns phone GPS drift to official stores."
+        },
+        {
+          capability: "CapEx Replacement Projections",
+          standard: "Static Lists: Outputs replacement dates, requiring offline Excel math to calculate future inflated budgets.",
+          stochos: "Dynamic Inflation Forecasting: 10-year interactive timeline compounding costs based on each asset's original deployment year."
+        },
+        {
+          capability: "Financial Ledger Syncing",
+          standard: "Isolated CSV dumps: Requires manual copy-pasting of ledgers between inventory tools and ERP systems.",
+          stochos: "Prisma Sync & GASB 34: One-click sync to Division Budget proposals and direct integration with GASB 34 financial statements."
+        },
+        {
+          capability: "Scale & Performance",
+          standard: "Interface Lag: UI starts freezing or search lags when handling over 10,000 asset rows in the browser.",
+          stochos: "DOM Pagination & Debounced Search: Handles 45,000+ assets instantly via sliced rendering views and debounced keystroke query delays."
+        }
+      ]
     }
   },
   {

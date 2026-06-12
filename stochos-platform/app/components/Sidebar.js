@@ -51,11 +51,6 @@ const navItems = [
       { href: "/fleet", label: "Fleet", icon: <Car size={18} /> },
       { href: "/vendors", label: "Vendors", icon: <Building2 size={18} /> },
       { href: "/spatial-ops", label: "Spatial Ops, Logistics & Risk (SOLR)", icon: <Globe size={18} /> },
-    ],
-  },
-  {
-    section: "Information Technology",
-    items: [
       { href: "/assets", label: "Asset Management", icon: <Monitor size={18} /> },
     ],
   },

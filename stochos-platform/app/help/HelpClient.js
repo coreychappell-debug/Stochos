@@ -283,6 +283,23 @@ export default function HelpClient() {
             >
               Use-Case Examples & Tips
             </button>
+            {selectedGuide.content.comparison && (
+              <button
+                onClick={() => setActiveTab("comparison")}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  backgroundColor: activeTab === "comparison" ? "var(--surface-3)" : "transparent",
+                  color: activeTab === "comparison" ? "var(--primary)" : "var(--text-secondary)",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                Sales &amp; Industry Standards
+              </button>
+            )}
           </div>
 
           {/* Article Body Content */}
@@ -347,6 +364,35 @@ export default function HelpClient() {
                     <AlertTriangle size={16} /> Operational Tip
                   </h4>
                   <p style={{ margin: 0, fontSize: "13px" }}>{selectedGuide.content.tips}</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "comparison" && selectedGuide.content.comparison && (
+              <div>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: "15px", fontWeight: "600" }}>Sales Positioning &amp; Industry Standards Comparison</h4>
+                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+                  Stochos provides a best-in-class, low-infrastructure asset registry optimized for remote networks, retail hardware, and physical inventory.
+                </p>
+                <div style={{ overflowX: "auto" }}>
+                  <table className="data-table" style={{ fontSize: "13px", width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", width: "25%" }}>Capability</th>
+                        <th style={{ textAlign: "left", width: "35%" }}>Standard Low-Infra Tools</th>
+                        <th style={{ textAlign: "left", width: "40%" }}>Stochos Asset Management</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedGuide.content.comparison.map((row, idx) => (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: "600" }}>{row.capability}</td>
+                          <td className="muted">{row.standard}</td>
+                          <td style={{ color: "var(--blue)", fontWeight: "600" }}>{row.stochos}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
