@@ -1064,6 +1064,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   const [sandboxPage, setSandboxPage] = useState(1);
   const [sandboxPageSize, setSandboxPageSize] = useState(50);
   const [selectedForecastYear, setSelectedForecastYear] = useState(new Date().getFullYear());
+  const [forecastingCategoryFilter, setForecastingCategoryFilter] = useState("all");
 
   const filtered = useMemo(() => {
     return assets.filter((a) => {
@@ -1429,6 +1430,11 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     });
 
     assets.forEach(a => {
+      // Filter by forecasting category!
+      if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) {
+        return;
+      }
+
       const eolDate = getAssetUsefulLifeEndDate(a);
       if (eolDate) {
         let eolYear = eolDate.getFullYear();
@@ -1456,7 +1462,29 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
       count: yearlyCounts[yr],
       categories: yearlyCategoryBreakdown[yr]
     }));
-  }, [assets]);
+  }, [assets, forecastingCategoryFilter]);
+
+  // List of individual assets expiring in the selected forecast year
+  const selectedYearAssets = useMemo(() => {
+    const startYear = new Date().getFullYear();
+    return assets.filter(a => {
+      // Category filter
+      if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) {
+        return false;
+      }
+      
+      // EOL Year check
+      const eolDate = getAssetUsefulLifeEndDate(a);
+      if (!eolDate) return false;
+      
+      let eolYear = eolDate.getFullYear();
+      if (eolYear < startYear) {
+        eolYear = startYear; // Backlog grouped in current year
+      }
+      
+      return eolYear === selectedForecastYear;
+    });
+  }, [assets, forecastingCategoryFilter, selectedForecastYear]);
 
   const paginatedSandboxRows = useMemo(() => {
     const startIndex = (sandboxPage - 1) * sandboxPageSize;
@@ -1647,6 +1675,52 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
 
   const handleDownloadTemplate = () => {
     window.open("/api/assets/template", "_blank");
+  };
+
+  const handleExportForecastingCsv = (assetsToExport, filename) => {
+    const headers = [
+      "Asset Tag", 
+      "Name", 
+      "Category", 
+      "Serial Number", 
+      "Status", 
+      "Replacement Cost (Value)", 
+      "Purchase Date", 
+      "Useful Life (Months)", 
+      "Useful Life End Date", 
+      "Deployment Type", 
+      "Location"
+    ];
+    
+    const rows = assetsToExport.map(a => {
+      const eolDate = getAssetUsefulLifeEndDate(a);
+      const locationName = a.deploymentType === "retail" 
+        ? (a.retailer?.name || a.retailerId || "Unassigned")
+        : (a.orgUnit?.name || a.orgUnitId || "Unassigned");
+      return [
+        a.assetTag,
+        a.name,
+        CATEGORIES[a.category] || a.category,
+        a.serialNumber || "",
+        ASSET_STATUSES[a.status] || a.status,
+        a.value ? parseFloat(a.value).toFixed(2) : "0.00",
+        a.purchaseDate ? new Date(a.purchaseDate).toISOString().split("T")[0] : "",
+        a.usefulLifeMonths || "36",
+        eolDate ? eolDate.toISOString().split("T")[0] : "",
+        a.deploymentType || "retail",
+        locationName
+      ].map(val => `"${String(val).replace(/"/g, '""')}"`);
+    });
+
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleImportCsv = async (e) => {
@@ -2474,7 +2548,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                 <div className="kpi-value">
                   ${forecastingData.reduce((sum, d) => sum + d.cost, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
-                <div className="kpi-subtitle">Sum value of all expiring assets</div>
+                <div className="kpi-subtitle">Sum value of expiring {forecastingCategoryFilter === "all" ? "assets" : `${CATEGORIES[forecastingCategoryFilter]}s`}</div>
               </div>
               <div className="kpi-card kpi-purple">
                 <div className="kpi-label">Total Assets in Cycle</div>
@@ -2488,15 +2562,61 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                 <div className="kpi-value">
                   ${(forecastingData.find(d => d.year === new Date().getFullYear())?.cost || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
-                <div className="kpi-subtitle">Assets currently past useful life limit</div>
+                <div className="kpi-subtitle">Assets past useful life limit</div>
               </div>
             </div>
 
             {/* Timelines Visualizer Card */}
             <div className="card" style={{ padding: "24px" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text)", marginBottom: "20px" }}>
-                10-Year Lifecycle Replacement Timeline
-              </h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <h3 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text)", margin: 0 }}>
+                    10-Year Lifecycle Replacement Timeline
+                  </h3>
+                  <p className="muted" style={{ fontSize: "12px", marginTop: "2px" }}>
+                    Select a year bar below to view details and list individual assets.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px" }}
+                  onClick={() => {
+                    const tenYearAssets = assets.filter(a => {
+                      if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) return false;
+                      const eolDate = getAssetUsefulLifeEndDate(a);
+                      return !!eolDate;
+                    });
+                    handleExportForecastingCsv(tenYearAssets, `stochos_expiring_assets_10year_${forecastingCategoryFilter}.csv`);
+                  }}
+                  title="Download all assets in the 10-year timeline matching the current filter"
+                >
+                  <Download size={14} /> Export 10-Year Timeline
+                </button>
+              </div>
+
+              {/* Equipment Type Category Filter Navigation */}
+              <div className="tab-nav" style={{ display: "flex", gap: "4px", overflowX: "auto", borderBottom: "1px solid var(--border)", paddingBottom: "2px", marginBottom: "20px" }}>
+                <button
+                  type="button"
+                  className={`tab-btn ${forecastingCategoryFilter === "all" ? "active" : ""}`}
+                  onClick={() => setForecastingCategoryFilter("all")}
+                  style={{ padding: "8px 12px", fontSize: "12px" }}
+                >
+                  All Equipment
+                </button>
+                {Object.entries(CATEGORIES).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`tab-btn ${forecastingCategoryFilter === key ? "active" : ""}`}
+                    onClick={() => setForecastingCategoryFilter(key)}
+                    style={{ padding: "8px 12px", fontSize: "12px" }}
+                  >
+                    {label}s
+                  </button>
+                ))}
+              </div>
               
               <div style={{
                 display: "flex",
@@ -2615,17 +2735,30 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                       if (!yearData) return null;
                       const yearTotalCost = yearData.cost || 1;
 
-                      return Object.entries(yearData.categories).map(([catKey, data]) => {
-                        const pctOfTotal = ((data.cost / yearTotalCost) * 100).toFixed(1);
+                      const renderedRows = Object.entries(yearData.categories)
+                        .filter(([catKey]) => forecastingCategoryFilter === "all" || catKey === forecastingCategoryFilter)
+                        .map(([catKey, data]) => {
+                          const pctOfTotal = ((data.cost / yearTotalCost) * 100).toFixed(1);
+                          return (
+                            <tr key={catKey}>
+                              <td style={{ fontWeight: 600 }}>{CATEGORIES[catKey] || catKey}</td>
+                              <td>{data.count}</td>
+                              <td>${data.cost.toLocaleString()}</td>
+                              <td className="muted">{pctOfTotal}%</td>
+                            </tr>
+                          );
+                        });
+
+                      if (renderedRows.length === 0) {
                         return (
-                          <tr key={catKey}>
-                            <td style={{ fontWeight: 600 }}>{CATEGORIES[catKey] || catKey}</td>
-                            <td>{data.count}</td>
-                            <td>${data.cost.toLocaleString()}</td>
-                            <td className="muted">{pctOfTotal}%</td>
+                          <tr>
+                            <td colSpan="4" style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                              No expiring assets for the selected category.
+                            </td>
                           </tr>
                         );
-                      });
+                      }
+                      return renderedRows;
                     })()}
                   </tbody>
                 </table>
@@ -2648,6 +2781,82 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Detailed Assets Expiring Table */}
+            <div className="card" style={{ padding: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                <h4 style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", margin: 0 }}>
+                  Detailed Assets Expiring in {selectedForecastYear} ({selectedYearAssets.length} Items)
+                </h4>
+                {selectedYearAssets.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px" }}
+                    onClick={() => handleExportForecastingCsv(selectedYearAssets, `stochos_expiring_assets_${selectedForecastYear}_${forecastingCategoryFilter}.csv`)}
+                    title="Download list of expiring assets in selected year as CSV"
+                  >
+                    <Download size={14} /> Export Selected Year CSV
+                  </button>
+                )}
+              </div>
+
+              {selectedYearAssets.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "var(--text-secondary)", fontSize: "13px" }}>
+                  No hardware assets are scheduled to reach the end of their useful life in {selectedForecastYear}.
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Asset Tag</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Serial Number</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th>Useful Life End</th>
+                        <th style={{ textAlign: "right" }}>Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedYearAssets.map(a => {
+                        const eolDate = getAssetUsefulLifeEndDate(a);
+                        const locationName = a.deploymentType === "retail" 
+                          ? (a.retailer?.name || a.retailerId || "Unassigned")
+                          : (a.orgUnit?.name || a.orgUnitId || "Unassigned");
+                        return (
+                          <tr key={a.id} className="hover-row">
+                            <td style={{ fontWeight: 600 }}>
+                              <span 
+                                onClick={() => setSelectedAsset(a)} 
+                                style={{ color: "var(--blue)", cursor: "pointer", textDecoration: "underline" }}
+                              >
+                                {a.assetTag}
+                              </span>
+                            </td>
+                            <td>{a.name}</td>
+                            <td>{CATEGORIES[a.category] || a.category}</td>
+                            <td className="muted">{a.serialNumber || "—"}</td>
+                            <td>
+                              <span className={`badge badge-${a.status === "available" ? "passed" : a.status === "repair" ? "warning" : a.status === "retired" ? "failed" : "draft"}`}>
+                                {ASSET_STATUSES[a.status] || a.status}
+                              </span>
+                            </td>
+                            <td>{locationName}</td>
+                            <td>{eolDate ? eolDate.toISOString().split("T")[0] : "—"}</td>
+                            <td style={{ textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
+                              ${(a.value ? parseFloat(a.value) : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         ) : (
