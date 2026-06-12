@@ -158,6 +158,11 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     setCurrentPage(1);
   }, [search, categoryFilter, statusFilter, deploymentFilter, dormantFilterOnly]);
 
+  // Reset forecast pagination to page 1 when selected year or category filter changes
+  useEffect(() => {
+    setForecastPage(1);
+  }, [selectedForecastYear, forecastingCategoryFilter]);
+
   // Open highlight asset on load (for deep link scanning)
   useEffect(() => {
     if (highlightId) {
@@ -1046,6 +1051,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
 
   // EOL & Useful Life Helpers
   const getAssetUsefulLifeEndDate = (a) => {
+    if (a._eolDate) return a._eolDate;
     const startDate = a.purchaseDate ? new Date(a.purchaseDate) : (a.createdAt ? new Date(a.createdAt) : new Date());
     const date = new Date(startDate);
     const usefulMonths = a.usefulLifeMonths || 36;
@@ -1054,6 +1060,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   };
 
   const getAssetRemainingMonths = (a) => {
+    if (a._remainingMonths !== undefined) return a._remainingMonths;
     const endDate = getAssetUsefulLifeEndDate(a);
     const diffTime = endDate - new Date();
     const remainingMonths = diffTime / (1000 * 60 * 60 * 24 * 30.4375);
@@ -1065,9 +1072,35 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   const [sandboxPageSize, setSandboxPageSize] = useState(50);
   const [selectedForecastYear, setSelectedForecastYear] = useState(new Date().getFullYear());
   const [forecastingCategoryFilter, setForecastingCategoryFilter] = useState("all");
+  const [forecastPage, setForecastPage] = useState(1);
+  const forecastPageSize = 50;
+
+  // Pre-calculate useful life dates and location names for fast indexing/rendering
+  const enrichedAssets = useMemo(() => {
+    return assets.map(a => {
+      const startDate = a.purchaseDate ? new Date(a.purchaseDate) : (a.createdAt ? new Date(a.createdAt) : new Date());
+      const eolDate = new Date(startDate);
+      const usefulMonths = a.usefulLifeMonths || 36;
+      eolDate.setMonth(eolDate.getMonth() + usefulMonths);
+      
+      const diffTime = eolDate - new Date();
+      const remainingMonths = diffTime / (1000 * 60 * 60 * 24 * 30.4375);
+      
+      const locationName = a.deploymentType === "retail"
+        ? (a.retailer?.name || a.retailerId || "Unassigned")
+        : (a.orgUnit?.name || a.orgUnitId || "Unassigned");
+        
+      return {
+        ...a,
+        _eolDate: eolDate,
+        _remainingMonths: remainingMonths,
+        _locationName: locationName
+      };
+    });
+  }, [assets]);
 
   const filtered = useMemo(() => {
-    return assets.filter((a) => {
+    return enrichedAssets.filter((a) => {
       if (categoryFilter !== "all" && a.category !== categoryFilter) return false;
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
       
@@ -1429,7 +1462,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
       });
     });
 
-    assets.forEach(a => {
+    enrichedAssets.forEach(a => {
       // Filter by forecasting category!
       if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) {
         return;
@@ -1462,12 +1495,12 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
       count: yearlyCounts[yr],
       categories: yearlyCategoryBreakdown[yr]
     }));
-  }, [assets, forecastingCategoryFilter]);
+  }, [enrichedAssets, forecastingCategoryFilter]);
 
   // List of individual assets expiring in the selected forecast year
   const selectedYearAssets = useMemo(() => {
     const startYear = new Date().getFullYear();
-    return assets.filter(a => {
+    return enrichedAssets.filter(a => {
       // Category filter
       if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) {
         return false;
@@ -1484,7 +1517,13 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
       
       return eolYear === selectedForecastYear;
     });
-  }, [assets, forecastingCategoryFilter, selectedForecastYear]);
+  }, [enrichedAssets, forecastingCategoryFilter, selectedForecastYear]);
+
+  // Paginated expiring assets for selected year (limits DOM rendering lag)
+  const paginatedForecastAssets = useMemo(() => {
+    const startIndex = (forecastPage - 1) * forecastPageSize;
+    return selectedYearAssets.slice(startIndex, startIndex + forecastPageSize);
+  }, [selectedYearAssets, forecastPage]);
 
   const paginatedSandboxRows = useMemo(() => {
     const startIndex = (sandboxPage - 1) * sandboxPageSize;
@@ -1492,7 +1531,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   }, [sandboxRows, sandboxPage, sandboxPageSize]);
 
   const plannerAssets = useMemo(() => {
-    return assets.filter((a) => {
+    return enrichedAssets.filter((a) => {
       const remainingMonths = getAssetRemainingMonths(a);
       if (lifeLeftFilter === "expired") {
         return remainingMonths <= 0;
@@ -1508,7 +1547,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
       }
       return true;
     });
-  }, [assets, lifeLeftFilter]);
+  }, [enrichedAssets, lifeLeftFilter]);
 
   const assetsByDate = useMemo(() => {
     const map = {};
@@ -2808,7 +2847,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                 </div>
               ) : (
                 <div style={{ overflowX: "auto" }}>
-                  <table className="data-table">
+                  <table className="data-table" style={{ marginBottom: "10px" }}>
                     <thead>
                       <tr>
                         <th>Asset Tag</th>
@@ -2822,11 +2861,9 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedYearAssets.map(a => {
-                        const eolDate = getAssetUsefulLifeEndDate(a);
-                        const locationName = a.deploymentType === "retail" 
-                          ? (a.retailer?.name || a.retailerId || "Unassigned")
-                          : (a.orgUnit?.name || a.orgUnitId || "Unassigned");
+                      {paginatedForecastAssets.map(a => {
+                        const eolDate = a._eolDate;
+                        const locationName = a._locationName;
                         return (
                           <tr key={a.id} className="hover-row">
                             <td style={{ fontWeight: 600 }}>
@@ -2855,6 +2892,56 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                       })}
                     </tbody>
                   </table>
+
+                  {/* Forecast List Pagination Controls */}
+                  {selectedYearAssets.length > forecastPageSize && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", padding: "10px 0", borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: "10px" }}>
+                      <div className="muted" style={{ fontSize: "13px" }}>
+                        Showing {(forecastPage - 1) * forecastPageSize + 1} to {Math.min(forecastPage * forecastPageSize, selectedYearAssets.length)} of {selectedYearAssets.length} expiring items
+                      </div>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 10px", fontSize: "12px" }}
+                          disabled={forecastPage === 1}
+                          onClick={() => setForecastPage(1)}
+                        >
+                          First
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 10px", fontSize: "12px" }}
+                          disabled={forecastPage === 1}
+                          onClick={() => setForecastPage(prev => Math.max(1, prev - 1))}
+                        >
+                          Prev
+                        </button>
+                        <span style={{ display: "inline-flex", alignItems: "center", padding: "0 10px", fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                          Page {forecastPage} of {Math.ceil(selectedYearAssets.length / forecastPageSize)}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 10px", fontSize: "12px" }}
+                          disabled={forecastPage === Math.ceil(selectedYearAssets.length / forecastPageSize)}
+                          onClick={() => setForecastPage(prev => Math.min(Math.ceil(selectedYearAssets.length / forecastPageSize), prev + 1))}
+                        >
+                          Next
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: "4px 10px", fontSize: "12px" }}
+                          disabled={forecastPage === Math.ceil(selectedYearAssets.length / forecastPageSize)}
+                          onClick={() => setForecastPage(Math.ceil(selectedYearAssets.length / forecastPageSize))}
+                        >
+                          Last
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
