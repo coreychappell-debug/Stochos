@@ -1074,6 +1074,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   const [forecastingCategoryFilter, setForecastingCategoryFilter] = useState("all");
   const [forecastPage, setForecastPage] = useState(1);
   const forecastPageSize = 50;
+  const [inflationRate, setInflationRate] = useState(3.0);
 
   // Pre-calculate useful life dates and location names for fast indexing/rendering
   const enrichedAssets = useMemo(() => {
@@ -1450,15 +1451,17 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     const startYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => startYear + i);
     const yearlyCosts = {};
+    const yearlyInflatedCosts = {};
     const yearlyCounts = {};
     const yearlyCategoryBreakdown = {};
 
     years.forEach(yr => {
       yearlyCosts[yr] = 0;
+      yearlyInflatedCosts[yr] = 0;
       yearlyCounts[yr] = 0;
       yearlyCategoryBreakdown[yr] = {};
       Object.keys(CATEGORIES).forEach(cat => {
-        yearlyCategoryBreakdown[yr][cat] = { cost: 0, count: 0 };
+        yearlyCategoryBreakdown[yr][cat] = { cost: 0, inflatedCost: 0, count: 0 };
       });
     });
 
@@ -1476,14 +1479,21 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
         }
         if (yearlyCosts[eolYear] !== undefined) {
           const cost = a.value ? parseFloat(a.value) : 0;
+          
+          // Inflation Math: cost * (1 + r)^n
+          const n = Math.max(0, eolYear - startYear);
+          const inflatedCost = cost * Math.pow(1 + (inflationRate / 100), n);
+          
           yearlyCosts[eolYear] += cost;
+          yearlyInflatedCosts[eolYear] += inflatedCost;
           yearlyCounts[eolYear] += 1;
           
           const cat = a.category || "other";
           if (!yearlyCategoryBreakdown[eolYear][cat]) {
-            yearlyCategoryBreakdown[eolYear][cat] = { cost: 0, count: 0 };
+            yearlyCategoryBreakdown[eolYear][cat] = { cost: 0, inflatedCost: 0, count: 0 };
           }
           yearlyCategoryBreakdown[eolYear][cat].cost += cost;
+          yearlyCategoryBreakdown[eolYear][cat].inflatedCost += inflatedCost;
           yearlyCategoryBreakdown[eolYear][cat].count += 1;
         }
       }
@@ -1492,10 +1502,11 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     return years.map(yr => ({
       year: yr,
       cost: yearlyCosts[yr],
+      inflatedCost: yearlyInflatedCosts[yr],
       count: yearlyCounts[yr],
       categories: yearlyCategoryBreakdown[yr]
     }));
-  }, [enrichedAssets, forecastingCategoryFilter]);
+  }, [enrichedAssets, forecastingCategoryFilter, inflationRate]);
 
   // List of individual assets expiring in the selected forecast year
   const selectedYearAssets = useMemo(() => {
@@ -1717,13 +1728,15 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
   };
 
   const handleExportForecastingCsv = (assetsToExport, filename) => {
+    const startYear = new Date().getFullYear();
     const headers = [
       "Asset Tag", 
       "Name", 
       "Category", 
       "Serial Number", 
       "Status", 
-      "Replacement Cost (Value)", 
+      "Flat Cost (Value)", 
+      "Inflated Cost", 
       "Purchase Date", 
       "Useful Life (Months)", 
       "Useful Life End Date", 
@@ -1733,16 +1746,22 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     
     const rows = assetsToExport.map(a => {
       const eolDate = getAssetUsefulLifeEndDate(a);
-      const locationName = a.deploymentType === "retail" 
+      const eolYear = eolDate ? eolDate.getFullYear() : startYear;
+      const flatCost = a.value ? parseFloat(a.value) : 0;
+      const n = Math.max(0, eolYear - startYear);
+      const inflatedCost = flatCost * Math.pow(1 + (inflationRate / 100), n);
+      const locationName = a._locationName || (a.deploymentType === "retail" 
         ? (a.retailer?.name || a.retailerId || "Unassigned")
-        : (a.orgUnit?.name || a.orgUnitId || "Unassigned");
+        : (a.orgUnit?.name || a.orgUnitId || "Unassigned"));
+
       return [
         a.assetTag,
         a.name,
         CATEGORIES[a.category] || a.category,
         a.serialNumber || "",
         ASSET_STATUSES[a.status] || a.status,
-        a.value ? parseFloat(a.value).toFixed(2) : "0.00",
+        flatCost.toFixed(2),
+        inflatedCost.toFixed(2),
         a.purchaseDate ? new Date(a.purchaseDate).toISOString().split("T")[0] : "",
         a.usefulLifeMonths || "36",
         eolDate ? eolDate.toISOString().split("T")[0] : "",
@@ -2583,11 +2602,13 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
             {/* Top Stats Cards */}
             <div className="kpi-grid" style={{ marginBottom: 0 }}>
               <div className="kpi-card kpi-blue">
-                <div className="kpi-label">10-Year Projected Capital Requirement</div>
+                <div className="kpi-label">10-Year Projected Capital (Adjusted)</div>
                 <div className="kpi-value">
-                  ${forecastingData.reduce((sum, d) => sum + d.cost, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  ${forecastingData.reduce((sum, d) => sum + d.inflatedCost, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
-                <div className="kpi-subtitle">Sum value of expiring {forecastingCategoryFilter === "all" ? "assets" : `${CATEGORIES[forecastingCategoryFilter]}s`}</div>
+                <div className="kpi-subtitle">
+                  Flat CapEx: ${forecastingData.reduce((sum, d) => sum + d.cost, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
               </div>
               <div className="kpi-card kpi-purple">
                 <div className="kpi-label">Total Assets in Cycle</div>
@@ -2599,39 +2620,72 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
               <div className="kpi-card kpi-gold">
                 <div className="kpi-label">Current Backlog (Overdue)</div>
                 <div className="kpi-value">
-                  ${(forecastingData.find(d => d.year === new Date().getFullYear())?.cost || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  ${(forecastingData.find(d => d.year === new Date().getFullYear())?.inflatedCost || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
-                <div className="kpi-subtitle">Assets past useful life limit</div>
+                <div className="kpi-subtitle">Past EOL backlog requirements</div>
               </div>
             </div>
 
             {/* Timelines Visualizer Card */}
             <div className="card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "16px" }}>
                 <div>
                   <h3 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text)", margin: 0 }}>
-                    10-Year Lifecycle Replacement Timeline
+                    10-Year Lifecycle Replacement Timeline (Inflation Adjusted)
                   </h3>
                   <p className="muted" style={{ fontSize: "12px", marginTop: "2px" }}>
                     Select a year bar below to view details and list individual assets.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px" }}
-                  onClick={() => {
-                    const tenYearAssets = assets.filter(a => {
-                      if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) return false;
-                      const eolDate = getAssetUsefulLifeEndDate(a);
-                      return !!eolDate;
-                    });
-                    handleExportForecastingCsv(tenYearAssets, `stochos_expiring_assets_10year_${forecastingCategoryFilter}.csv`);
-                  }}
-                  title="Download all assets in the 10-year timeline matching the current filter"
-                >
-                  <Download size={14} /> Export 10-Year Timeline
-                </button>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)" }}>
+                      Annual Inflation Rate:
+                    </label>
+                    <div style={{ position: "relative", display: "inline-block" }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.1"
+                        value={inflationRate}
+                        onChange={(e) => setInflationRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                        style={{
+                          width: "70px",
+                          padding: "4px 20px 4px 8px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          background: "var(--surface-3)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "4px",
+                          color: "var(--text)",
+                          textAlign: "right"
+                        }}
+                      />
+                      <span style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "12px", color: "var(--text-secondary)", pointerEvents: "none" }}>
+                        %
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px" }}
+                    onClick={() => {
+                      const tenYearAssets = assets.filter(a => {
+                        if (forecastingCategoryFilter !== "all" && a.category !== forecastingCategoryFilter) return false;
+                        const eolDate = getAssetUsefulLifeEndDate(a);
+                        return !!eolDate;
+                      });
+                      handleExportForecastingCsv(tenYearAssets, `stochos_expiring_assets_10year_${forecastingCategoryFilter}.csv`);
+                    }}
+                    title="Download all assets in the 10-year timeline matching the current filter"
+                  >
+                    <Download size={14} /> Export 10-Year Timeline
+                  </button>
+                </div>
               </div>
 
               {/* Equipment Type Category Filter Navigation */}
@@ -2668,8 +2722,8 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                 margin: "0 10px 10px 10px"
               }}>
                 {forecastingData.map((d) => {
-                  const maxVal = Math.max(...forecastingData.map(y => y.cost), 1);
-                  const pct = (d.cost / maxVal) * 100;
+                  const maxVal = Math.max(...forecastingData.map(y => y.inflatedCost), 1);
+                  const pct = (d.inflatedCost / maxVal) * 100;
                   const isSelected = selectedForecastYear === d.year;
                   const isCurrent = d.year === new Date().getFullYear();
                   
@@ -2700,7 +2754,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                         color: "var(--text)",
                         opacity: isSelected ? 1 : 0.7
                       }}>
-                        ${(d.cost / 1000000).toFixed(1)}M
+                        ${(d.inflatedCost / 1000000).toFixed(1)}M
                       </div>
 
                       <div style={{
@@ -2755,7 +2809,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                 <h4 style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span>Replacement Category Details: {selectedForecastYear}</span>
                   <span style={{ fontSize: "12px", fontWeight: "normal", color: "var(--text-secondary)" }}>
-                    Selected Year Capital: ${ (forecastingData.find(d => d.year === selectedForecastYear)?.cost || 0).toLocaleString() }
+                    Selected Year Capital (Inflated): ${ (forecastingData.find(d => d.year === selectedForecastYear)?.inflatedCost || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }) }
                   </span>
                 </h4>
 
@@ -2764,7 +2818,8 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                     <tr>
                       <th>Category</th>
                       <th>Assets Expiring</th>
-                      <th>Projected CapEx Cost</th>
+                      <th>Flat CapEx Cost</th>
+                      <th>Projected Cost ({inflationRate}%)</th>
                       <th>% of Year Capital</th>
                     </tr>
                   </thead>
@@ -2772,17 +2827,18 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                     {(() => {
                       const yearData = forecastingData.find(d => d.year === selectedForecastYear);
                       if (!yearData) return null;
-                      const yearTotalCost = yearData.cost || 1;
+                      const yearTotalCost = yearData.inflatedCost || 1;
 
                       const renderedRows = Object.entries(yearData.categories)
                         .filter(([catKey]) => forecastingCategoryFilter === "all" || catKey === forecastingCategoryFilter)
                         .map(([catKey, data]) => {
-                          const pctOfTotal = ((data.cost / yearTotalCost) * 100).toFixed(1);
+                          const pctOfTotal = ((data.inflatedCost / yearTotalCost) * 100).toFixed(1);
                           return (
                             <tr key={catKey}>
                               <td style={{ fontWeight: 600 }}>{CATEGORIES[catKey] || catKey}</td>
                               <td>{data.count}</td>
                               <td>${data.cost.toLocaleString()}</td>
+                              <td style={{ color: "var(--blue)", fontWeight: "600" }}>${Math.round(data.inflatedCost).toLocaleString()}</td>
                               <td className="muted">{pctOfTotal}%</td>
                             </tr>
                           );
@@ -2791,7 +2847,7 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                       if (renderedRows.length === 0) {
                         return (
                           <tr>
-                            <td colSpan="4" style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                            <td colSpan="5" style={{ textAlign: "center", color: "var(--text-secondary)" }}>
                               No expiring assets for the selected category.
                             </td>
                           </tr>
@@ -2857,13 +2913,18 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                         <th>Status</th>
                         <th>Location</th>
                         <th>Useful Life End</th>
-                        <th style={{ textAlign: "right" }}>Cost</th>
+                        <th style={{ textAlign: "right" }}>Flat Cost</th>
+                        <th style={{ textAlign: "right" }}>Inflated Cost ({inflationRate}%)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedForecastAssets.map(a => {
                         const eolDate = a._eolDate;
                         const locationName = a._locationName;
+                        const flatCost = a.value ? parseFloat(a.value) : 0;
+                        const n = Math.max(0, selectedForecastYear - new Date().getFullYear());
+                        const inflatedCost = flatCost * Math.pow(1 + (inflationRate / 100), n);
+                        
                         return (
                           <tr key={a.id} className="hover-row">
                             <td style={{ fontWeight: 600 }}>
@@ -2885,7 +2946,10 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                             <td>{locationName}</td>
                             <td>{eolDate ? eolDate.toISOString().split("T")[0] : "—"}</td>
                             <td style={{ textAlign: "right", fontFamily: "var(--font-mono, monospace)" }}>
-                              ${(a.value ? parseFloat(a.value) : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              ${flatCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ textAlign: "right", fontFamily: "var(--font-mono, monospace)", color: "var(--blue)", fontWeight: "600" }}>
+                              ${inflatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                           </tr>
                         );
