@@ -1096,7 +1096,8 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
         ...a,
         _eolDate: eolDate,
         _remainingMonths: remainingMonths,
-        _locationName: locationName
+        _locationName: locationName,
+        _purchaseYear: startDate.getFullYear()
       };
     });
   }, [assets]);
@@ -1481,8 +1482,9 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
         if (yearlyCosts[eolYear] !== undefined) {
           const cost = a.value ? parseFloat(a.value) : 0;
           
-          // Inflation Math: cost * (1 + r)^n
-          const n = Math.max(0, eolYear - startYear);
+          // Inflation Math: cost * (1 + r)^n (compounded from purchase/deployment year to replacement year)
+          const purchaseYear = a._purchaseYear || (a.purchaseDate ? new Date(a.purchaseDate).getFullYear() : (a.createdAt ? new Date(a.createdAt).getFullYear() : startYear));
+          const n = Math.max(0, eolYear - purchaseYear);
           const inflatedCost = cost * Math.pow(1 + (inflationRate / 100), n);
           
           yearlyCosts[eolYear] += cost;
@@ -1747,9 +1749,13 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
     
     const rows = assetsToExport.map(a => {
       const eolDate = getAssetUsefulLifeEndDate(a);
-      const eolYear = eolDate ? eolDate.getFullYear() : startYear;
+      let eolYear = eolDate ? eolDate.getFullYear() : startYear;
+      if (eolYear < startYear) {
+        eolYear = startYear; // Group backlog in current year
+      }
       const flatCost = a.value ? parseFloat(a.value) : 0;
-      const n = Math.max(0, eolYear - startYear);
+      const purchaseYear = a._purchaseYear || (a.purchaseDate ? new Date(a.purchaseDate).getFullYear() : (a.createdAt ? new Date(a.createdAt).getFullYear() : startYear));
+      const n = Math.max(0, eolYear - purchaseYear);
       const inflatedCost = flatCost * Math.pow(1 + (inflationRate / 100), n);
       const locationName = a._locationName || (a.deploymentType === "retail" 
         ? (a.retailer?.name || a.retailerId || "Unassigned")
@@ -2923,7 +2929,8 @@ export default function AssetsClient({ initialAssets, jurisdictions, users, orgU
                         const eolDate = a._eolDate;
                         const locationName = a._locationName;
                         const flatCost = a.value ? parseFloat(a.value) : 0;
-                        const n = Math.max(0, selectedForecastYear - new Date().getFullYear());
+                        const purchaseYear = a._purchaseYear || (a.purchaseDate ? new Date(a.purchaseDate).getFullYear() : (a.createdAt ? new Date(a.createdAt).getFullYear() : selectedForecastYear));
+                        const n = Math.max(0, selectedForecastYear - purchaseYear);
                         const inflatedCost = flatCost * Math.pow(1 + (inflationRate / 100), n);
                         
                         return (
