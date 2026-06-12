@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { acquireLock, releaseLock } from "@/lib/jobLock";
 
 export async function POST(request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const lockKey = "vendors-import";
+  const lockResult = await acquireLock(
+    lockKey,
+    session.user.id || 'system',
+    session.user.name || 'System',
+    "Import Vendors CSV",
+    60
+  );
+
+  if (!lockResult.success) {
+    return NextResponse.json(
+      { error: `A job is currently running on the server: ${lockResult.activeLock.description} started by ${lockResult.activeLock.userName}.` },
+      { status: 429 }
+    );
+  }
 
   try {
     const records = await request.json();
@@ -147,5 +164,7 @@ export async function POST(request) {
     return NextResponse.json({ success: true, createdCount, updatedCount });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  } finally {
+    await releaseLock(lockKey);
   }
 }

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { KeyRound, AlertTriangle, CheckCircle, Link2, Lock, Check } from 'lucide-react';
+import HelpTrigger from '@/app/components/HelpTrigger';
 
 const MOCK_USERS = [
   { id: 'b0627c6d-3a14-417b-b098-b38276797f9d', name: 'Platform Admin', email: 'admin@stochos.io', role: 'admin' },
@@ -190,7 +192,7 @@ export default function RegistryClient() {
       {/* simulated user switcher bar */}
       <div style={{ background: 'var(--status-passed-bg)', border: '1px solid var(--status-passed-border)', padding: '12px 24px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '18px', color: 'var(--status-passed-text)' }}>🔐</span>
+          <KeyRound size={18} style={{ color: 'var(--status-passed-text)' }} />
           <div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Governed Actor Session</div>
             <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--status-passed-text)' }}>
@@ -225,23 +227,26 @@ export default function RegistryClient() {
             Define metrics and formula dependency DAGs with compliance checking.
           </p>
         </div>
-        <button 
-          onClick={() => router.push('/reporting')}
-          style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-        >
-          Back to Dashboard
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <HelpTrigger topicId="reporting_registry" />
+          <button 
+            onClick={() => router.push('/reporting')}
+            style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
 
       {/* Feedback messages */}
       {errorMsg && (
         <div style={{ padding: '16px', background: 'var(--status-failed-bg)', border: '1px solid var(--status-failed-border)', color: 'var(--status-failed-text)', borderRadius: '8px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
-          <span>⚠️</span> {errorMsg}
+          <AlertTriangle size={18} /> {errorMsg}
         </div>
       )}
       {successMsg && (
         <div style={{ padding: '16px', background: 'var(--status-passed-bg)', border: '1px solid var(--status-passed-border)', color: 'var(--status-passed-text)', borderRadius: '8px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
-          <span>✅</span> {successMsg}
+          <CheckCircle size={18} /> {successMsg}
         </div>
       )}
 
@@ -453,8 +458,8 @@ export default function RegistryClient() {
                                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>Dependencies:</span>
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                     {deps.map(depId => (
-                                      <span key={depId} style={{ fontSize: '11px', background: 'var(--card-bg)', border: '1px solid var(--border)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>
-                                        🔗 {resolveMetricName(depId)}
+                                      <span key={depId} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', background: 'var(--card-bg)', border: '1px solid var(--border)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>
+                                        <Link2 size={10} /> {resolveMetricName(depId)}
                                       </span>
                                     ))}
                                   </div>
@@ -466,14 +471,14 @@ export default function RegistryClient() {
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '12px' }}>
                                   {isCreator ? (
                                     <div style={{ color: 'var(--status-warning-text)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                                      <span>🔒</span> Self-Approval Blocked (Created by You)
+                                      <Lock size={12} /> Self-Approval Blocked (Created by You)
                                     </div>
                                   ) : (
                                     <button 
                                       onClick={() => handleApproveCalculation(calc.id)}
-                                      style={{ padding: '6px 16px', background: 'var(--green)', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', boxShadow: '0 2px 4px rgba(16, 124, 65, 0.15)' }}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 16px', background: 'var(--green)', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', boxShadow: '0 2px 4px rgba(16, 124, 65, 0.15)' }}
                                     >
-                                      Approve and Activate ✅
+                                      Approve and Activate <Check size={14} />
                                     </button>
                                   )}
                                 </div>

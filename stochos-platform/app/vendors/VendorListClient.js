@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { FileText, Download, Upload, Building2, RefreshCw } from "lucide-react";
 
 const VENDOR_TYPES = {
   lead_agency: "Lead Agency",
@@ -196,22 +197,33 @@ export default function VendorListClient({ initialVendors }) {
         </div>
         
         <div style={{ display: "flex", gap: 8, marginLeft: 16 }}>
-          <button className="btn btn-secondary" onClick={handleDownloadTemplate} title="Download CSV Import Template">
-            📄 Template
+          <button className="btn btn-secondary" onClick={handleDownloadTemplate} title="Download CSV Import Template" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <FileText size={15} /> Template
           </button>
-          <button className="btn btn-secondary" onClick={handleExportCsv} title="Export Vendors to CSV">
-            📤 Export CSV
+          <button className="btn btn-secondary" onClick={handleExportCsv} title="Export Vendors to CSV" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <Download size={15} /> Export CSV
           </button>
-          <label className="btn btn-secondary" style={{ cursor: "pointer" }} title="Import Vendors from CSV">
-            {uploading ? "📥 Importing..." : "📥 Import CSV"}
+          <label className="btn btn-secondary" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }} title="Import Vendors from CSV">
+            {uploading ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload size={15} />
+                Import CSV
+              </>
+            )}
             <input type="file" accept=".csv" onChange={handleImportCsv} style={{ display: "none" }} disabled={uploading} />
           </label>
+
         </div>
       </div>
 
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🏢</div>
+          <div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Building2 size={48} style={{ color: "var(--text-muted)" }} /></div>
           <h3>No vendors found</h3>
           <p>
             {initialVendors.length === 0

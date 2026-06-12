@@ -1,5 +1,7 @@
 'use client';
 
+import { X } from "lucide-react";
+
 export default function FormatPanel({ cell, format, onChange, onClose, onSave, isColumnMode }) {
   
   // Format live preview logic
@@ -53,7 +55,7 @@ export default function FormatPanel({ cell, format, onChange, onClose, onSave, i
           <h2 style={{ fontSize: '18px', margin: 0, color: '#0f172a', fontWeight: 'bold' }}>{isColumnMode ? 'Column Format' : 'Cell Override'}</h2>
           <span style={{ fontSize: '12px', color: isColumnMode ? '#475569' : '#107c41', fontWeight: '600' }}>{isColumnMode ? 'Universal Default' : 'Local Edit'}</span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '18px' }}>✕</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="Close panel"><X size={18} /></button>
       </div>
 
       <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { ClipboardList, Calendar, FileText, Download, Upload, AlertTriangle, Wrench, X, BookOpen, Trash2, RefreshCw } from "lucide-react";
+import HelpDrawer from "../components/HelpDrawer";
 
 const VEHICLE_STATUSES = {
   active: "Active",
@@ -87,6 +89,7 @@ function getVehicleStatusDetails(v) {
 
 export default function FleetClient({ initialVehicles, jurisdictions, users }) {
   const router = useRouter();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -488,20 +491,32 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
   return (
     <>
       {/* View Switcher Tabs */}
-      <div className="tab-nav" style={{ marginBottom: "20px" }}>
-        <button 
-          type="button"
-          className={`tab-btn ${activeView === "inventory" ? "active" : ""}`}
-          onClick={() => { setActiveView("inventory"); setSelectedDayKey(null); }}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid var(--border)", paddingBottom: "10px" }}>
+        <div className="tab-nav" style={{ marginBottom: 0, borderBottom: "none" }}>
+          <button 
+            type="button"
+            className={`tab-btn ${activeView === "inventory" ? "active" : ""}`}
+            onClick={() => { setActiveView("inventory"); setSelectedDayKey(null); }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <ClipboardList size={16} /> Active Fleet
+          </button>
+          <button 
+            type="button"
+            className={`tab-btn ${activeView === "planner" ? "active" : ""}`}
+            onClick={() => { setActiveView("planner"); setSelectedDayKey(null); }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <Calendar size={16} /> Replacement &amp; Service Planner
+          </button>
+        </div>
+
+        <button
+          onClick={() => setIsHelpOpen(true)}
+          className="btn btn-secondary"
+          style={{ display: "inline-flex", alignItems: "center", gap: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}
         >
-          📋 Active Fleet
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn ${activeView === "planner" ? "active" : ""}`}
-          onClick={() => { setActiveView("planner"); setSelectedDayKey(null); }}
-        >
-          📅 Replacement &amp; Service Planner
+          <BookOpen size={16} /> Help & Guide
         </button>
       </div>
 
@@ -528,18 +543,29 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
             </select>
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginLeft: 16 }}>
-            <button className="btn btn-secondary" onClick={handleDownloadTemplate} title="Download CSV Import Template">
-              📄 Template
+          <div style={{ display: "flex", gap: 8, marginLeft: 16, alignItems: "center" }}>
+            <button className="btn btn-secondary" onClick={handleDownloadTemplate} title="Download CSV Import Template" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <FileText size={14} /> Template
             </button>
-            <button className="btn btn-secondary" onClick={handleExportCsv} title="Export Fleet to CSV">
-              📤 Export CSV
+            <button className="btn btn-secondary" onClick={handleExportCsv} title="Export Fleet to CSV" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <Download size={14} /> Export CSV
             </button>
-            <label className="btn btn-secondary" style={{ cursor: "pointer" }} title="Import Fleet from CSV">
-              {uploading ? "📥 Importing..." : "📥 Import CSV"}
+            <label className="btn btn-secondary" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }} title="Import Fleet from CSV">
+              {uploading ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Upload size={14} />
+                  Import CSV
+                </>
+              )}
               <input type="file" accept=".csv" onChange={handleImportCsv} style={{ display: "none" }} disabled={uploading} />
             </label>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+
+            <button className="btn className=btn btn-primary" onClick={() => setShowAddModal(true)}>
               + Register Vehicle
             </button>
           </div>
@@ -576,13 +602,13 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                       <td>
                         <div>{v.year} {v.make} {v.model}</div>
                         {lifecycle.isEol && (
-                          <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(220, 53, 69, 0.15)", color: "#e63946", fontWeight: 600, display: "inline-block", marginTop: "2px" }}>
-                            ⚠️ EOL
+                          <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(220, 53, 69, 0.15)", color: "#e63946", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px", marginTop: "2px" }}>
+                            <AlertTriangle size={10} /> EOL
                           </span>
                         )}
                         {lifecycle.isNearingEol && (
-                          <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(247, 127, 0, 0.15)", color: "#f77f00", fontWeight: 600, display: "inline-block", marginTop: "2px" }}>
-                            ⚠️ Nearing EOL
+                          <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(247, 127, 0, 0.15)", color: "#f77f00", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px", marginTop: "2px" }}>
+                            <AlertTriangle size={10} /> Nearing EOL
                           </span>
                         )}
                       </td>
@@ -745,9 +771,12 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                                 border: "1px solid rgba(239, 71, 111, 0.2)",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
-                                overflow: "hidden" 
+                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "3px"
                               }} title={`${v.licensePlate}: EOL Expiry`}>
-                                ⚠️ {v.licensePlate}
+                                <AlertTriangle size={10} /> {v.licensePlate}
                               </div>
                             ))}
                             {dateData.disposal.map(v => (
@@ -760,9 +789,12 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                                 border: "1px solid rgba(123, 104, 238, 0.2)",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
-                                overflow: "hidden" 
+                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "3px"
                               }} title={`${v.licensePlate}: Scheduled Disposal`}>
-                                📤 {v.licensePlate}
+                                <Upload size={10} /> {v.licensePlate}
                               </div>
                             ))}
                             {dateData.service.map(v => (
@@ -775,9 +807,12 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                                 border: "1px solid rgba(0, 119, 182, 0.2)",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
-                                overflow: "hidden" 
+                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "3px"
                               }} title={`${v.licensePlate}: Service Due`}>
-                                🔧 {v.licensePlate}
+                                <Wrench size={10} /> {v.licensePlate}
                               </div>
                             ))}
                           </div>
@@ -893,7 +928,14 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
             <div className="card" style={{ width: 340, flexShrink: 0 }}>
               <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3>Vehicle Profile</h3>
-                <button className="btn btn-secondary btn-sm" aria-label="Close" onClick={() => setSelectedVehicle(null)}>✕</button>
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  aria-label="Close" 
+                  onClick={() => setSelectedVehicle(null)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px" }}
+                >
+                  <X size={14} />
+                </button>
               </div>
               <div className="card-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
                 {error && <div className="login-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -1013,13 +1055,13 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
                         <span>${parseFloat(lifecycle.monthlyDepreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       {lifecycle.isEol && (
-                        <div style={{ color: "#e63946", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
-                          ⚠️ Exceeded Useful Lifecycle Boundaries.
+                        <div style={{ color: "#e63946", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <AlertTriangle size={14} /> Exceeded Useful Lifecycle Boundaries.
                         </div>
                       )}
                       {lifecycle.isNearingEol && (
-                        <div style={{ color: "#f77f00", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
-                          ⚠️ Nearing useful lifecycle boundaries.
+                        <div style={{ color: "#f77f00", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <AlertTriangle size={14} /> Nearing useful lifecycle boundaries.
                         </div>
                       )}
                     </div>
@@ -1042,7 +1084,14 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
           <div className="card" style={{ width: 500, maxHeight: "90vh", overflowY: "auto" }}>
             <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3>Register Fleet Vehicle</h3>
-              <button className="btn btn-secondary btn-sm" aria-label="Close" onClick={() => setShowAddModal(false)}>✕</button>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                aria-label="Close" 
+                onClick={() => setShowAddModal(false)}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px" }}
+              >
+                <X size={14} />
+              </button>
             </div>
             <div className="card-body">
               {error && <div className="login-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -1134,6 +1183,7 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
           </div>
         </div>
       )}
+      <HelpDrawer topicId="fleet" isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </>
   );
 }

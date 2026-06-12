@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { FileText, Download, Search, Database, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 
 // CSV parsing utility
 function parseCsvText(text) {
@@ -60,6 +61,29 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
   const [parsedRows, setParsedRows] = useState([]);
   const [errors, setErrors] = useState([]);
   const [successResult, setSuccessResult] = useState(null);
+
+  const [activeLocks, setActiveLocks] = useState([]);
+  const isUploadingRef = useRef(false);
+
+  const fetchActiveLocks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/reporting/jobs");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setActiveLocks(data.activeJobs || []);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching active locks:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActiveLocks();
+    const interval = setInterval(fetchActiveLocks, 5000);
+    return () => clearInterval(interval);
+  }, [fetchActiveLocks]);
 
   // Prepopulated Template Generator State
   const [exportRouteId, setExportRouteId] = useState("all");
@@ -121,11 +145,13 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
   };
 
   const handleImportSubmit = async () => {
+    if (isUploadingRef.current) return;
     if (parsedRows.length === 0) {
       alert("Please upload a CSV file with data rows first.");
       return;
     }
 
+    isUploadingRef.current = true;
     setUploading(true);
     setErrors([]);
     setSuccessResult(null);
@@ -160,12 +186,17 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
         alert(`Ingestion complete! Created: ${data.createdCount}, Updated: ${data.updatedCount}`);
         router.refresh();
       }
+      fetchActiveLocks();
     } catch (err) {
       setErrors([err.message]);
     } finally {
+      isUploadingRef.current = false;
       setUploading(false);
     }
   };
+
+  const expectedLockKey = `crm-import-${domain}`;
+  const isCrmImportLocked = activeLocks.some(lock => lock.lockKey === expectedLockKey);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -199,8 +230,8 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
               </select>
             </div>
 
-            <button className="btn btn-secondary" onClick={handleDownloadTemplate} style={{ width: "100%", justifyContent: "center" }}>
-              📄 Download Blank Template
+            <button className="btn btn-secondary" onClick={handleDownloadTemplate} style={{ width: "100%", justifyContent: "center", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FileText size={14} /> Download Blank Template
             </button>
 
             {/* Prepopulated Generator */}
@@ -255,9 +286,9 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={handleDownloadPrepopulatedTemplate}
-                style={{ width: "100%", justifyContent: "center", fontSize: 12, backgroundColor: "var(--surface-3)" }}
+                style={{ width: "100%", justifyContent: "center", fontSize: 12, backgroundColor: "var(--surface-3)", display: "inline-flex", alignItems: "center", gap: "6px" }}
               >
-                📥 Download Pre-populated CSV
+                <Download size={14} /> Download Pre-populated CSV
               </button>
             </div>
 
@@ -286,14 +317,41 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
               </label>
             </div>
 
+            {isCrmImportLocked && !dryRun && (
+              <div style={{ padding: '12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '8px', color: '#b45309', fontSize: '13px', fontWeight: '500', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertTriangle size={16} color="#b45309" />
+                  <span>A database import is currently running on the server for {domain}. Direct imports are locked.</span>
+                </div>
+                {activeLocks.filter(l => l.lockKey === expectedLockKey).map(l => (
+                  <div key={l.id} style={{ fontSize: '11px', color: '#78350f', background: 'rgba(217, 119, 6, 0.08)', padding: '6px 10px', borderRadius: '4px' }}>
+                    Process: {l.description} | Started by: {l.userName} at {new Date(l.createdAt).toLocaleTimeString()}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <button
               className="btn btn-primary"
               onClick={handleImportSubmit}
-              disabled={uploading || parsedRows.length === 0}
-              style={{ width: "100%", justifyContent: "center", marginTop: 8 }}
+              disabled={uploading || parsedRows.length === 0 || (isCrmImportLocked && !dryRun)}
+              style={{ width: "100%", justifyContent: "center", marginTop: 12, display: "inline-flex", alignItems: "center", gap: "6px", cursor: (uploading || parsedRows.length === 0 || (isCrmImportLocked && !dryRun)) ? "not-allowed" : "pointer" }}
             >
-              {uploading ? "Ingesting..." : dryRun ? "🔍 Dry Run Validation" : "📥 Execute Database Import"}
+              {uploading ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" /> Ingesting...
+                </>
+              ) : dryRun ? (
+                <>
+                  <Search size={14} /> Dry Run Validation
+                </>
+              ) : (
+                <>
+                  <Database size={14} /> Execute Database Import
+                </>
+              )}
             </button>
+
           </div>
         </div>
 
@@ -304,7 +362,9 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
           {successResult && (
             <div className="card" style={{ borderLeft: "4px solid var(--green)" }}>
               <div className="card-header">
-                <h3 style={{ color: "var(--green)" }}>✓ Ingestion Report</h3>
+                <h3 style={{ color: "var(--green)", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <CheckCircle2 size={18} /> Ingestion Report
+                </h3>
               </div>
               <div className="card-body">
                 {successResult.dryRun ? (
@@ -335,7 +395,9 @@ export default function FomoImportClient({ routes = [], chains = [] }) {
           {errors.length > 0 && (
             <div className="card" style={{ borderLeft: "4px solid var(--red)" }}>
               <div className="card-header">
-                <h3 style={{ color: "var(--red)" }}>⚠️ Ingestion Validation Errors ({errors.length})</h3>
+                <h3 style={{ color: "var(--red)", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <AlertTriangle size={18} /> Ingestion Validation Errors ({errors.length})
+                </h3>
               </div>
               <div className="card-body" style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
                 {errors.map((err, idx) => (

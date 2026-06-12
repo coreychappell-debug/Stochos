@@ -60,6 +60,34 @@ export async function GET(request) {
   }
 }
 
+function getPeriodDetails(date) {
+  const month = date.getUTCMonth(); // 0 = Jan, 11 = Dec
+  const year = date.getUTCFullYear();
+  
+  // Fiscal year starts in April (month index 3)
+  // If month is Jan, Feb, Mar (0,1,2), fiscal year is the calendar year.
+  // If Apr-Dec (3-11), fiscal year is calendar year + 1.
+  const fiscalYear = [0, 1, 2].includes(month) ? year : year + 1;
+  
+  const monthToPeriod = {
+    3: 'P01', // April
+    4: 'P02', // May
+    5: 'P03', // June
+    6: 'P04', // July
+    7: 'P05', // August
+    8: 'P06', // September
+    9: 'P07', // October
+    10: 'P08', // November
+    11: 'P09', // December
+    0: 'P10',  // January
+    1: 'P11',  // February
+    2: 'P12'   // March
+  };
+  
+  const periodCode = monthToPeriod[month] || 'P12';
+  return { fiscalYear, periodCode };
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -71,6 +99,7 @@ export async function POST(request) {
 
     const periodDate = new Date(periodDateStr);
     const bal = parseFloat(String(balance)) || 0;
+    const { fiscalYear, periodCode } = getPeriodDetails(periodDate);
 
     // Find user context for audit
     const user = await prisma.user.findFirst({
@@ -85,6 +114,8 @@ export async function POST(request) {
       data: {
         jurisdictionId,
         periodDate,
+        fiscalYear,
+        periodCode,
         accountCode,
         accountName,
         balance: bal,

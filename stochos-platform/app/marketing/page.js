@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Sidebar from "@/app/components/Sidebar";
 import Link from "next/link";
+import HelpTrigger from "@/app/components/HelpTrigger";
+import { Megaphone } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +60,10 @@ export default async function MarketingPage({ searchParams }) {
             <h2>Marketing MRM</h2>
             <p>Campaign planning, channels, and creative asset tracking.</p>
           </div>
-          <Link href="/marketing/new" className="btn btn-primary">+ New Campaign</Link>
+          <div className="flex gap-2 items-center">
+            <HelpTrigger topicId="marketing" />
+            <Link href="/marketing/new" className="btn btn-primary">+ New Campaign</Link>
+          </div>
         </div>
 
         <div className="page-body">
@@ -89,7 +94,9 @@ export default async function MarketingPage({ searchParams }) {
             <div className="card-body">
               {campaigns.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">📢</div>
+                  <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                    <Megaphone size={48} style={{ strokeWidth: 1.5, color: "var(--text-muted)" }} />
+                  </div>
                   <h3>No campaigns found</h3>
                   <p>Get started by planning a new marketing campaign.</p>
                   <Link href="/marketing/new" className="btn btn-primary mt-4">Create Campaign</Link>

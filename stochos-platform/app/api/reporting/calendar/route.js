@@ -11,7 +11,7 @@ export async function GET() {
     if (calendars.length === 0) {
       const defaultCal = await prisma.fiscalCalendar.create({
         data: {
-          name: 'California Lottery Statutory Calendar',
+          name: 'New York Lottery Statutory Calendar',
           fiscalYearStartMonth: 7, // July
           isActive: true
         }

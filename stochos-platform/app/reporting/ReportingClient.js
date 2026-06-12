@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { UploadCloud, Grid, FileText, Sliders, Shield, GitBranch, Calendar, FileCheck } from 'lucide-react';
+import HelpTrigger from '../components/HelpTrigger';
 
 export default function ReportingClient() {
   const router = useRouter();
@@ -19,24 +21,27 @@ export default function ReportingClient() {
               Institutional financial summaries, audit trails, and multi-scenario templates.
             </p>
           </div>
-          <button 
-            onClick={() => router.push('/')}
-            style={{ 
-              padding: '8px 16px', 
-              background: '#ffffff', 
-              color: '#1e293b', 
-              border: '1px solid #cbd5e1', 
-              borderRadius: '6px', 
-              cursor: 'pointer', 
-              transition: 'all 0.2s', 
-              fontWeight: '600',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
-            onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-          >
-            Back to Platform Hub
-          </button>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <HelpTrigger topicId="gfpa" />
+            <button 
+              onClick={() => router.push('/')}
+              style={{ 
+                padding: '8px 16px', 
+                background: '#ffffff', 
+                color: '#1e293b', 
+                border: '1px solid #cbd5e1', 
+                borderRadius: '6px', 
+                cursor: 'pointer', 
+                transition: 'all 0.2s', 
+                fontWeight: '600',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+              onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+            >
+              Back to Platform Hub
+            </button>
+          </div>
         </div>
 
         {/* CARDS GRID */}
@@ -45,7 +50,7 @@ export default function ReportingClient() {
           {/* DATA INGESTION CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>📊</span>
+              <UploadCloud size={24} style={{ marginRight: '12px', color: '#1a73e8' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Data Ingestion</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -75,7 +80,7 @@ export default function ReportingClient() {
           {/* GOVERNED GRID CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>🟢</span>
+              <Grid size={24} style={{ marginRight: '12px', color: '#107c41' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Governed Analytical Grid</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -105,7 +110,7 @@ export default function ReportingClient() {
           {/* NARRATIVE DOCUMENT CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>📝</span>
+              <FileText size={24} style={{ marginRight: '12px', color: '#1a73e8' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Narrative Document Editor</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -135,7 +140,7 @@ export default function ReportingClient() {
           {/* METRIC REGISTRY & CALCULATIONS CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>⚙️</span>
+              <Sliders size={24} style={{ marginRight: '12px', color: '#475569' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Metric Registry</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -165,7 +170,7 @@ export default function ReportingClient() {
           {/* COMPLIANCE & COMMENTARY RULES CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>🛡️</span>
+              <Shield size={24} style={{ marginRight: '12px', color: '#d97706' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Compliance Rules</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -195,7 +200,7 @@ export default function ReportingClient() {
           {/* GOVERNED WORKFLOW & BINDERS CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>📑</span>
+              <GitBranch size={24} style={{ marginRight: '12px', color: '#7c3aed' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Governed Workflow</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -225,7 +230,7 @@ export default function ReportingClient() {
           {/* STATUTORY CALENDAR CARD */}
           <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '24px', marginRight: '12px' }}>📅</span>
+              <Calendar size={24} style={{ marginRight: '12px', color: '#4f46e5' }} />
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Statutory Close Calendar</h2>
             </div>
             <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
@@ -249,6 +254,36 @@ export default function ReportingClient() {
               onMouseOut={(e) => e.currentTarget.style.background = '#4f46e5'}
             >
               Open Statutory Calendar
+            </button>
+          </div>
+          
+          {/* GASB 34 STATEMENT COMPILER CARD */}
+          <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+              <FileCheck size={24} style={{ marginRight: '12px', color: '#00b4d8' }} />
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>GASB 34 Statement Compiler</h2>
+            </div>
+            <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.5', fontSize: '13.5px' }}>
+              Compile governmental-format comparative Statements of Net Position, Revenues/Expenses/Changes, and Cash Flows from underlying ledger balances.
+            </p>
+            <button 
+              onClick={() => router.push('/reporting/gasb34')}
+              style={{ 
+                padding: '12px 24px', 
+                background: '#00b4d8', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '6px', 
+                fontWeight: 'bold', 
+                cursor: 'pointer', 
+                width: '100%', 
+                fontSize: '14px',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#0096b4'}
+              onMouseOut={(e) => e.currentTarget.style.background = '#00b4d8'}
+            >
+              Open Statement Compiler
             </button>
           </div>
 

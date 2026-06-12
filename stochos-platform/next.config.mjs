@@ -15,6 +15,7 @@ const nextConfig = {
   /* config options here */
   allowedDevOrigins,
   trailingSlash: true,
+  serverExternalPackages: ["pdfkit"],
   async rewrites() {
     return [
       {
@@ -53,4 +54,5 @@ const nextConfig = {
   },
 };
 
+// Force next.config cache reload to pick up generated Prisma client changes
 export default nextConfig;

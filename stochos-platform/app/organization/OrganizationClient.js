@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { FolderTree, Users, FileSpreadsheet, Upload, Download, CheckCircle2, AlertTriangle, Building2, HelpCircle, Shield, Network, Briefcase, RefreshCw } from "lucide-react";
+import { useSession } from "next-auth/react";
 
-const COMMISSION_OVERSIGHT = {
-  name: "Brian O'Dwyer",
-  role: "Commission Chairman",
-  office: "Executive Chamber",
-  bio: "Appointed by the Governor to oversee all state gaming, wagering, lottery operations, and regulatory compliance. Approves major actions during public meetings, not from within the system.",
-  email: "brian.odwyer@gaming.ny.gov",
-  phone: "(518) 388-3300",
-  avatar: "BO"
+const PRESET_ORDER = ["EXECUTIVE", "FINANCE", "HR", "MARKETING", "OPERATIONS", "IT", "PROCUREMENT"];
+const COLORS = {
+  COMMISSION: "executive",
+  EXECUTIVE: "executive",
+  DIVISION: "finance",
+  BUREAU: "operations",
+  SUBUNIT: "marketing"
 };
 
 const REGIONAL_OFFICES = [
@@ -30,7 +31,7 @@ const REGIONAL_OFFICES = [
   },
   {
     name: "Long Island Customer Service Center",
-    address: "45 South Service Road, Plainview, NY 11803",
+    address: "400 Oak St, Garden City, NY 11530",
     phone: "(516) 222-8224",
     hours: "Mon – Fri, 8:30 AM – 4:30 PM",
     type: "Plainview Claim Office"
@@ -51,40 +52,6 @@ const REGIONAL_OFFICES = [
   }
 ];
 
-const PRESET_ORDER = ["EXECUTIVE", "FINANCE", "MARKETING", "OPERATIONS", "IT", "PROCUREMENT"];
-const COLORS = ["executive", "finance", "marketing", "operations", "it", "procurement"];
-
-const PRESET_LABELS = {
-  EXECUTIVE: "Executive & Admin",
-  FINANCE: "Finance & Audit",
-  MARKETING: "Marketing & Sales",
-  OPERATIONS: "Operations & Print",
-  IT: "Information Technology",
-  PROCUREMENT: "Procurement & Bidding"
-};
-
-const PRESET_DESCS = {
-  EXECUTIVE: "Strategic planning, agency oversight, governance, and general counsel.",
-  FINANCE: "Budget authorization, accounting audits, claims verification, and retailer pricing.",
-  MARKETING: "Creative campaigns, media placements, event promotions, and customer research.",
-  OPERATIONS: "Instant ticket production logistics, VLT determinant networks, and sales support.",
-  IT: "Enterprise mainframe systems, wide-area networking, hardware assets, and SLA tracking.",
-  PROCUREMENT: "RFP specifications, vendor contract lifecycle management, and surety bonds review."
-};
-
-function formatDivisionLabel(div) {
-  if (PRESET_LABELS[div]) return PRESET_LABELS[div];
-  return div
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function getDivisionDescription(div) {
-  if (PRESET_DESCS[div]) return PRESET_DESCS[div];
-  return `Responsible for managing the operational administration and coordinating contracts for the ${formatDivisionLabel(div)} division.`;
-}
-
 function formatCurrency(val) {
   if (val === null || val === undefined) return "$0";
   const num = parseFloat(val);
@@ -92,538 +59,1339 @@ function formatCurrency(val) {
   return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-export default function OrganizationClient({ initialUsers }) {
-  // Dynamically extract unique divisions present on user records in the database
-  const divisionsList = useMemo(() => {
-    const unique = Array.from(new Set(initialUsers.map((u) => u.division).filter(Boolean)));
-    return unique.sort((a, b) => {
-      const idxA = PRESET_ORDER.indexOf(a);
-      const idxB = PRESET_ORDER.indexOf(b);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return a.localeCompare(b);
-    });
-  }, [initialUsers]);
+export default function OrganizationClient({ initialUsers = [], initialOrgUnits = [], initialRoles = [] }) {
+  const [users, setUsers] = useState(initialUsers);
+  const [orgUnits, setOrgUnits] = useState(initialOrgUnits);
+  const [roles, setRoles] = useState(initialRoles);
+  const { data: session } = useSession();
+  const currentUser = session?.user;
 
-  const [selectedDivision, setSelectedDivision] = useState(() => {
-    const preset = "OPERATIONS";
-    if (divisionsList.includes(preset)) return preset;
-    return divisionsList[0] || "";
+  const [savingPermissions, setSavingPermissions] = useState(false);
+  const [savingUserRole, setSavingUserRole] = useState("");
+  const [modifiedRoles, setModifiedRoles] = useState({});
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+
+  // Selected Org Node ID state (defaults to the root commission node)
+  const [selectedUnitId, setSelectedUnitId] = useState(() => {
+    const root = initialOrgUnits.find(u => !u.parentId);
+    return root ? root.id : "";
   });
 
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const getDivisionColor = (div) => {
-    const idx = divisionsList.indexOf(div);
-    if (idx !== -1) {
-      return COLORS[idx % COLORS.length];
-    }
-    return "surface-4";
-  };
-
-  // Map users to their respective divisions
-  const divisionalUsers = useMemo(() => {
-    const map = {};
-    divisionsList.forEach((div) => {
-      map[div] = [];
-    });
-    initialUsers.forEach((u) => {
-      if (map[u.division]) {
-        map[u.division].push(u);
+  // Collapsible tree nodes state
+  const [expandedNodes, setExpandedNodes] = useState(() => {
+    const initial = {};
+    initialOrgUnits.forEach(u => {
+      // Expand top levels by default
+      if (u.type === "COMMISSION" || u.type === "EXECUTIVE" || u.type === "DIVISION") {
+        initial[u.id] = true;
       }
     });
-    return map;
-  }, [initialUsers, divisionsList]);
+    return initial;
+  });
 
-  // Compute portfolio metrics per division dynamically
-  const divisionMetrics = useMemo(() => {
-    const metrics = {};
-    divisionsList.forEach((div) => {
-      const users = divisionalUsers[div] || [];
-      let totalContracts = 0;
-      let cumulativeValue = 0;
-      let cumulativeSpent = 0;
-      let activeContracts = 0;
+  const [activeTab, setActiveTab] = useState("directory"); // "directory" | "ingestion" | "permissions"
+  const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
+  const [isRosterCollapsed, setIsRosterCollapsed] = useState(false);
 
-      users.forEach((u) => {
-        u.contractsCreated?.forEach((c) => {
-          totalContracts++;
-          cumulativeValue += parseFloat(c.totalValue) || 0;
-          if (c.status === "active") {
-            activeContracts++;
-          }
-          c.lineItems?.forEach((li) => {
-            cumulativeSpent += parseFloat(li.spentAmount) || 0;
-          });
-        });
-      });
+  // Ingestion upload states
+  const [uploadingUnits, setUploadingUnits] = useState(false);
+  const [unitsFile, setUnitsFile] = useState(null);
+  const [unitsStatus, setUnitsStatus] = useState(null);
 
-      metrics[div] = {
-        totalContracts,
-        activeContracts,
-        cumulativeValue,
-        cumulativeSpent,
-        budgetPct: cumulativeValue > 0 ? (cumulativeSpent / cumulativeValue) * 100 : 0
-      };
+  const [uploadingStaff, setUploadingStaff] = useState(false);
+  const [staffFile, setStaffFile] = useState(null);
+  const [staffStatus, setStaffStatus] = useState(null);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Build Hierarchical Org Tree
+  const orgTree = useMemo(() => {
+    const roots = orgUnits.filter(u => !u.parentId);
+    const childrenMap = new Map();
+    orgUnits.forEach(u => {
+      if (u.parentId) {
+        if (!childrenMap.has(u.parentId)) {
+          childrenMap.set(u.parentId, []);
+        }
+        childrenMap.get(u.parentId).push(u);
+      }
     });
-    return metrics;
-  }, [divisionalUsers, divisionsList]);
 
-  // Extract the executive leadership dynamically from user database records
-  const executiveLeadership = useMemo(() => {
-    const targets = [
-      "robert.williams@gaming.ny.gov",
-      "steven.lowenstein@gaming.ny.gov",
-      "edmund.burns@gaming.ny.gov",
-      "brad.maione@gaming.ny.gov"
-    ];
-    return initialUsers.filter((u) => targets.includes(u.email));
-  }, [initialUsers]);
+    const buildSubTree = (node) => {
+      const children = childrenMap.get(node.id) || [];
+      return {
+        ...node,
+        children: children.map(c => buildSubTree(c))
+      };
+    };
 
-  // Filtered users for search functionality
-  const filteredUsers = useMemo(() => {
-    if (!searchTerm) return initialUsers;
-    const q = searchTerm.toLowerCase();
-    return initialUsers.filter((u) => 
+    return roots.map(r => buildSubTree(r));
+  }, [orgUnits]);
+
+  const toggleNodeExpand = (id) => {
+    setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Get selected unit details
+  const selectedUnit = useMemo(() => {
+    return orgUnits.find(u => u.id === selectedUnitId) || null;
+  }, [orgUnits, selectedUnitId]);
+
+  // Recursively gather all unit IDs inside a subtree
+  const getSubtreeUnitIds = (unitId) => {
+    const ids = [unitId];
+    const children = orgUnits.filter(u => u.parentId === unitId);
+    children.forEach(c => {
+      ids.push(...getSubtreeUnitIds(c.id));
+    });
+    return ids;
+  };
+
+  // Find all users belonging to selected unit or any of its sub-branches
+  const filteredTreeUsers = useMemo(() => {
+    if (!selectedUnitId) return [];
+    const subtreeIds = getSubtreeUnitIds(selectedUnitId);
+    return users.filter(u => u.orgUnitId && subtreeIds.includes(u.orgUnitId));
+  }, [users, selectedUnitId, orgUnits]);
+
+  // Roster Local Search and Page Limit State
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [rosterLimit, setRosterLimit] = useState(10);
+
+  // Reset local search and limit on unit change
+  useEffect(() => {
+    setRosterSearch("");
+    setRosterLimit(10);
+  }, [selectedUnitId]);
+
+  const fetchAuditLogs = async () => {
+    setLoadingAuditLogs(true);
+    try {
+      const res = await fetch("/api/organization/audit");
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogs(data.logs || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "permissions") {
+      fetchAuditLogs();
+    }
+  }, [activeTab]);
+
+  const handlePermissionChange = (roleId, resource, level) => {
+    setModifiedRoles(prev => {
+      const currentRole = roles.find(r => r.id === roleId);
+      const currentPerms = prev[roleId] || { ...currentRole.permissions };
+      
+      const newPerms = { ...currentPerms, [resource]: level };
+      
+      const isOriginal = JSON.stringify(newPerms) === JSON.stringify(currentRole.permissions);
+      if (isOriginal) {
+        const next = { ...prev };
+        delete next[roleId];
+        return next;
+      }
+      
+      return { ...prev, [roleId]: newPerms };
+    });
+  };
+
+  const handleSaveRolePermissions = async (roleId) => {
+    const newPermissions = modifiedRoles[roleId];
+    if (!newPermissions) return;
+    
+    setSavingPermissions(true);
+    try {
+      const res = await fetch("/api/organization/roles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleId, permissions: newPermissions })
+      });
+      
+      if (res.ok) {
+        setRoles(prev => prev.map(r => r.id === roleId ? { ...r, permissions: newPermissions } : r));
+        setModifiedRoles(prev => {
+          const next = { ...prev };
+          delete next[roleId];
+          return next;
+        });
+        alert("Role permissions successfully updated!");
+        fetchAuditLogs();
+      } else {
+        const data = await res.json();
+        alert(`Failed to save role permissions: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving permissions.");
+    } finally {
+      setSavingPermissions(false);
+    }
+  };
+
+  const handleUpdateUserAccess = async (targetUserId, updates) => {
+    setSavingUserRole(targetUserId);
+    try {
+      const res = await fetch("/api/organization/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId, ...updates })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, ...data.user } : u));
+        fetchAuditLogs();
+      } else {
+        const data = await res.json();
+        alert(`Failed to update user access: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating user access.");
+    } finally {
+      setSavingUserRole("");
+    }
+  };
+
+  const renderAuditChanges = (log) => {
+    try {
+      const changes = typeof log.changes === 'string' ? JSON.parse(log.changes) : log.changes;
+      if (!changes) return <span className="muted">—</span>;
+
+      if (log.action === 'override_release') {
+        return (
+          <div style={{ fontSize: 11, lineHeight: 1.3 }}>
+            <div>🔓 <strong>Override Action:</strong> {changes.message || `Lock ${changes.lockKey} forced release`}</div>
+            <div className="muted" style={{ fontSize: 10 }}>Previous Owner: {changes.previousOwnerName} ({changes.previousOwnerId})</div>
+          </div>
+        );
+      }
+
+      if (log.action === 'job_timeout') {
+        return (
+          <div style={{ fontSize: 11, lineHeight: 1.3, color: "var(--red)" }}>
+            ⚠️ <strong>Timeout Alert:</strong> {changes.message}
+          </div>
+        );
+      }
+
+      if (log.entityType === 'Role') {
+        return (
+          <div style={{ fontSize: 11, lineHeight: 1.3 }}>
+            <div>🔧 Updated role: <strong>{changes.roleName}</strong></div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+              {Object.entries(changes.after || {}).map(([res, val]) => {
+                const prev = changes.before?.[res] || 'none';
+                if (prev === val) return null;
+                return (
+                  <span key={res} className="badge badge-info" style={{ fontSize: 9 }}>
+                    {res}: {prev} ➔ {val}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      if (log.entityType === 'User') {
+        return (
+          <div style={{ fontSize: 11, lineHeight: 1.3 }}>
+            <div>👤 Target: <strong>{changes.targetUserName}</strong> ({changes.targetUserEmail})</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+              {Object.entries(changes.after || {}).map(([field, val]) => {
+                const prev = changes.before?.[field] || '—';
+                if (prev === val) return null;
+                return (
+                  <span key={field} className="badge badge-info" style={{ fontSize: 9 }}>
+                    {field.replace("Id", "Name")}: {prev} ➔ {val}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      return <pre style={{ margin: 0, fontSize: 10, maxWidth: 300, overflowX: "auto" }}>{JSON.stringify(changes)}</pre>;
+    } catch (e) {
+      return <pre style={{ margin: 0, fontSize: 10 }}>{String(log.changes)}</pre>;
+    }
+  };
+
+  // Filter roster by local search
+  const searchedRosterUsers = useMemo(() => {
+    if (!rosterSearch) return filteredTreeUsers;
+    const q = rosterSearch.toLowerCase();
+    return filteredTreeUsers.filter(u => 
       u.name.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
-      u.division.toLowerCase().includes(q) ||
-      u.contractsCreated?.some(c => c.title.toLowerCase().includes(q))
+      (u.subunit && u.subunit.toLowerCase().includes(q)) ||
+      (u.bureau && u.bureau.toLowerCase().includes(q)) ||
+      (u.division && u.division.toLowerCase().includes(q))
     );
-  }, [initialUsers, searchTerm]);
+  }, [filteredTreeUsers, rosterSearch]);
 
-  const activeDivUsers = divisionalUsers[selectedDivision] || [];
-  const activeDivMetrics = divisionMetrics[selectedDivision] || { totalContracts: 0, cumulativeValue: 0, cumulativeSpent: 0, budgetPct: 0 };
-  const activeColor = getDivisionColor(selectedDivision);
+  // Paginated roster users
+  const displayedRosterUsers = useMemo(() => {
+    if (rosterLimit === 'all') return searchedRosterUsers;
+    return searchedRosterUsers.slice(0, rosterLimit);
+  }, [searchedRosterUsers, rosterLimit]);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-      
-      {/* Search and Navigation Directory Search */}
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <h3 style={{ margin: 0 }}>NYSGC Agency Directory Search</h3>
-            <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 13 }}>Quickly locate personnel, division coordinates, or active contract owners.</p>
+  // Global directory search results
+  const globalSearchResults = useMemo(() => {
+    if (!searchTerm) return [];
+    const q = searchTerm.toLowerCase();
+    return users.filter(u => 
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.division && u.division.toLowerCase().includes(q)) ||
+      (u.orgUnit?.name && u.orgUnit.name.toLowerCase().includes(q))
+    );
+  }, [users, searchTerm]);
+
+  // Compute metrics for the selected unit (including sub-branches)
+  const selectedUnitMetrics = useMemo(() => {
+    let totalContracts = 0;
+    let cumulativeValue = 0;
+    let cumulativeSpent = 0;
+    let activeContracts = 0;
+
+    filteredTreeUsers.forEach((u) => {
+      u.contractsCreated?.forEach((c) => {
+        totalContracts++;
+        cumulativeValue += parseFloat(c.totalValue) || 0;
+        if (c.status === "active") {
+          activeContracts++;
+        }
+        c.lineItems?.forEach((li) => {
+          cumulativeSpent += parseFloat(li.spentAmount) || 0;
+        });
+      });
+    });
+
+    return {
+      totalContracts,
+      activeContracts,
+      cumulativeValue,
+      cumulativeSpent,
+      budgetPct: cumulativeValue > 0 ? (cumulativeSpent / cumulativeValue) * 100 : 0
+    };
+  }, [filteredTreeUsers]);
+
+  // Helper to resolve icon for each node type
+  const getNodeIcon = (type) => {
+    switch (type) {
+      case "COMMISSION":
+        return <Building2 size={13} style={{ color: "var(--executive)" }} />;
+      case "EXECUTIVE":
+        return <Shield size={13} style={{ color: "var(--executive)" }} />;
+      case "DIVISION":
+        return <Network size={13} style={{ color: "var(--finance)" }} />;
+      case "BUREAU":
+        return <Briefcase size={13} style={{ color: "var(--operations)" }} />;
+      case "SUBUNIT":
+        return <Users size={13} style={{ color: "var(--marketing)" }} />;
+      default:
+        return <FolderTree size={13} />;
+    }
+  };
+
+  // Recursively render org tree nodes with guidelines and type-specific icons
+  const renderTreeNode = (node, depth = 0) => {
+    const hasChildren = node.children && node.children.length > 0;
+    const isExpanded = !!expandedNodes[node.id];
+    const isSelected = selectedUnitId === node.id;
+    const colorClass = COLORS[node.type] || "surface-4";
+
+    return (
+      <div key={node.id} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <div 
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            borderRadius: 6,
+            cursor: "pointer",
+            backgroundColor: isSelected ? "var(--surface-3)" : "transparent",
+            borderLeft: isSelected ? `3px solid var(--${colorClass})` : "3px solid transparent",
+            fontSize: 12.5,
+            fontWeight: isSelected ? 600 : 500,
+            color: isSelected ? "var(--text)" : "var(--text-secondary)",
+            transition: "all 0.15s ease",
+            boxShadow: isSelected ? "inset 0 0 10px rgba(255,255,255,0.05)" : "none"
+          }}
+          className="tree-node-row"
+          onClick={() => setSelectedUnitId(node.id)}
+        >
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNodeExpand(node.id);
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: 10,
+                width: 14,
+                cursor: "pointer",
+                padding: 0,
+                textAlign: "center",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "transform 0.15s ease",
+                transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)"
+              }}
+            >
+              ▼
+            </button>
+          ) : (
+            <span style={{ width: 14 }} />
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {getNodeIcon(node.type)}
           </div>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search staff, emails, divisions, or contracts..."
-            style={{ maxWidth: 360, width: "100%", background: "var(--surface-3)" }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+
+          <span 
+            className={`badge badge-${colorClass}`} 
+            style={{ 
+              fontSize: 8, 
+              padding: "1.5px 5px", 
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              lineHeight: "1.1",
+              fontWeight: 700,
+              borderRadius: "4px",
+              flexShrink: 0
+            }}
+          >
+            {node.type.toLowerCase()}
+          </span>
+          <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)", flexShrink: 0 }}>[{node.code}]</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{node.name}</span>
         </div>
-        {searchTerm && (
-          <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-            <h4 style={{ margin: "0 0 12px 0" }}>Search Results ({filteredUsers.length})</h4>
-            {filteredUsers.length === 0 ? (
-              <p className="muted">No matches found for "{searchTerm}"</p>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
-                {filteredUsers.map((u) => (
-                  <div key={u.id} className="card" style={{ padding: 12, borderLeft: `4px solid var(--${getDivisionColor(u.division)})` }}>
-                    <div style={{ fontWeight: 600 }}>{u.name}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>{u.email}</div>
-                    <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span className={`badge badge-${getDivisionColor(u.division)}`}>{formatDivisionLabel(u.division)}</span>
-                      <span className="muted" style={{ fontSize: 11 }}>{u.contractsCreated?.length || 0} Contracts</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {hasChildren && isExpanded && (
+          <div 
+            style={{ 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: 2,
+              borderLeft: "1px dashed var(--border)",
+              marginLeft: 18, 
+              paddingLeft: 10
+            }}
+          >
+            {node.children.map(c => renderTreeNode(c, depth + 1))}
           </div>
         )}
       </div>
+    );
+  };
 
-      {/* STATUTORY COMMISSION CARD & DYNAMIC EXECUTIVE LEADERSHIP BOARD */}
-      <div>
-        <h3 style={{ marginBottom: 16 }}>
-          Commission Oversight &amp; Executive Directors
-        </h3>
-        
-        {/* Brian O'Dwyer Statutory Oversight Card */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20, marginBottom: 24 }}>
-          <div className="card" style={{ position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", background: "linear-gradient(135deg, var(--surface-2), var(--surface-1))", border: "1px solid var(--gold)" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "var(--gold)" }} />
-            <div className="card-body" style={{ padding: 20 }}>
-              <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-                <div style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: "50%",
-                  background: "var(--badge-executive-bg)",
-                  color: "var(--badge-executive-text)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 18
-                }}>
-                  {COMMISSION_OVERSIGHT.avatar}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{COMMISSION_OVERSIGHT.name}</h4>
-                    <span className="badge badge-executive">{COMMISSION_OVERSIGHT.role}</span>
-                    <span className="badge badge-expired" style={{ fontSize: 10 }}>Statutory Board Oversight Only</span>
-                  </div>
-                  <p style={{ fontSize: 13, margin: "8px 0 0 0", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                    {COMMISSION_OVERSIGHT.bio}
-                  </p>
-                </div>
-                <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 4, minWidth: 200, paddingLeft: 16, borderLeft: "1px solid var(--border)" }}>
-                  <div><span className="muted">Office:</span> {COMMISSION_OVERSIGHT.office}</div>
-                  <div><span className="muted">Email:</span> {COMMISSION_OVERSIGHT.email}</div>
-                  <div><span className="muted">Phone:</span> {COMMISSION_OVERSIGHT.phone}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  // Download CSV templates client-side
+  const downloadTemplate = (type) => {
+    let csvContent = "";
+    let filename = "";
+    
+    if (type === "units") {
+      csvContent = "Code,Name,Type,ParentCode\n1.0.0,New York State Gaming Commission,COMMISSION,\n1.1.0,Executive Chamber & Leadership,EXECUTIVE,1.0.0\n1.1.1,Division of Lottery Operations (Operations),DIVISION,1.1.0\n1.1.2,Division of Financial Management (Finance),DIVISION,1.1.0\n1.1.6,Division of Human Resources Management (HR),DIVISION,1.1.0\n1.1.1.1,Schenectady Operations Bureau,BUREAU,1.1.1\n1.1.1.1.1,Schenectady Field Sales Subunit,SUBUNIT,1.1.1.1\n1.1.1.2,Buffalo Operations Bureau,BUREAU,1.1.1\n1.1.1.2.1,Buffalo Field Sales Subunit,SUBUNIT,1.1.1.2\n";
+      filename = "stochos_org_units_template.csv";
+    } else {
+      csvContent = "Name,Email,OrgUnitCode,ManagerEmail,Status\nRobert Williams,robert.williams@gaming.ny.gov,1.1.0,,active\nSchenectady Manager,manager.schenectady@gaming.ny.gov,1.1.1.1,robert.williams@gaming.ny.gov,active\nSarah Jenkins,rep.sarah.jenkins@gaming.ny.gov,1.1.1.1.1,manager.schenectady@gaming.ny.gov,active\n";
+      filename = "stochos_staff_template.csv";
+    }
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-        {/* Dynamic Executive Leadership cards loaded from database */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
-          {executiveLeadership.map((officer) => (
-            <div key={officer.id} className="card" style={{ position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", height: "100%" }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, var(--blue), var(--purple))" }} />
-              <div className="card-body" style={{ display: "flex", flexDirection: "column", flex: 1, padding: 20 }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-                  <div style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    background: "var(--badge-operations-bg)",
-                    color: "var(--badge-operations-text)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    fontSize: 16
-                  }}>
-                    {officer.name.split(" ").map(n => n[0]).join("")}
-                  </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{officer.name}</h4>
-                    <span className="badge badge-executive" style={{ fontSize: 11 }}>
-                      {officer.email.includes("williams") ? "Executive Director" : officer.email.includes("lowenstein") ? "Deputy Executive Director" : officer.email.includes("burns") ? "General Counsel" : "Director of Communications"}
-                    </span>
-                  </div>
-                </div>
-                
-                <p style={{ fontSize: 13, lineHeight: 1.4, flex: 1, margin: "0 0 16px 0", color: "var(--text-secondary)" }}>
-                  {officer.email.includes("williams") 
-                    ? "Chief executive officer of the lottery, approving master technology system integrations and print runs." 
-                    : officer.email.includes("lowenstein")
-                    ? "Oversees agency logistics, network infrastructure contracts, and secondary scratch ticket planning."
-                    : officer.email.includes("burns")
-                    ? "Manages regulatory legal compliance, game validity, and player insight audit contracts."
-                    : "Directs media buying services, advertising slot placements, and regional promotions."}
-                </p>
+  // Upload handlers
+  const handleUploadUnits = async (e) => {
+    e.preventDefault();
+    if (!unitsFile) return;
 
-                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, fontSize: 12, display: "flex", flexDirection: "column", gap: 4 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span className="muted">Direct Reports:</span>
-                    <span>{officer.staff?.length || 0} staff</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span className="muted">Email:</span>
-                    <a href={`mailto:${officer.email}`} className="muted hover-underline" style={{ color: "var(--blue)" }}>{officer.email}</a>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span className="muted">Manager:</span>
-                    <span>{officer.manager?.name || "Statutory Board"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+    setUploadingUnits(true);
+    setUnitsStatus(null);
+
+    const formData = new FormData();
+    formData.append("file", unitsFile);
+
+    try {
+      const res = await fetch("/api/organization/units/import", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUnitsStatus({ success: true, message: data.message });
+        // Refresh local units data
+        const getUnitsRes = await fetch("/api/organization/units");
+        const getUnitsData = await getUnitsRes.json();
+        if (getUnitsData.success) {
+          setOrgUnits(getUnitsData.units);
+        }
+      } else {
+        setUnitsStatus({ success: false, message: data.error || "Failed to upload organizational units." });
+      }
+    } catch (err) {
+      console.error(err);
+      setUnitsStatus({ success: false, message: "Network error occurred." });
+    } finally {
+      setUploadingUnits(false);
+    }
+  };
+
+  const handleUploadStaff = async (e) => {
+    e.preventDefault();
+    if (!staffFile) return;
+
+    setUploadingStaff(true);
+    setStaffStatus(null);
+
+    const formData = new FormData();
+    formData.append("file", staffFile);
+
+    try {
+      const res = await fetch("/api/organization/users/import", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStaffStatus({ success: true, message: data.message });
+        // Refresh page data or fetch updated users
+        window.location.reload();
+      } else {
+        setStaffStatus({ success: false, message: data.error || "Failed to upload staff." });
+      }
+    } catch (err) {
+      console.error(err);
+      setStaffStatus({ success: false, message: "Network error occurred." });
+    } finally {
+      setUploadingStaff(false);
+    }
+  };
+
+  const userHasAccess = useMemo(() => {
+    if (!currentUser?.email) return false;
+    const dbUser = users.find(u => u.email.toLowerCase() === currentUser.email.toLowerCase());
+    const roleName = dbUser?.role?.name || currentUser.role || "";
+    return roleName === "admin" || roleName === "it_manager";
+  }, [users, currentUser]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      
+      {/* Sub tabs navigation */}
+      <div style={{ display: "flex", gap: 10, borderBottom: "1px solid var(--border)", paddingBottom: 1 }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab("directory")}
+          className={`btn ${activeTab === "directory" ? "btn-primary" : "btn-secondary"}`}
+          style={{ borderRadius: "6px 6px 0 0", padding: "8px 16px", borderBottom: "none", fontSize: 13 }}
+        >
+          <FolderTree size={14} style={{ marginRight: 6 }} /> Directory &amp; Tree Explorer
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("ingestion")}
+          className={`btn ${activeTab === "ingestion" ? "btn-primary" : "btn-secondary"}`}
+          style={{ borderRadius: "6px 6px 0 0", padding: "8px 16px", borderBottom: "none", fontSize: 13 }}
+        >
+          <Upload size={14} style={{ marginRight: 6 }} /> Org Data Ingestion Tool
+        </button>
+        {userHasAccess && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("permissions")}
+            className={`btn ${activeTab === "permissions" ? "btn-primary" : "btn-secondary"}`}
+            style={{ borderRadius: "6px 6px 0 0", padding: "8px 16px", borderBottom: "none", fontSize: 13 }}
+          >
+            <Shield size={14} style={{ marginRight: 6 }} /> Permissions &amp; Security Audits
+          </button>
+        )}
       </div>
 
-      {/* 2. HIERARCHY FLOW VISUALIZATION */}
-      <div className="card" style={{ padding: 24 }}>
-        <h3 style={{ marginTop: 0, marginBottom: 8 }}>
-          NYSGC Operational Structure &amp; Contract Routing Flow
-        </h3>
-        <p className="muted" style={{ margin: "0 0 24px 0", fontSize: 13 }}>Click a division card below to load the staff and contract portfolio details.</p>
-
-        {/* Dynamic visual org hierarchy nodes */}
-        {divisionsList.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-            
-            {/* Executive Director Level */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div className="card" style={{ 
-                padding: "10px 24px", 
-                background: "linear-gradient(135deg, var(--surface-2), var(--surface-1))",
-                border: "1px solid var(--gold)",
-                borderRadius: 30,
-                boxShadow: "0 0 15px rgba(255, 159, 67, 0.15)",
-                textAlign: "center"
-              }}>
-                <div style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, letterSpacing: "1px" }}>EXECUTIVE LEADERSHIP</div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>Robert Williams (Director)</div>
+      {activeTab === "directory" && (
+        <>
+          {/* SEARCH BAR CARD */}
+          <div className="card" style={{ padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>NYSGC Agency Directory Search</h3>
+                <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 11.5 }}>Search personnel, emails, or contract coordinators across New York.</p>
               </div>
-              <div style={{ width: 2, height: 24, background: "var(--border)" }} />
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Type name, email, or division to search..."
+                style={{ maxWidth: 360, width: "100%", height: 34, fontSize: 12 }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {searchTerm && (
+              <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                <h4 style={{ margin: "0 0 10px 0", fontSize: 12 }}>Search Results ({globalSearchResults.length})</h4>
+                {globalSearchResults.length === 0 ? (
+                  <p className="muted" style={{ fontSize: 12 }}>No matches found for "{searchTerm}"</p>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+                    {globalSearchResults.map((u) => (
+                      <div key={u.id} className="card" style={{ padding: 10, borderLeft: `3px solid var(--${COLORS[u.orgUnit?.type] || "finance"})` }}>
+                        <div style={{ fontWeight: 600, fontSize: 12.5 }}>{u.name}</div>
+                        <div className="muted" style={{ fontSize: 11 }}>{u.email}</div>
+                        <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span className={`badge badge-${COLORS[u.orgUnit?.type] || "finance"}`} style={{ fontSize: 8.5 }}>
+                            {u.orgUnit?.name || u.division}
+                          </span>
+                          <span className="muted" style={{ fontSize: 10.5 }}>{u.contractsCreated?.length || 0} Contracts</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* MAIN DOCK SYSTEM: LEFT TREE EXPLORER, RIGHT CARD EXPLORER */}
+          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 2fr", gap: 20, alignItems: "start" }}>
+            
+            {/* LEFT TREE NAV CONTAINER */}
+            <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: isTreeCollapsed ? "auto" : "560px", transition: "all 0.2s ease" }}>
+              <div 
+                style={{ 
+                  padding: "10px 14px", 
+                  backgroundColor: "var(--surface-2)", 
+                  borderBottom: isTreeCollapsed ? "none" : "1px solid var(--border)", 
+                  fontWeight: 600, 
+                  fontSize: 13,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  gap: 6
+                }}
+                onClick={() => setIsTreeCollapsed(!isTreeCollapsed)}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <FolderTree size={14} style={{ color: "var(--blue)" }} />
+                  <span>NYSGC Hierarchy Tree</span>
+                </div>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>
+                  {isTreeCollapsed ? "Expand" : "Collapse"}
+                </span>
+              </div>
+              {!isTreeCollapsed && (
+                <div style={{ padding: 10, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {orgTree.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 12.5 }}>
+                      No organizational units loaded. Use the Ingestion Tool to load CSV data.
+                    </div>
+                  ) : (
+                    orgTree.map(r => renderTreeNode(r))
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Division horizontal row - dynamically builds based on divisionsList */}
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: `repeat(${divisionsList.length}, 1fr)`, 
-              gap: 12, 
-              width: "100%", 
-              position: "relative" 
-            }}>
-              {/* Horizontal line bridge connecting all elements dynamically */}
-              <div style={{ 
-                position: "absolute", 
-                top: 0, 
-                left: `calc(100% / (${divisionsList.length} * 2))`, 
-                right: `calc(100% / (${divisionsList.length} * 2))`, 
-                height: 2, 
-                background: "var(--border)" 
-              }} />
-              
-              {divisionsList.map((key) => {
-                const active = selectedDivision === key;
-                const metrics = divisionMetrics[key] || { totalContracts: 0, cumulativeValue: 0 };
-                const color = getDivisionColor(key);
-                return (
-                  <div key={key} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div style={{ width: 2, height: 16, background: "var(--border)", marginBottom: 8 }} />
-                    <button 
-                      onClick={() => setSelectedDivision(key)}
-                      style={{
-                        width: "100%",
-                        padding: 12,
-                        background: active ? `var(--surface-3)` : `var(--surface-1)`,
-                        border: active ? `2px solid var(--${color})` : `1px solid var(--border)`,
-                        borderRadius: "var(--radius-md)",
-                        textAlign: "center",
-                        cursor: "pointer",
-                        transition: "all var(--transition)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                        boxShadow: active ? `0 0 15px rgba(var(--text), 0.05)` : "none"
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 600, color: active ? `var(--text)` : `var(--text-secondary)` }}>{formatDivisionLabel(key)}</span>
-                      <div style={{ borderTop: "1px solid var(--border)", width: "100%", paddingTop: 4, marginTop: 4, fontSize: 10 }} className="muted">
-                        {metrics.totalContracts} Contracts
+            {/* RIGHT DETAILS PANEL */}
+            {selectedUnit ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {/* UNIT DESCRIPTIVE KPI CARD */}
+                <div className="card" style={{ borderLeft: `5px solid var(--${COLORS[selectedUnit.type] || "finance"})`, padding: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+                    <div>
+                      <div className="muted" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        Node Code: <strong>{selectedUnit.code}</strong> &bull; {selectedUnit.type} Level
                       </div>
-                    </button>
+                      <h3 style={{ margin: "4px 0 0 0", fontSize: 18, fontWeight: 700 }}>{selectedUnit.name}</h3>
+                    </div>
+                    <span className={`badge badge-${COLORS[selectedUnit.type] || "finance"}`} style={{ padding: "3px 8px", fontSize: 10.5 }}>
+                      {selectedUnit.type}
+                    </span>
+                  </div>
+
+                  <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 18 }}>
+                    <div className="kpi-card kpi-blue" style={{ padding: 10 }}>
+                      <div className="kpi-label" style={{ fontSize: 10 }}>Portfolio Value</div>
+                      <div className="kpi-value" style={{ fontSize: 16 }}>{formatCurrency(selectedUnitMetrics.cumulativeValue)}</div>
+                    </div>
+                    <div className="kpi-card kpi-green" style={{ padding: 10 }}>
+                      <div className="kpi-label" style={{ fontSize: 10 }}>Total Spent</div>
+                      <div className="kpi-value" style={{ fontSize: 16 }}>{formatCurrency(selectedUnitMetrics.cumulativeSpent)}</div>
+                    </div>
+                    <div className="kpi-card kpi-purple" style={{ padding: 10 }}>
+                      <div className="kpi-label" style={{ fontSize: 10 }}>Active Contracts</div>
+                      <div className="kpi-value" style={{ fontSize: 16 }}>{selectedUnitMetrics.activeContracts} / {selectedUnitMetrics.totalContracts}</div>
+                    </div>
+                  </div>
+                </div>
+                  {/* STAFF ROSTER CARD */}
+                <div className="card" style={{ overflow: "hidden" }}>
+                  <div 
+                    style={{ 
+                      padding: "10px 14px", 
+                      backgroundColor: "var(--surface-2)", 
+                      borderBottom: isRosterCollapsed ? "none" : "1px solid var(--border)", 
+                      fontWeight: 600, 
+                      fontSize: 12.5,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                      userSelect: "none",
+                      gap: 6
+                    }}
+                    onClick={() => setIsRosterCollapsed(!isRosterCollapsed)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Users size={14} style={{ color: "var(--blue)" }} />
+                      <span>Registered Personnel ({filteredTreeUsers.length})</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>
+                      {isRosterCollapsed ? "Expand" : "Collapse"}
+                    </span>
+                  </div>
+
+                  {!isRosterCollapsed && (
+                    <>
+                      {filteredTreeUsers.length > 0 && (
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          gap: 12, 
+                          padding: '8px 14px', 
+                          borderBottom: '1px solid var(--border)', 
+                          backgroundColor: 'var(--surface-3)', 
+                          flexWrap: 'wrap' 
+                        }}>
+                          <input 
+                            type="text" 
+                            placeholder="Search roster..."
+                            value={rosterSearch}
+                            onChange={e => setRosterSearch(e.target.value)}
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: '12px',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              backgroundColor: 'var(--surface-2)',
+                              color: 'var(--text)',
+                              width: '100%',
+                              maxWidth: '220px',
+                              outline: 'none'
+                            }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            <span>Show:</span>
+                            <select
+                              value={rosterLimit}
+                              onChange={e => setRosterLimit(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid var(--border)',
+                                borderRadius: '4px',
+                                backgroundColor: 'var(--surface-2)',
+                                color: 'var(--text)',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                fontWeight: '600'
+                              }}
+                            >
+                              <option value={10}>10</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                              <option value="all">All</option>
+                            </select>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                              (Showing {displayedRosterUsers.length} of {searchedRosterUsers.length})
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                        {filteredTreeUsers.length === 0 ? (
+                          <p className="muted" style={{ margin: 0, padding: 10, textAlign: "center", fontSize: 12.5 }}>
+                            No personnel registered in this unit or its nested sub-branches.
+                          </p>
+                        ) : searchedRosterUsers.length === 0 ? (
+                          <p className="muted" style={{ margin: 0, padding: 10, textAlign: "center", fontSize: 12.5 }}>
+                            No personnel matches found in this unit for "{rosterSearch}".
+                          </p>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table className="data-table" style={{ fontSize: 12 }}>
+                              <thead>
+                                <tr>
+                                  <th>Name</th>
+                                  <th>Email</th>
+                                  <th>Org Branch Name</th>
+                                  <th>Role</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {displayedRosterUsers.map((u) => (
+                                  <tr key={u.id}>
+                                    <td><strong>{u.name}</strong></td>
+                                    <td className="muted">{u.email}</td>
+                                    <td>{u.subunit || u.bureau || u.division}</td>
+                                    <td>
+                                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                                        {u.email.includes("rep") ? "Sales Rep (LMR)" : u.email.includes("manager") ? "Regional Manager" : "Leadership"}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className={`badge ${u.status === "active" ? "badge-active" : "badge-expired"}`} style={{ fontSize: 9 }}>
+                                        {u.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* ACTIVE CONTRACTS IN THIS BRANCH */}
+                <div className="card">
+                  <div 
+                    style={{ 
+                      padding: "10px 14px", 
+                      backgroundColor: "var(--surface-2)", 
+                      borderBottom: "1px solid var(--border)", 
+                      fontWeight: 600, 
+                      fontSize: 12.5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6
+                    }}
+                  >
+                    <Building2 size={14} style={{ color: "var(--blue)" }} />
+                    <span>Managed Vendor Contracts</span>
+                  </div>
+                  <div style={{ padding: 12 }}>
+                    {!filteredTreeUsers.some(u => u.contractsCreated?.length > 0) ? (
+                      <p className="muted" style={{ margin: 0, padding: 10, textAlign: "center", fontSize: 12.5 }}>
+                        No procurement contracts are managed by staff in this branch.
+                      </p>
+                    ) : (
+                      <div style={{ overflowX: "auto" }}>
+                        <table className="data-table" style={{ fontSize: 12 }}>
+                          <thead>
+                            <tr>
+                              <th>Contract / Vendor</th>
+                              <th>Total Value</th>
+                              <th>Status</th>
+                              <th>Manager</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredTreeUsers.flatMap((u) => 
+                              (u.contractsCreated || []).map((c) => (
+                                <tr key={c.id}>
+                                  <td>
+                                    <Link href={`/contracts/${c.id}`} style={{ fontWeight: 600, color: "var(--blue)", textDecoration: "none" }}>
+                                      {c.title}
+                                    </Link>
+                                    <div className="muted" style={{ fontSize: 10 }}>Vendor: {c.vendor?.name}</div>
+                                  </td>
+                                  <td><strong>{formatCurrency(c.totalValue)}</strong></td>
+                                  <td>
+                                    <span className={`badge badge-${c.status}`} style={{ fontSize: 9 }}>
+                                      {c.status}
+                                    </span>
+                                  </td>
+                                  <td className="muted">{u.name}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+                Select an organizational unit from the left hierarchy tree explorer to view detail panels, kpis, and staff logs.
+              </div>
+            )}
+
+          </div>
+
+          {/* COMMISSION OVERSIGHT & REGIONAL OFFICES CARDS */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 20, marginTop: 10 }}>
+            <h3 style={{ marginBottom: 14, fontSize: 14, fontWeight: 700 }}>Commission Oversight &amp; Regional Offices</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+              {REGIONAL_OFFICES.map((office, idx) => (
+                <div key={idx} className="card" style={{ padding: 12, fontSize: 12 }}>
+                  <strong style={{ fontSize: 13, color: "var(--text)" }}>{office.name}</strong>
+                  <div className="muted" style={{ margin: "2px 0 8px 0", fontSize: 10, textTransform: "uppercase" }}>{office.type}</div>
+                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div><span className="muted">Address:</span> {office.address}</div>
+                    <div><span className="muted">Phone:</span> {office.phone}</div>
+                    <div><span className="muted">Hours:</span> {office.hours}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === "ingestion" && (
+        /* ORG DATA INGESTION TAB */
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          
+          {/* UPLOAD HIERARCHY STRUCTURE CARD */}
+          <div className="card" style={{ display: "flex", flexDirection: "column", gap: 14, padding: 20 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <FolderTree size={16} style={{ color: "var(--blue)" }} />
+                <span>1. Upload Organizational Hierarchy (Branches)</span>
+              </h3>
+              <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12, lineHeight: 1.4 }}>
+                Upload the tree nodes defining your agency units (Commission, Executive Leads, Divisions, Bureaus, and Subunits).
+              </p>
+            </div>
+
+            <div style={{
+              padding: "10px 14px",
+              backgroundColor: "var(--surface-2)",
+              borderLeft: "2.5px solid var(--blue)",
+              borderRadius: "0 6px 6px 0",
+              fontSize: 11.5,
+              lineHeight: "1.45"
+            }}>
+              📋 <strong>Required Format:</strong> CSV file with headers: `Code, Name, Type, ParentCode`. <br/>
+              <em>Example Types: COMMISSION, EXECUTIVE, DIVISION, BUREAU, SUBUNIT.</em>
+            </div>
+
+            <form onSubmit={handleUploadUnits} style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input 
+                  type="file" 
+                  accept=".csv"
+                  onChange={(e) => setUnitsFile(e.target.files?.[0] || null)}
+                  className="form-input" 
+                  style={{ flex: 1, padding: "6px" }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => downloadTemplate("units")}
+                  style={{ padding: "8px 10px", display: "inline-flex", alignItems: "center", gap: 4, height: 38 }}
+                >
+                  <Download size={13} /> Template
+                </button>
+              </div>
+
+              {unitsStatus && (
+                <div style={{
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: unitsStatus.success ? "rgba(40, 167, 69, 0.08)" : "rgba(220, 53, 69, 0.08)",
+                  borderLeft: `2.5px solid ${unitsStatus.success ? "var(--green)" : "var(--red)"}`,
+                  color: unitsStatus.success ? "var(--green)" : "var(--red)"
+                }}>
+                  {unitsStatus.success ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  <span>{unitsStatus.message}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={uploadingUnits || !unitsFile}
+                style={{ justifyContent: "center", padding: "10px", marginTop: 8, display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                {uploadingUnits ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" /> Uploading &amp; Processing...
+                  </>
+                ) : (
+                  "Upload & Apply Hierarchy"
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* UPLOAD STAFF & REPORTING LINES CARD */}
+          <div className="card" style={{ display: "flex", flexDirection: "column", gap: 14, padding: 20 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <Users size={16} style={{ color: "var(--blue)" }} />
+                <span>2. Upload Staff &amp; Reporting Lines</span>
+              </h3>
+              <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12, lineHeight: 1.4 }}>
+                Map your personnel and sales reps directly to the organizational node codes and link their supervisor emails.
+              </p>
+            </div>
+
+            <div style={{
+              padding: "10px 14px",
+              backgroundColor: "var(--surface-2)",
+              borderLeft: "2.5px solid var(--blue)",
+              borderRadius: "0 6px 6px 0",
+              fontSize: 11.5,
+              lineHeight: "1.45"
+            }}>
+              📋 <strong>Required Format:</strong> CSV file with headers: `Name, Email, OrgUnitCode, ManagerEmail, Status`. <br/>
+              <em>ManagerEmail will establish the internal manager reporting hierarchy.</em>
+            </div>
+
+            <form onSubmit={handleUploadStaff} style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input 
+                  type="file" 
+                  accept=".csv"
+                  onChange={(e) => setStaffFile(e.target.files?.[0] || null)}
+                  className="form-input" 
+                  style={{ flex: 1, padding: "6px" }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => downloadTemplate("staff")}
+                  style={{ padding: "8px 10px", display: "inline-flex", alignItems: "center", gap: 4, height: 38 }}
+                >
+                  <Download size={13} /> Template
+                </button>
+              </div>
+
+              {staffStatus && (
+                <div style={{
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: staffStatus.success ? "rgba(40, 167, 69, 0.08)" : "rgba(220, 53, 69, 0.08)",
+                  borderLeft: `2.5px solid ${staffStatus.success ? "var(--green)" : "var(--red)"}`,
+                  color: staffStatus.success ? "var(--green)" : "var(--red)"
+                }}>
+                  {staffStatus.success ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  <span>{staffStatus.message}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={uploadingStaff || !staffFile}
+                style={{ justifyContent: "center", padding: "10px", marginTop: 8, display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                {uploadingStaff ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" /> Uploading &amp; Mapping...
+                  </>
+                ) : (
+                  "Upload & Map Staff"
+                )}
+              </button>
+            </form>
+          </div>
+
+        </div>
+      )}
+
+      {activeTab === "permissions" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* 1. ROLE PERMISSIONS MATRIX */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <Shield size={16} style={{ color: "var(--blue)" }} />
+                <span>Enterprise Role Permissions Configuration</span>
+              </h3>
+              <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12 }}>
+                Configure fine-grained read/write security credentials for each structural role.
+              </p>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+              {roles.map((role) => {
+                const currentPerms = modifiedRoles[role.id] || role.permissions || {};
+                const isModified = !!modifiedRoles[role.id];
+                
+                return (
+                  <div key={role.id} className="card" style={{ padding: 16, backgroundColor: "var(--surface-2)", display: "flex", flexDirection: "column", gap: 12, borderTop: isModified ? "3px solid var(--amber)" : "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        {role.name.replace("_", " ")}
+                      </div>
+                      {isModified && (
+                        <span className="badge badge-warning" style={{ fontSize: 9 }}>Unsaved Changes</span>
+                      )}
+                    </div>
+                    
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
+                      {["contracts", "analytics", "marketing", "scratchers", "admin"].map((resource) => {
+                        const val = currentPerms[resource] || "none";
+                        return (
+                          <div key={resource} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.03)", paddingBottom: 4 }}>
+                            <span style={{ textTransform: "capitalize", fontWeight: 500 }}>{resource}</span>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              {["none", "read", "write"].map((level) => (
+                                <label key={level} style={{ display: "inline-flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 11 }}>
+                                  <input 
+                                    type="radio" 
+                                    name={`perm-${role.id}-${resource}`} 
+                                    checked={val === level}
+                                    onChange={() => handlePermissionChange(role.id, resource, level)}
+                                    style={{ cursor: "pointer" }}
+                                  />
+                                  <span style={{ color: val === level ? "var(--text)" : "var(--text-muted)" }}>{level}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {isModified && (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveRolePermissions(role.id)}
+                        disabled={savingPermissions}
+                        className="btn btn-primary btn-sm"
+                        style={{ marginTop: 8, justifyContent: "center", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        {savingPermissions ? <RefreshCw size={12} className="animate-spin" /> : null}
+                        Save Permissions
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
-
           </div>
-        )}
-      </div>
 
-      {/* 3. SELECTED DIVISION EXPLORER PANEL */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 24, alignItems: "start" }}>
-        
-        {/* Left Side: Division Info & Staff Details */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div className="card" style={{ borderLeft: `5px solid var(--${activeColor})` }}>
-            <div className="card-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* 2. USER ACCESS MATRIX */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
               <div>
-                <h3 style={{ margin: 0 }}>{formatDivisionLabel(selectedDivision)}</h3>
-                <span className="muted" style={{ fontSize: 11, textTransform: "uppercase" }}>Division Profile</span>
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Users size={16} style={{ color: "var(--blue)" }} />
+                  <span>Personnel Role &amp; Access Assignment</span>
+                </h3>
+                <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12 }}>
+                  Assign organizational roles and toggle account statuses.
+                </p>
               </div>
-            </div>
-            <div className="card-body">
-              <p style={{ fontSize: 13, lineHeight: 1.5, margin: "0 0 20px 0" }}>{getDivisionDescription(selectedDivision)}</p>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span className="muted">Divisional Staff count:</span>
-                  <span>{activeDivUsers.length}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span className="muted">Active Contracts:</span>
-                  <span>{activeDivMetrics.activeContracts}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span className="muted">Cumulative Portfolio:</span>
-                  <span style={{ fontWeight: 600 }}>{formatCurrency(activeDivMetrics.cumulativeValue)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h4 style={{ margin: 0 }}>Divisional Staff Accounts</h4>
-            </div>
-            <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {activeDivUsers.length === 0 ? (
-                <p className="muted" style={{ margin: 0 }}>No seeded staff registered in this division.</p>
-              ) : (
-                activeDivUsers.map((u) => (
-                  <div key={u.id} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border)", lastChild: { borderBottom: "none" } }}>
-                    <div style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      background: "var(--surface-3)",
-                      color: "var(--text)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 600,
-                      fontSize: 13
-                    }}>
-                      {u.name.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{u.name}</div>
-                      <div className="muted" style={{ fontSize: 11 }}>{u.email}</div>
-                      
-                      <div style={{ marginTop: 8, fontSize: 11, display: "flex", flexDirection: "column", gap: 2 }} className="muted">
-                        {u.manager && (
-                          <div>
-                            <span className="muted">Manager:</span> {u.manager.name}
-                          </div>
-                        )}
-                        {u.staff?.length > 0 && (
-                          <div>
-                            <span className="muted">Direct Reports:</span> {u.staff.map(s => s.name).join(", ")}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div style={{ marginTop: 8 }}>
-                        <span className={`badge badge-${activeColor}`} style={{ fontSize: 10, padding: "1px 6px" }}>{u.email.includes("user") ? "Division Manager" : "Executive Leadership"}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Contract Portfolio Board */}
-        <div className="card">
-          <div className="card-header flex justify-between items-center">
-            <div>
-              <h3 style={{ margin: 0 }}>Contract Portfolio Registry</h3>
-              <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12 }}>Detailed agreements, SLA lines, and budget parameters managed by this division.</p>
-            </div>
-            <span className={`badge badge-${activeColor}`}>{formatDivisionLabel(selectedDivision)}</span>
-          </div>
-          
-          <div className="card-body">
-            
-            {/* Division KPI Overview */}
-            <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
-              <div className="kpi-card kpi-blue" style={{ padding: 12 }}>
-                <div className="kpi-label" style={{ fontSize: 10 }}>Portfolio Value</div>
-                <div className="kpi-value" style={{ fontSize: 18 }}>{formatCurrency(activeDivMetrics.cumulativeValue)}</div>
-              </div>
-              <div className="kpi-card kpi-green" style={{ padding: 12 }}>
-                <div className="kpi-label" style={{ fontSize: 10 }}>Budget Spent</div>
-                <div className="kpi-value" style={{ fontSize: 18 }}>{formatCurrency(activeDivMetrics.cumulativeSpent)}</div>
-              </div>
-              <div className="kpi-card kpi-purple" style={{ padding: 12 }}>
-                <div className="kpi-label" style={{ fontSize: 10 }}>Utilization</div>
-                <div className="kpi-value" style={{ fontSize: 18 }}>{activeDivMetrics.budgetPct.toFixed(1)}%</div>
-              </div>
+              <input 
+                type="text"
+                className="search-input"
+                placeholder="Search users to modify..."
+                style={{ maxWidth: 300, width: "100%", height: 32, fontSize: 11.5 }}
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+              />
             </div>
 
-            {/* Division Contracts Table */}
-            {activeDivUsers.length === 0 || !activeDivUsers.some(u => u.contractsCreated?.length > 0) ? (
-              <div className="empty-state" style={{ padding: 24 }}>
-                <h3>No divisional contracts</h3>
-                <p>No procurement contracts are assigned or routed to this division.</p>
-              </div>
-            ) : (
-              <table className="data-table">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead>
-                  <tr>
-                    <th>Contract / Vendor</th>
-                    <th>Value</th>
-                    <th>Spent</th>
-                    <th>Status</th>
-                    <th>Owner</th>
-                    <th></th>
+                  <tr style={{ borderBottom: "1.5px solid var(--border)", textAlign: "left" }}>
+                    <th style={{ padding: "8px 10px", fontWeight: 600 }}>Name &amp; Email</th>
+                    <th style={{ padding: "8px 10px", fontWeight: 600 }}>Division / Bureau</th>
+                    <th style={{ padding: "8px 10px", fontWeight: 600 }}>System Role</th>
+                    <th style={{ padding: "8px 10px", fontWeight: 600 }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {activeDivUsers.flatMap((u) => 
-                    (u.contractsCreated || []).map((c) => {
-                      const spent = c.lineItems?.reduce((sum, li) => sum + (parseFloat(li.spentAmount) || 0), 0) || 0;
+                  {users
+                    .filter(u => {
+                      if (!userSearchTerm) return true;
+                      const q = userSearchTerm.toLowerCase();
+                      return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.division.toLowerCase().includes(q);
+                    })
+                    .slice(0, 15)
+                    .map((user) => {
+                      const isSaving = savingUserRole === user.id;
                       return (
-                        <tr key={c.id}>
-                          <td>
-                            <Link href={`/contracts/${c.id}`} style={{ fontWeight: 600, fontSize: 13, textDecoration: "none", color: "var(--blue)" }}>
-                              {c.title}
-                            </Link>
-                            <div className="muted" style={{ fontSize: 11 }}>Vendor: {c.vendor?.name || "—"}</div>
+                        <tr key={user.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                          <td style={{ padding: "8px 10px" }}>
+                            <div style={{ fontWeight: 600 }}>{user.name}</div>
+                            <div className="muted" style={{ fontSize: 11 }}>{user.email}</div>
                           </td>
-                          <td style={{ fontSize: 13 }}>{formatCurrency(c.totalValue)}</td>
-                          <td style={{ fontSize: 13 }} className="muted">{formatCurrency(spent)}</td>
-                          <td>
-                            <span className={`badge badge-${c.status}`}>
-                              {c.status}
-                            </span>
+                          <td style={{ padding: "8px 10px" }}>
+                            <div>{user.division}</div>
+                            {user.bureau && <div className="muted" style={{ fontSize: 11 }}>{user.bureau}</div>}
                           </td>
-                          <td className="muted" style={{ fontSize: 12 }}>{u.name}</td>
-                          <td style={{ textAlign: "right" }}>
-                            <Link href={`/contracts/${c.id}`} className="btn btn-secondary btn-sm" style={{ padding: "4px 8px", fontSize: 11, textDecoration: "none" }}>
-                              View
-                            </Link>
+                          <td style={{ padding: "8px 10px" }}>
+                            <select
+                              value={user.roleId}
+                              disabled={isSaving}
+                              onChange={(e) => handleUpdateUserAccess(user.id, { roleId: e.target.value })}
+                              style={{
+                                padding: "4px 8px",
+                                borderRadius: 4,
+                                backgroundColor: "var(--surface-3)",
+                                border: "1px solid var(--border)",
+                                color: "var(--text)",
+                                fontSize: 11.5,
+                                cursor: "pointer",
+                                opacity: isSaving ? 0.6 : 1
+                              }}
+                            >
+                              {roles.map(r => (
+                                <option key={r.id} value={r.id}>{r.name.replace("_", " ").toUpperCase()}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <button
+                              type="button"
+                              disabled={isSaving}
+                              onClick={() => handleUpdateUserAccess(user.id, { status: user.status === "active" ? "suspended" : "active" })}
+                              className="btn btn-sm"
+                              style={{
+                                padding: "4px 8px",
+                                fontSize: 10.5,
+                                minWidth: 100,
+                                backgroundColor: user.status === "active" ? "rgba(40, 167, 69, 0.08)" : "rgba(220, 53, 69, 0.08)",
+                                border: `1px solid ${user.status === "active" ? "var(--green)" : "var(--red)"}`,
+                                color: user.status === "active" ? "var(--green)" : "var(--red)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 4,
+                                cursor: "pointer"
+                              }}
+                            >
+                              {isSaving ? <RefreshCw size={10} className="animate-spin" /> : null}
+                              {user.status === "active" ? "ACTIVE" : "SUSPENDED"}
+                            </button>
                           </td>
                         </tr>
                       );
-                    })
-                  )}
+                    })}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* 3. ADMINISTRATION SECURITY AUDIT LOG */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Network size={16} style={{ color: "var(--blue)" }} />
+                  <span>Administrative Security Audit Log</span>
+                </h3>
+                <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12 }}>
+                  Live system log tracking administrative settings, permissions configurations, and job overrides.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={fetchAuditLogs}
+                disabled={loadingAuditLogs}
+                style={{ padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                <RefreshCw size={12} className={loadingAuditLogs ? "animate-spin" : ""} /> Refresh Logs
+              </button>
+            </div>
+
+            {loadingAuditLogs && auditLogs.length === 0 ? (
+              <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+                <RefreshCw size={24} className="animate-spin text-muted" />
+              </div>
+            ) : auditLogs.length === 0 ? (
+              <p className="muted" style={{ fontSize: 12, textAlign: "center", padding: 20 }}>No security audit logs recorded in system.</p>
+            ) : (
+              <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1.5px solid var(--border)", textAlign: "left", position: "sticky", top: 0, backgroundColor: "var(--surface-1)", zIndex: 1 }}>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Timestamp</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Administrator</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Action</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Resource / ID</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Log Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                        <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          <div style={{ fontWeight: 600 }}>{log.user?.name || "System"}</div>
+                          <div className="muted" style={{ fontSize: 10.5 }}>{log.user?.email || "system@stochos.io"}</div>
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          <span className={`badge badge-${
+                            log.action === "override_release" ? "warning" : 
+                            log.action === "job_timeout" ? "danger" : 
+                            "info"
+                          }`} style={{ fontSize: 8.5 }}>
+                            {log.action.replace("_", " ").toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          <div style={{ fontWeight: 500 }}>{log.entityType}</div>
+                          <div className="muted" style={{ fontSize: 10, maxWidth: 140, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }} title={log.entityId}>
+                            {log.entityId}
+                          </div>
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          {renderAuditChanges(log)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
-
-      </div>
-
-      {/* 4. REGIONAL OFFICES & CUSTOMER SERVICE CENTERS DIRECTORY */}
-      <div>
-        <h3 style={{ marginBottom: 16 }}>
-          NYSGC Customer Service Centers &amp; Offices
-        </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
-          {REGIONAL_OFFICES.map((office, i) => (
-            <div key={i} className="card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", marginBottom: 4 }}>{office.name}</div>
-              <div className="badge badge-executive" style={{ fontSize: 10, marginBottom: 12, display: "inline-block" }}>{office.type}</div>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-                <div>
-                  <span className="muted" style={{ display: "block", marginBottom: 2 }}>Address:</span>
-                  <span>{office.address}</span>
-                </div>
-                <div>
-                  <span className="muted" style={{ display: "block", marginBottom: 2 }}>Phone:</span>
-                  <a href={`tel:${office.phone.replace(/[^0-9]/g, "")}`} className="hover-underline" style={{ color: "var(--blue)" }}>{office.phone}</a>
-                </div>
-                <div>
-                  <span className="muted" style={{ display: "block", marginBottom: 2 }}>Hours:</span>
-                  <span className="muted">{office.hours}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
     </div>
   );

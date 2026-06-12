@@ -65,6 +65,54 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [theme, setThemeState] = useState("light");
+  const [features, setFeatures] = useState({});
+
+  const fetchFeatures = () => {
+    fetch("/api/admin/settings")
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error();
+      })
+      .then((data) => {
+        setFeatures(data.features || {});
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchFeatures();
+    
+    // Listen for custom settings storage change notifications
+    window.addEventListener("storage", fetchFeatures);
+    return () => {
+      window.removeEventListener("storage", fetchFeatures);
+    };
+  }, []);
+
+  const getFeatureKey = (href) => {
+    if (href === "/organization") return "feature_organization";
+    if (href === "/analytics/overview") return "feature_analytics_overview";
+    if (href === "/analytics/retailers") return "feature_analytics_retailers";
+    if (href === "/analytics/portfolio") return "feature_analytics_portfolio";
+    if (href === "/reporting") return "feature_reporting";
+    if (href === "/reporting/prep") return "feature_reporting_prep";
+    if (href === "/reporting/grid") return "feature_reporting_grid";
+    if (href === "/reporting/workflow") return "feature_reporting_workflow";
+    if (href === "/budgeting") return "feature_budgeting";
+    if (href === "/analytics/geography") return "feature_analytics_geography";
+    if (href === "/analytics/forecast") return "feature_analytics_forecast";
+    if (href === "/marketing") return "feature_marketing";
+    if (href === "/instant-tickets") return "feature_instant_tickets";
+    if (href === "/draw-planning") return "feature_draw_planning";
+    if (href === "/products") return "feature_products";
+    if (href === "/fomo") return "feature_fomo";
+    if (href === "/contracts") return "feature_contracts";
+    if (href === "/fleet") return "feature_fleet";
+    if (href === "/vendors") return "feature_vendors";
+    if (href === "/spatial-ops") return "feature_spatial_ops";
+    if (href === "/assets") return "feature_assets";
+    return null;
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
@@ -88,9 +136,28 @@ export default function Sidebar() {
   };
 
   const user = session?.user;
+  const isAdmin = user?.role === "admin";
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase()
     : "?";
+
+  const updatedNavItems = [
+    ...navItems,
+    ...(isAdmin ? [{
+      section: "Administration",
+      items: [
+        { href: "/admin/settings", label: "Feature Toggles", icon: <Settings size={18} /> }
+      ]
+    }] : [])
+  ];
+
+  const filteredNavItems = updatedNavItems.map(section => {
+    const visibleItems = section.items.filter(item => {
+      const key = getFeatureKey(item.href);
+      return key ? features[key] !== false : true;
+    });
+    return { ...section, items: visibleItems };
+  }).filter(section => section.items.length > 0);
 
   return (
     <aside className="sidebar">
@@ -100,7 +167,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((section) => (
+        {filteredNavItems.map((section) => (
           <div className="nav-section" key={section.section}>
             <div className="nav-section-label">{section.section}</div>
             {section.items.map((item) => {

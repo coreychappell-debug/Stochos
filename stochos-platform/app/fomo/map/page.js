@@ -1,7 +1,9 @@
 "use client";
+
 import AppShell from "../../components/AppShell";
 import dynamicImport from "next/dynamic";
 import { useEffect } from "react";
+import FomoSubNav from "../FomoSubNav";
 
 // Dynamically import the map client to avoid SSR issues
 const VcrmMapClient = dynamicImport(() => import("./VcrmMapClient"), {
@@ -23,10 +25,11 @@ export default function VcrmMapPage() {
 
   return (
     <AppShell>
-      <div className="page-header" style={{ borderBottom: "none", paddingBottom: "16px" }}>
+      <div className="page-header" style={{ borderBottom: "none", paddingBottom: "12px" }}>
         <h2>VCRM Route & Merchandising Map</h2>
         <p>Visitations, Coaching, Freshness Indices, and Support Opportunities</p>
       </div>
+      <FomoSubNav />
       <div style={{ flex: 1, padding: "0 24px 24px 24px", display: "flex", flexDirection: "column" }}>
         <VcrmMapClient />
       </div>

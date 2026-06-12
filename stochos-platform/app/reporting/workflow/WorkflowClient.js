@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import EvidencePanel from '@/app/components/evidence/EvidencePanel';
+import { FileSpreadsheet, Lock, User, FileText, AlertTriangle, CheckCircle, MessageSquare, ChevronDown, Check, RefreshCw } from 'lucide-react';
+import HelpTrigger from '@/app/components/HelpTrigger';
 
 export default function WorkflowClient() {
   const router = useRouter();
@@ -14,6 +16,33 @@ export default function WorkflowClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [resolutions, setResolutions] = useState({});
+  const [submittingTasks, setSubmittingTasks] = useState({});
+
+  const [activeLocks, setActiveLocks] = useState([]);
+  const isCompilingRef = useRef(false);
+  const prevCompileLockedRef = useRef(false);
+
+  const fetchActiveLocks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/reporting/jobs');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setActiveLocks(data.activeJobs || []);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch active locks:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActiveLocks();
+    const interval = setInterval(fetchActiveLocks, 5000);
+    return () => clearInterval(interval);
+  }, [fetchActiveLocks]);
 
   // Modals visibility
   const [isPkgModalOpen, setIsPkgModalOpen] = useState(false);
@@ -30,7 +59,7 @@ export default function WorkflowClient() {
   const [editReviewerId, setEditReviewerId] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
 
-  // Fetch initial packages & users
+  // Fetch initial packages, users & session
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
@@ -41,6 +70,9 @@ export default function WorkflowClient() {
         const usersRes = await fetch('/api/reporting/users');
         const usersData = await usersRes.json();
 
+        const sessionRes = await fetch('/api/auth/session');
+        const sessionData = await sessionRes.json();
+
         if (pkgsData.success) {
           setPackages(pkgsData.packages);
           if (pkgsData.packages.length > 0) {
@@ -49,6 +81,9 @@ export default function WorkflowClient() {
         }
         if (usersData.success) {
           setUsers(usersData.users);
+        }
+        if (sessionData && sessionData.user) {
+          setCurrentUser(sessionData.user);
         }
       } catch (err) {
         console.error('Failed to load workflow data:', err);
@@ -138,6 +173,56 @@ export default function WorkflowClient() {
     }
   };
 
+  const handleResolveTask = async (taskId, note) => {
+    if (!note || note.trim().length < 5) {
+      setErrorMessage('A detailed resolution note (at least 5 characters) is required to resolve this task.');
+      return;
+    }
+
+    setErrorMessage('');
+    setSuccessMessage('');
+    setSubmittingTasks(prev => ({ ...prev, [taskId]: true }));
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: taskId,
+          resolutionNote: note,
+          resolvedBy: currentUser?.name || 'System User'
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const updatedTasks = selectedPkg.commentaryTasks.map(t => t.id === taskId ? data.task : t);
+        const updatedPkg = { ...selectedPkg, commentaryTasks: updatedTasks };
+        
+        setSelectedPkg(updatedPkg);
+        setPackages(packages.map(p => p.id === updatedPkg.id ? updatedPkg : p));
+        setSuccessMessage('Commentary justification submitted successfully.');
+        
+        setResolutions(prev => {
+          const next = { ...prev };
+          delete next[taskId];
+          return next;
+        });
+      } else {
+        setErrorMessage(data.error || 'Failed to submit commentary justification.');
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Network error during task resolution.');
+    } finally {
+      setSubmittingTasks(prev => {
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
+    }
+  };
+
   const openRoleModal = (section) => {
     setSelectedSection(section);
     setEditAssigneeId(section.assigneeId || '');
@@ -193,8 +278,10 @@ export default function WorkflowClient() {
   };
 
   const handleCompilePackage = async () => {
+    if (isCompilingRef.current) return;
     setErrorMessage('');
     setSuccessMessage('');
+    isCompilingRef.current = true;
 
     try {
       const res = await fetch(`/api/reporting/packages/${selectedPkg.id}/compile`, {
@@ -202,19 +289,42 @@ export default function WorkflowClient() {
       });
 
       const data = await res.json();
-      if (data.success) {
-        setSuccessMessage('Package compilation succeeded! Canonical HTML artifact generated, SHA-256 verified, and litigation hold activated.');
-        // Refresh package details
-        const updatedPkg = { ...selectedPkg, status: 'published' };
-        setSelectedPkg(updatedPkg);
-        setPackages(packages.map(p => p.id === updatedPkg.id ? updatedPkg : p));
+      if (res.status === 202 || data.success) {
+        setSuccessMessage(data.message || 'Report compilation successfully started in the background.');
+        fetchActiveLocks();
       } else {
         setErrorMessage(data.error || 'Compilation failed due to compliance block.');
       }
     } catch (err) {
       setErrorMessage('Compilation engine connection error.');
+    } finally {
+      isCompilingRef.current = false;
     }
   };
+
+  const isPackageCompileLocked = selectedPkg ? activeLocks.some(lock => lock.lockKey === `packages-compile-${selectedPkg.id}`) : false;
+
+  useEffect(() => {
+    if (prevCompileLockedRef.current && !isPackageCompileLocked && selectedPkg) {
+      setSuccessMessage('Package compilation finished successfully in the background!');
+      // Reload packages
+      const refreshData = async () => {
+        try {
+          const pkgsRes = await fetch('/api/reporting/packages');
+          const pkgsData = await pkgsRes.json();
+          if (pkgsData.success) {
+            setPackages(pkgsData.packages);
+            const updated = pkgsData.packages.find(p => p.id === selectedPkg.id);
+            if (updated) setSelectedPkg(updated);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      refreshData();
+    }
+    prevCompileLockedRef.current = isPackageCompileLocked;
+  }, [isPackageCompileLocked, selectedPkg]);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto', color: 'var(--text)', background: 'var(--surface-1)', display: 'flex', flexDirection: 'column', gap: '2.5rem', minHeight: '100vh', fontFamily: 'var(--font-sans)' }}>
@@ -226,6 +336,7 @@ export default function WorkflowClient() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px', margin: 0 }}>Orchestrate role-based publishing cycles for financial statements.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <HelpTrigger topicId="reporting_workflow" />
           <button 
             onClick={() => router.push('/reporting')} 
             style={{ padding: '8px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', boxShadow: 'var(--shadow-card)' }}
@@ -237,13 +348,13 @@ export default function WorkflowClient() {
 
       {/* Messages */}
       {errorMessage && (
-        <div style={{ padding: '16px', background: 'var(--status-failed-bg)', border: '1px solid var(--status-failed-border)', borderRadius: '8px', color: 'var(--status-failed-text)', fontWeight: '600', fontSize: '14px' }}>
-          ⚠️ {errorMessage}
+        <div style={{ padding: '16px', background: 'var(--status-failed-bg)', border: '1px solid var(--status-failed-border)', borderRadius: '8px', color: 'var(--status-failed-text)', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} /> {errorMessage}
         </div>
       )}
       {successMessage && (
-        <div style={{ padding: '16px', background: 'var(--status-passed-bg)', border: '1px solid var(--status-passed-border)', borderRadius: '8px', color: 'var(--status-passed-text)', fontWeight: '600', fontSize: '14px' }}>
-          ✅ {successMessage}
+        <div style={{ padding: '16px', background: 'var(--status-passed-bg)', border: '1px solid var(--status-passed-border)', borderRadius: '8px', color: 'var(--status-passed-text)', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle size={18} /> {successMessage}
         </div>
       )}
 
@@ -295,7 +406,18 @@ export default function WorkflowClient() {
           {/* RIGHT COLUMN: PACKAGE DETAILS & SECTIONS */}
           {selectedPkg ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
+              {isPackageCompileLocked && (
+                <div style={{ padding: '16px', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)', borderRadius: '8px', color: 'var(--status-warning-text)', fontSize: '13px', fontWeight: '500', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <AlertTriangle size={18} />
+                    <span>Background Document Compilation Active</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '12.5px', opacity: 0.9 }}>
+                    A background compile job is currently executing for this report package. Binders and commentary resolutions are read-only until compile completes.
+                  </p>
+                </div>
+              )}
+
               {/* Package Summary */}
               <div style={{ background: 'var(--card-bg)', borderRadius: '12px', padding: '24px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'var(--shadow-card)' }}>
                 <div>
@@ -307,22 +429,36 @@ export default function WorkflowClient() {
                 {selectedPkg.status !== 'published' ? (
                   <button 
                     onClick={handleCompilePackage}
+                    disabled={isPackageCompileLocked}
                     style={{ 
                       padding: '12px 20px', 
-                      background: 'var(--green)', 
-                      color: '#ffffff', 
-                      border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', 
-                      cursor: 'pointer', transition: 'all var(--transition)',
-                      boxShadow: '0 2px 4px rgba(16, 124, 65, 0.15)'
+                      background: isPackageCompileLocked ? 'var(--surface-3)' : 'var(--green)', 
+                      color: isPackageCompileLocked ? 'var(--text-muted)' : '#ffffff', 
+                      border: isPackageCompileLocked ? '1px solid var(--border)' : 'none', 
+                      borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', 
+                      cursor: isPackageCompileLocked ? 'not-allowed' : 'pointer', transition: 'all var(--transition)',
+                      boxShadow: isPackageCompileLocked ? 'none' : '0 2px 4px rgba(16, 124, 65, 0.15)'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--green-dim)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'var(--green)'}
+                    onMouseOver={(e) => !isPackageCompileLocked && (e.currentTarget.style.background = 'var(--green-dim)')}
+                    onMouseOut={(e) => !isPackageCompileLocked && (e.currentTarget.style.background = 'var(--green)')}
                   >
-                    Compile Final Document 📄
+                    {isPackageCompileLocked ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <svg className="animate-spin" viewBox="0 0 24 24" style={{ width: '16px', height: '16px', fill: 'none', stroke: 'currentColor', strokeWidth: '3px' }}>
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" opacity="0.25" />
+                          <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" stroke="none" />
+                        </svg>
+                        Compiling Binder...
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <FileText size={16} /> Compile Final Document
+                      </span>
+                    )}
                   </button>
                 ) : (
-                  <div style={{ padding: '8px 16px', background: 'var(--status-purple-bg)', border: '1px solid var(--status-purple-border)', color: 'var(--status-purple-text)', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                    🔒 Document Compiled & Locked
+                  <div style={{ padding: '8px 16px', background: 'var(--status-purple-bg)', border: '1px solid var(--status-purple-border)', color: 'var(--status-purple-text)', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Lock size={14} /> Document Compiled & Locked
                   </div>
                 )}
               </div>
@@ -330,7 +466,7 @@ export default function WorkflowClient() {
               {/* Sections Grid */}
               <div style={{ background: 'var(--card-bg)', borderRadius: '12px', padding: '24px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
                 <h3 style={{ fontSize: '16px', color: 'var(--text)', fontWeight: 'bold', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>📑</span> Section Assignments & Status
+                  <FileSpreadsheet size={18} style={{ color: 'var(--primary)' }} /> Section Assignments & Status
                 </h3>
                 
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -352,8 +488,16 @@ export default function WorkflowClient() {
                       return (
                         <tr key={sec.id} style={{ borderBottom: '1px solid var(--border-dim)', verticalAlign: 'middle' }}>
                           <td style={{ padding: '16px 12px', fontWeight: '600', color: 'var(--text)' }}>{sec.name}</td>
-                          <td style={{ padding: '16px 12px', color: 'var(--text-secondary)' }}>👤 {assigneeName}</td>
-                          <td style={{ padding: '16px 12px', color: 'var(--text-secondary)' }}>👤 {reviewerName}</td>
+                          <td style={{ padding: '16px 12px', color: 'var(--text-secondary)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <User size={13} /> {assigneeName}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px 12px', color: 'var(--text-secondary)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <User size={13} /> {reviewerName}
+                            </span>
+                          </td>
                           <td style={{ padding: '16px 12px', color: 'var(--text-secondary)' }}>{sec.dueDate ? new Date(sec.dueDate).toLocaleDateString() : 'N/A'}</td>
                           <td style={{ padding: '16px 12px' }}>
                             <span style={{ background: statusUI.bg, color: statusUI.text, border: `1px solid ${statusUI.border || 'transparent'}`, padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>
@@ -363,25 +507,26 @@ export default function WorkflowClient() {
                           <td style={{ padding: '16px 12px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center', minHeight: '52px' }}>
                             <button 
                               onClick={() => openRoleModal(sec)}
-                              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}
+                              disabled={isPackageCompileLocked}
+                              style={{ background: isPackageCompileLocked ? 'var(--surface-3)' : 'var(--surface-2)', border: '1px solid var(--border)', color: isPackageCompileLocked ? 'var(--text-muted)' : 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', cursor: isPackageCompileLocked ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: '600' }}
                             >
                               Manage
                             </button>
                             {selectedPkg.status !== 'published' && (
                               <>
                                 {sec.status === 'draft' && (
-                                  <button onClick={() => handleUpdateSectionStatus(sec.id, 'in_review')} style={{ background: 'var(--blue)', border: 'none', color: '#fff', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                                  <button onClick={() => handleUpdateSectionStatus(sec.id, 'in_review')} disabled={isPackageCompileLocked} style={{ background: isPackageCompileLocked ? 'var(--surface-3)' : 'var(--blue)', border: 'none', color: isPackageCompileLocked ? 'var(--text-muted)' : '#fff', padding: '4px 8px', borderRadius: '4px', cursor: isPackageCompileLocked ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
                                     Submit
                                   </button>
                                 )}
                                 {sec.status === 'in_review' && (
-                                  <button onClick={() => handleUpdateSectionStatus(sec.id, 'approved')} style={{ background: 'var(--green)', border: 'none', color: '#fff', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                                  <button onClick={() => handleUpdateSectionStatus(sec.id, 'approved')} disabled={isPackageCompileLocked} style={{ background: isPackageCompileLocked ? 'var(--surface-3)' : 'var(--green)', border: 'none', color: isPackageCompileLocked ? 'var(--text-muted)' : '#fff', padding: '4px 8px', borderRadius: '4px', cursor: isPackageCompileLocked ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
                                     Approve
                                   </button>
                                 )}
                                 {sec.status === 'approved' && (
-                                  <button disabled style={{ background: 'var(--surface-1)', border: 'none', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: '4px', cursor: 'not-allowed', fontSize: '11px' }}>
-                                    Locked 🔒
+                                  <button disabled style={{ background: 'var(--surface-1)', border: 'none', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: '4px', cursor: 'not-allowed', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    Locked <Lock size={11} />
                                   </button>
                                 )}
                               </>
@@ -392,6 +537,245 @@ export default function WorkflowClient() {
                     })}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Commentary Tasks Panel */}
+              <div style={{ background: 'var(--card-bg)', borderRadius: '12px', padding: '24px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', color: 'var(--text)', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MessageSquare size={18} style={{ color: 'var(--gold)' }} /> Required Variance Commentaries
+                  </h3>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', background: 'var(--status-draft-bg)', color: 'var(--status-draft-text)', border: '1px solid var(--status-draft-border)', padding: '2px 8px', borderRadius: '12px' }}>
+                      {selectedPkg.commentaryTasks?.filter(t => t.status === 'pending').length || 0} Pending
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', background: 'var(--status-passed-bg)', color: 'var(--status-passed-text)', border: '1px solid var(--status-passed-border)', padding: '2px 8px', borderRadius: '12px' }}>
+                      {selectedPkg.commentaryTasks?.filter(t => t.status === 'completed').length || 0} Resolved
+                    </span>
+                  </div>
+                </div>
+
+                {(!selectedPkg.commentaryTasks || selectedPkg.commentaryTasks.length === 0) ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--status-passed-text)', padding: '16px', borderRadius: '8px', background: 'var(--status-passed-bg)', border: '1px solid var(--status-passed-border)', fontSize: '13px' }}>
+                    <CheckCircle size={16} /> All validation rules satisfied. No variance commentary required.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {selectedPkg.commentaryTasks.map(task => {
+                      const snap = task.metricSnapshot || {};
+                      const isPending = task.status === 'pending';
+                      const isHardFail = task.severity === 'hard_fail';
+                      
+                      // Check permissions
+                      const userDivision = currentUser?.division?.toUpperCase();
+                      const isAssigned = task.assignedTo?.toUpperCase() === userDivision || userDivision === 'EXECUTIVE' || currentUser?.role === 'admin';
+
+                      return (
+                        <div 
+                          key={task.id} 
+                          style={{ 
+                            border: '1px solid var(--border)', 
+                            borderRadius: '8px', 
+                            background: 'var(--surface-2)',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {/* Task Card Header */}
+                          <div 
+                            style={{ 
+                              padding: '12px 16px', 
+                              background: 'var(--surface-3)', 
+                              borderBottom: '1px solid var(--border)',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '12px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <strong style={{ color: 'var(--text)', fontSize: '14px' }}>
+                                {snap.metricName || task.ruleCode}
+                              </strong>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                ({task.ruleCode})
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              {/* Severity Badge */}
+                              <span 
+                                style={{ 
+                                  fontSize: '11px', 
+                                  fontWeight: 'bold', 
+                                  padding: '2px 8px', 
+                                  borderRadius: '12px',
+                                  background: isHardFail ? 'var(--status-failed-bg)' : 'var(--status-warning-bg)',
+                                  color: isHardFail ? 'var(--status-failed-text)' : 'var(--status-warning-text)',
+                                  border: `1px solid ${isHardFail ? 'var(--status-failed-border)' : 'var(--status-warning-border)'}`
+                                }}
+                              >
+                                {isHardFail ? 'Mandatory Hard Fail' : 'Soft Warning'}
+                              </span>
+                              
+                              {/* Assigned Division Badge */}
+                              <span 
+                                style={{ 
+                                  fontSize: '11px', 
+                                  fontWeight: 'bold', 
+                                  padding: '2px 8px', 
+                                  borderRadius: '12px',
+                                  background: 'var(--surface-1)',
+                                  color: 'var(--text-secondary)',
+                                  border: '1px solid var(--border)'
+                                }}
+                              >
+                                Assigned: {task.assignedTo || 'Finance'}
+                              </span>
+
+                              {/* Status Badge */}
+                              <span 
+                                style={{ 
+                                  fontSize: '11px', 
+                                  fontWeight: 'bold', 
+                                  padding: '2px 8px', 
+                                  borderRadius: '12px',
+                                  background: isPending ? 'rgba(239, 68, 68, 0.1)' : 'var(--status-passed-bg)',
+                                  color: isPending ? '#ef4444' : 'var(--status-passed-text)',
+                                  border: `1px solid ${isPending ? 'rgba(239, 68, 68, 0.2)' : 'var(--status-passed-border)'}`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                {isPending ? (
+                                  <>
+                                    <AlertTriangle size={10} /> Pending
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check size={10} /> Resolved
+                                  </>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Task Card Body */}
+                          <div style={{ padding: '16px' }}>
+                            <div 
+                              style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                                gap: '16px',
+                                marginBottom: '16px',
+                                padding: '12px',
+                                background: 'var(--surface-1)',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-dim)'
+                              }}
+                            >
+                              <div>
+                                <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)' }}>Actual Value</span>
+                                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>
+                                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(snap.actualValue || 0)}
+                                </strong>
+                              </div>
+                              <div>
+                                <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)' }}>Adopted Budget</span>
+                                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>
+                                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(snap.budgetValue || 0)}
+                                </strong>
+                              </div>
+                              <div>
+                                <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)' }}>Variance</span>
+                                <strong 
+                                  style={{ 
+                                    fontSize: '14px', 
+                                    color: Math.abs(snap.variancePct) > 0 ? '#ef4444' : 'var(--text)'
+                                  }}
+                                >
+                                  {snap.variancePct > 0 ? '+' : ''}{(snap.variancePct * 100).toFixed(2)}%
+                                </strong>
+                              </div>
+                            </div>
+
+                            {isPending ? (
+                              <div>
+                                {isAssigned ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                                      Provide Narrative Justification
+                                    </label>
+                                    <textarea
+                                      value={resolutions[task.id] || ''}
+                                      onChange={(e) => setResolutions({ ...resolutions, [task.id]: e.target.value })}
+                                      disabled={isPackageCompileLocked}
+                                      placeholder="Explain the operational reasons for this variance (minimum 5 characters)..."
+                                      style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border)',
+                                        background: isPackageCompileLocked ? 'var(--surface-3)' : 'var(--card-bg)',
+                                        color: isPackageCompileLocked ? 'var(--text-muted)' : 'var(--text)',
+                                        fontSize: '13px',
+                                        minHeight: '80px',
+                                        outline: 'none',
+                                        cursor: isPackageCompileLocked ? 'not-allowed' : 'text'
+                                      }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                      <button
+                                        onClick={() => handleResolveTask(task.id, resolutions[task.id])}
+                                        disabled={submittingTasks[task.id] || !resolutions[task.id] || resolutions[task.id].trim().length < 5 || isPackageCompileLocked}
+                                        style={{
+                                          padding: '8px 16px',
+                                          background: (submittingTasks[task.id] || !resolutions[task.id] || resolutions[task.id].trim().length < 5 || isPackageCompileLocked) ? 'var(--surface-3)' : 'var(--primary)',
+                                          color: (submittingTasks[task.id] || !resolutions[task.id] || resolutions[task.id].trim().length < 5 || isPackageCompileLocked) ? 'var(--text-muted)' : '#fff',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          fontSize: '13px',
+                                          fontWeight: 'bold',
+                                          cursor: (submittingTasks[task.id] || !resolutions[task.id] || resolutions[task.id].trim().length < 5 || isPackageCompileLocked) ? 'not-allowed' : 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px'
+                                        }}
+                                      >
+                                        {submittingTasks[task.id] ? (
+                                          <>
+                                            <RefreshCw size={14} className="spin" /> Submitting...
+                                          </>
+                                        ) : (
+                                          'Submit Justification'
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#d97706', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
+                                    <AlertTriangle size={16} />
+                                    Read-only: This variance requires justification by a member of the {task.assignedTo} division.
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: '6px', padding: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                                  <span>Justification Narrative</span>
+                                  <span>Resolved by {task.resolvedBy} on {new Date(task.resolvedAt).toLocaleString()}</span>
+                                </div>
+                                <p style={{ fontSize: '13px', color: 'var(--text)', margin: 0, fontStyle: 'italic' }}>
+                                  &quot;{task.resolutionNote}&quot;
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Supporting Evidence Panel */}

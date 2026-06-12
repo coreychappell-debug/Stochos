@@ -5,20 +5,29 @@ import AppShell from "../components/AppShell";
 import OrganizationClient from "./OrganizationClient";
 
 export default async function OrganizationPage() {
-  const users = await prisma.user.findMany({
-    include: {
-      manager: { select: { id: true, name: true, email: true, division: true } },
-      staff: { select: { id: true, name: true, email: true, division: true } },
-      contractsCreated: {
-        include: {
-          vendor: { select: { id: true, name: true } },
-          lineItems: { select: { budgetAmount: true, spentAmount: true } },
+  const [users, orgUnits, roles] = await Promise.all([
+    prisma.user.findMany({
+      include: {
+        manager: { select: { id: true, name: true, email: true, division: true } },
+        staff: { select: { id: true, name: true, email: true, division: true } },
+        orgUnit: { select: { id: true, name: true, code: true, type: true, parentId: true } },
+        contractsCreated: {
+          include: {
+            vendor: { select: { id: true, name: true } },
+            lineItems: { select: { budgetAmount: true, spentAmount: true } },
+          },
+          orderBy: { updatedAt: "desc" },
         },
-        orderBy: { updatedAt: "desc" },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    }),
+    prisma.orgUnit.findMany({
+      orderBy: { code: "asc" }
+    }),
+    prisma.role.findMany({
+      orderBy: { name: "asc" }
+    })
+  ]);
 
   return (
     <AppShell>
@@ -29,7 +38,11 @@ export default async function OrganizationPage() {
         </div>
       </div>
       <div className="page-body">
-        <OrganizationClient initialUsers={JSON.parse(JSON.stringify(users))} />
+        <OrganizationClient 
+          initialUsers={JSON.parse(JSON.stringify(users))} 
+          initialOrgUnits={JSON.parse(JSON.stringify(orgUnits))} 
+          initialRoles={JSON.parse(JSON.stringify(roles))}
+        />
       </div>
     </AppShell>
   );

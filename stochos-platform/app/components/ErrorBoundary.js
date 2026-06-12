@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { AlertTriangle, RotateCw } from "lucide-react";
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -41,8 +42,8 @@ export default class ErrorBoundary extends React.Component {
           color: "var(--text, #e0e6ed)",
           fontFamily: "Inter, sans-serif"
         }}>
-          <h4 style={{ color: "var(--red, #ef476f)", marginTop: 0, fontWeight: 700, fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            ⚠️ Visual Component Error
+          <h4 style={{ color: "var(--red, #ef476f)", marginTop: 0, fontWeight: 700, fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "6px" }}>
+            <AlertTriangle size={16} /> Visual Component Error
           </h4>
           <p style={{ fontSize: "12.5px", color: "var(--text-secondary, #8899aa)", margin: "8px 0 16px 0", lineHeight: "1.5" }}>
             An unexpected error occurred rendering this section of the platform. The system has automatically recorded the crash details and sent them to the technical administration team.
@@ -62,10 +63,13 @@ export default class ErrorBoundary extends React.Component {
               color: "var(--text, #e0e6ed)",
               border: "1px solid var(--border, #2d3a4a)",
               borderRadius: "4px",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            🔄 Reload Page & Try Again
+            <RotateCw size={12} /> Reload Page & Try Again
           </button>
         </div>
       );

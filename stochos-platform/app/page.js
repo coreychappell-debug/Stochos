@@ -5,12 +5,44 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Sidebar from "./components/Sidebar";
+import { Zap, CheckCircle2, AlertTriangle, TrendingUp, Megaphone, Ticket, MapPin, FileText, Building2, Package, Car, Globe, Laptop } from "lucide-react";
+import fs from "fs/promises";
+import path from "path";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
   const userName = session?.user?.name || "User";
+
+  // Load system settings
+  let features = {};
+  try {
+    const settingsPath = path.join(process.cwd(), "data", "system_settings.json");
+    const settingsContent = await fs.readFile(settingsPath, "utf-8");
+    features = JSON.parse(settingsContent);
+  } catch (err) {
+    // defaults to empty (all features enabled)
+  }
+
+  const isEnabled = (href) => {
+    if (href === "/organization") return features.feature_organization !== false;
+    if (href === "/analytics") return features.feature_analytics_overview !== false || features.feature_analytics_retailers !== false || features.feature_analytics_portfolio !== false;
+    if (href === "/marketing") return features.feature_marketing !== false;
+    if (href === "/instant-tickets") return features.feature_instant_tickets !== false;
+    if (href === "/fomo") return features.feature_fomo !== false;
+    if (href === "/contracts") return features.feature_contracts !== false;
+    if (href === "/vendors") return features.feature_vendors !== false;
+    if (href === "/products") return features.feature_products !== false;
+    if (href === "/fleet") return features.feature_fleet !== false;
+    if (href === "/spatial-ops") return features.feature_spatial_ops !== false;
+    if (href === "/assets") return features.feature_assets !== false;
+    return true;
+  };
+
+  const activeModulesCount = Object.keys(features).length > 0 
+    ? Object.values(features).filter(val => val !== false).length 
+    : 21;
 
   // Fetch logged in user details including division and role
   const user = await prisma.user.findUnique({
@@ -104,19 +136,53 @@ export default async function DashboardPage() {
         link: a.entityType === "contract" ? `/contracts/${a.entityId}` : "/contracts"
       });
     });
+
+    // Fetch pending commentary tasks for the user's division
+    if (user.division) {
+      const pendingTasks = await prisma.commentaryTask.findMany({
+        where: {
+          assignedTo: {
+            equals: user.division,
+            mode: 'insensitive'
+          },
+          status: "pending"
+        },
+        include: {
+          rule: true,
+          section: true
+        }
+      }).catch(() => []);
+
+      pendingTasks.forEach(task => {
+        let varianceStr = "";
+        if (task.metricSnapshot && typeof task.metricSnapshot === 'object') {
+          const snap = task.metricSnapshot;
+          if (snap.variancePct !== undefined) {
+            varianceStr = ` (Variance: ${(snap.variancePct * 100).toFixed(1)}%)`;
+          }
+        }
+        actionItems.push({
+          id: task.id,
+          type: "commentary_task",
+          title: `Commentary Required: ${task.rule?.name || task.ruleCode}${varianceStr}`,
+          description: `Variance breach detected for ${task.rule?.name || task.ruleCode}. Narrative justification required in workflow section '${task.section?.name || 'MD&A'}'.`,
+          link: "/reporting/workflow"
+        });
+      });
+    }
   }
 
   const marketingModules = [
     {
       href: "/marketing",
-      icon: "📢",
+      icon: <Megaphone size={24} style={{ color: "var(--blue)" }} />,
       title: "Marketing MRM",
       description: "Multi-channel campaign planning, media placement tracking, and marketing spend attribution.",
       active: true,
     },
     {
       href: "/instant-tickets",
-      icon: "🎫",
+      icon: <Ticket size={24} style={{ color: "var(--blue)" }} />,
       title: "Instant Ticket Planning",
       description: "Fiscal year game planning, vendor pricing matrices, and production order management.",
       active: true,
@@ -126,42 +192,42 @@ export default async function DashboardPage() {
   const operationsModules = [
     {
       href: "/fomo",
-      icon: "🤝",
+      icon: <MapPin size={24} style={{ color: "var(--blue)" }} />,
       title: "Field Operations, Merchandising & Oversight (FOMO)",
       description: "Manage lottery retailer accounts, schedule routes, log store visits, and audit expected versus observed equipment.",
       active: true,
     },
     {
       href: "/contracts",
-      icon: "📋",
+      icon: <FileText size={24} style={{ color: "var(--blue)" }} />,
       title: "Contract Management",
       description: "Track contracts, deliverables, budgets, compliance documents, and approval workflows across all vendors.",
       active: true,
     },
     {
       href: "/vendors",
-      icon: "🏢",
+      icon: <Building2 size={24} style={{ color: "var(--blue)" }} />,
       title: "Vendor Registry",
       description: "Manage vendor profiles, certifications, contact information, and contract associations.",
       active: true,
     },
     {
       href: "/products",
-      icon: "🎰",
+      icon: <Package size={24} style={{ color: "var(--blue)" }} />,
       title: "Product Catalog",
       description: "Browse lottery products and games. Products link to contracts and analytics for cross-module reporting.",
       active: true,
     },
     {
       href: "/fleet",
-      icon: "🚗",
+      icon: <Car size={24} style={{ color: "var(--blue)" }} />,
       title: "Fleet Management",
       description: "Manage vehicle fleet tracking, lifecycle milestones, maintenance logs, and straight-line depreciation.",
       active: true,
     },
     {
       href: "/spatial-ops",
-      icon: "🌐",
+      icon: <Globe size={24} style={{ color: "var(--blue)" }} />,
       title: "Spatial Operations, Logistics & Risk (SOLR)",
       description: "Monitor active weather/earthquake alerts, analyze retailer risk proximity, and coordinate logistics planning.",
       active: true,
@@ -171,12 +237,16 @@ export default async function DashboardPage() {
   const itModules = [
     {
       href: "/assets",
-      icon: "💻",
+      icon: <Laptop size={24} style={{ color: "var(--blue)" }} />,
       title: "IT Asset Registry",
       description: "Inventory IT hardware, software licenses, lifecycle boundaries, and straight-line depreciation.",
       active: true,
     },
   ];
+
+  const filteredMarketingModules = marketingModules.filter(m => isEnabled(m.href));
+  const filteredOperationsModules = operationsModules.filter(m => isEnabled(m.href));
+  const filteredItModules = itModules.filter(m => isEnabled(m.href));
 
   return (
     <div className="app-layout">
@@ -192,7 +262,7 @@ export default async function DashboardPage() {
           <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--gold)" }}>
             <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ color: "var(--gold)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <span>⚡</span> My Action Center
+                <Zap size={18} /> My Action Center
               </h3>
               <span className="badge" style={{ backgroundColor: actionItems.length > 0 ? "var(--gold)" : "var(--green)", color: "#fff" }}>
                 {actionItems.length} active tasks
@@ -200,8 +270,8 @@ export default async function DashboardPage() {
             </div>
             <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {actionItems.length === 0 ? (
-                <div style={{ padding: "12px 0", color: "var(--text-secondary)", fontSize: 14 }}>
-                  ✓ You are all caught up! No pending workflow tasks or approvals.
+                <div style={{ padding: "12px 0", color: "var(--text-secondary)", fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                  <CheckCircle2 size={16} style={{ color: "var(--green)" }} /> You are all caught up! No pending workflow tasks or approvals.
                 </div>
               ) : (
                 actionItems.map(item => (
@@ -222,7 +292,9 @@ export default async function DashboardPage() {
           {(expiringContracts.length > 0 || expiringDocs.length > 0 || overBudgetItems.length > 0) && (
             <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid #ef4444" }}>
               <div className="card-header">
-                <h3 style={{ color: "#ef4444" }}>⚠️ Operational Alerts</h3>
+                <h3 style={{ color: "#ef4444", display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertTriangle size={18} /> Operational Alerts
+                </h3>
               </div>
               <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {expiringContracts.map(c => (
@@ -245,17 +317,21 @@ export default async function DashboardPage() {
           )}
 
           {/* Analytics Highlight Card - Prominently at the top */}
-          <div className="card" style={{ marginBottom: 24, background: "linear-gradient(135deg, var(--card-bg) 0%, var(--surface-3) 100%)", borderLeft: "4px solid var(--blue)" }}>
-            <div className="card-body" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>📈 Analytics & Performance Portal</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Executive reporting, retailer performance, SOLR weather and hazard planning, and sales forecasting.</p>
+          {isEnabled("/analytics") && (
+            <div className="card" style={{ marginBottom: 24, background: "linear-gradient(135deg, var(--card-bg) 0%, var(--surface-3) 100%)", borderLeft: "4px solid var(--blue)" }}>
+              <div className="card-body" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                    <TrendingUp size={18} style={{ color: "var(--blue)" }} /> Analytics & Performance Portal
+                  </h3>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Executive reporting, retailer performance, SOLR weather and hazard planning, and sales forecasting.</p>
+                </div>
+                <Link href="/analytics" className="btn btn-primary">
+                  Open Analytics
+                </Link>
               </div>
-              <Link href="/analytics" className="btn btn-primary">
-                Open Analytics
-              </Link>
             </div>
-          </div>
+          )}
 
           <div className="kpi-grid">
             <div className="kpi-card kpi-blue">
@@ -275,63 +351,75 @@ export default async function DashboardPage() {
             </div>
             <div className="kpi-card kpi-purple">
               <div className="kpi-label">Active Modules</div>
-              <div className="kpi-value">10</div>
+              <div className="kpi-value">{activeModulesCount}</div>
               <div className="kpi-subtitle">Fully integrated systems</div>
             </div>
           </div>
 
           {/* Grouped Modules */}
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-            <div>
-              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>📢 Marketing Modules</h3>
-              <div className="module-grid">
-                {marketingModules.map((mod) => (
-                  <Link
-                    key={mod.title}
-                    href={mod.active ? mod.href : "#"}
-                    className={`module-card ${!mod.active ? "disabled" : ""}`}
-                  >
-                    <div className="module-card-icon">{mod.icon}</div>
-                    <h3>{mod.title}</h3>
-                    <p>{mod.description}</p>
-                  </Link>
-                ))}
+            {filteredMarketingModules.length > 0 && (
+              <div>
+                <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Megaphone size={14} /> Marketing Modules
+                </h3>
+                <div className="module-grid">
+                  {filteredMarketingModules.map((mod) => (
+                    <Link
+                      key={mod.title}
+                      href={mod.active ? mod.href : "#"}
+                      className={`module-card ${!mod.active ? "disabled" : ""}`}
+                    >
+                      <div className="module-card-icon">{mod.icon}</div>
+                      <h3>{mod.title}</h3>
+                      <p>{mod.description}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>📋 Operations Modules</h3>
-              <div className="module-grid">
-                {operationsModules.map((mod) => (
-                  <Link
-                    key={mod.title}
-                    href={mod.active ? mod.href : "#"}
-                    className={`module-card ${!mod.active ? "disabled" : ""}`}
-                  >
-                    <div className="module-card-icon">{mod.icon}</div>
-                    <h3>{mod.title}</h3>
-                    <p>{mod.description}</p>
-                  </Link>
-                ))}
+            {filteredOperationsModules.length > 0 && (
+              <div>
+                <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <FileText size={14} /> Operations Modules
+                </h3>
+                <div className="module-grid">
+                  {filteredOperationsModules.map((mod) => (
+                    <Link
+                      key={mod.title}
+                      href={mod.active ? mod.href : "#"}
+                      className={`module-card ${!mod.active ? "disabled" : ""}`}
+                    >
+                      <div className="module-card-icon">{mod.icon}</div>
+                      <h3>{mod.title}</h3>
+                      <p>{mod.description}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12 }}>💻 Information Technology</h3>
-              <div className="module-grid">
-                {itModules.map((mod) => (
-                  <Link
-                    key={mod.title}
-                    href={mod.active ? mod.href : "#"}
-                    className={`module-card ${!mod.active ? "disabled" : ""}`}
-                  >
-                    <div className="module-card-icon">{mod.icon}</div>
-                    <h3>{mod.title}</h3>
-                    <p>{mod.description}</p>
-                  </Link>
-                ))}
+            {filteredItModules.length > 0 && (
+              <div>
+                <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Laptop size={14} /> Information Technology
+                </h3>
+                <div className="module-grid">
+                  {filteredItModules.map((mod) => (
+                    <Link
+                      key={mod.title}
+                      href={mod.active ? mod.href : "#"}
+                      className={`module-card ${!mod.active ? "disabled" : ""}`}
+                    >
+                      <div className="module-card-icon">{mod.icon}</div>
+                      <h3>{mod.title}</h3>
+                      <p>{mod.description}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

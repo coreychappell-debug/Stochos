@@ -49,6 +49,10 @@ model Jurisdiction {
   formatPresets      FormatPreset[]
   drawGameScenarios  DrawGameScenario[]
   budgetProposals    BudgetProposal[]
+  periodLocks        PeriodLock[]
+  glCrosswalkRules   GlCrosswalkRule[]
+  gasbRows           GasbRow[]
+  closeChecklistItems PeriodCloseChecklistItem[]
 
   @@map("jurisdictions")
 }
@@ -132,17 +136,25 @@ model User {
   lastLogin      DateTime?     @map("last_login")
   status         String        @default("active")
   division       String        @default("EXECUTIVE") // EXECUTIVE, FINANCE, MARKETING, OPERATIONS, IT, PROCUREMENT
+  bureau         String?
+  subunit        String?
+  homeAddress    String?       @map("home_address")
+  homeLatitude   Float?        @map("home_latitude")
+  homeLongitude  Float?        @map("home_longitude")
   createdAt      DateTime      @default(now()) @map("created_at")
 
   contractsCreated Contract[]       @relation("ContractCreatedBy")
   invoicesApproved Invoice[]        @relation("InvoiceApprovedBy")
   approvals        Approval[]       @relation("ApprovalApprover")
   auditLogs        AuditLog[]
+  assetAuditLogs   AssetAuditLog[]
+  assetAuditBatches AssetAuditBatch[]
   campaignsCreated Campaign[]
   contractAccess   ContractAccess[]
   vehicles         Vehicle[]
   assets           Asset[]
   budgetProposals  BudgetProposal[] @relation("BudgetProposalCreator")
+  budgetProposalVersions BudgetProposalVersion[]
 
   managerId              String?                   @map("manager_id")
   manager                User?                     @relation("ManagerStaff", fields: [managerId], references: [id])
@@ -159,6 +171,10 @@ model User {
   metricFormatsOwned     MetricRegistryEntry[] @relation("MetricFormatOwner")
   formatPresetsCreated   FormatPreset[]    @relation("FormatPresetCreator")
   formatAudits           FormatAuditEntry[] @relation("FormatAuditUser")
+  lockedPeriods          PeriodLock[]
+  orgUnitId              String?                   @map("org_unit_id")
+  orgUnit                OrgUnit?                  @relation(fields: [orgUnitId], references: [id])
+  closeChecklistItemsCompleted PeriodCloseChecklistItem[] @relation("ChecklistItemCompletedBy")
 
   @@map("users")
 }
@@ -618,6 +634,22 @@ model Asset {
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
+  lastAuditedAt    DateTime?    @map("last_audited_at")
+  lastAuditLat     Float?       @map("last_audit_lat")
+  lastAuditLon     Float?       @map("last_audit_lon")
+  retailerId       String?      @map("retailer_id")
+  retailer         CrmRetailer? @relation(fields: [retailerId], references: [id])
+  auditLogs        AssetAuditLog[]
+
+  deploymentType   String       @default("retail") @map("deployment_type")
+  orgUnitId        String?      @map("org_unit_id")
+  orgUnit          OrgUnit?     @relation(fields: [orgUnitId], references: [id])
+
+  @@index([status])
+  @@index([category])
+  @@index([deploymentType])
+  @@index([retailerId])
+  @@index([orgUnitId])
   @@map("assets")
 }
 
@@ -710,10 +742,12 @@ model CrmRetailer {
   createdAt                      DateTime         @default(now()) @map("created_at")
   updatedAt                      DateTime         @updatedAt @map("updated_at")
 
-  assignments   CrmAssetAssignment[]
-  visits        CrmVisit[]
-  actionItems   CrmActionItem[]
-  discrepancies CrmDiscrepancyException[]
+  assignments    CrmAssetAssignment[]
+  visits         CrmVisit[]
+  actionItems    CrmActionItem[]
+  discrepancies  CrmDiscrepancyException[]
+  assets         Asset[]
+  assetAuditLogs AssetAuditLog[]
 
   @@map("crm_retailers")
   @@index([county])
@@ -920,14 +954,36 @@ model TrialBalanceRecord {
   id             String       @id @default(uuid())
   jurisdictionId String       @map("jurisdiction_id")
   jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
-  periodDate     DateTime     @map("period_date") @db.Date
+  uploadId       String?      @map("upload_id") // Links to ImportBatch for atomic rollback
+  upload         ImportBatch? @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  fiscalYear     Int          @map("fiscal_year") // e.g. 2024
+  periodCode     String       @map("period_code") // "P01" to "P12", "P13" (EOY), "Q01" to "Q04"
+  periodDate     DateTime     @map("period_date") @db.Date // Standardized date for R/Shiny compatibility
   accountCode    String       @map("account_code")
   accountName    String       @map("account_name")
   balance        Decimal      @db.Decimal(14, 2)
-  status         String       @default("imported") // imported, mapped, archived
+  status         String       @default("imported") // imported, adjusted, archived
   createdAt      DateTime     @default(now()) @map("created_at")
 
+  @@index([jurisdictionId, fiscalYear, periodCode])
   @@map("trial_balance_records")
+}
+
+model GasbRow {
+  id                String       @id @default(uuid())
+  jurisdictionId    String       @map("jurisdiction_id")
+  jurisdiction      Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  statement         String       // "netPosition", "revenuesExpenses", "cashFlows"
+  section           String       // e.g. "currentAssets", "operatingExpenses"
+  label             String
+  accountPattern    String       @map("account_pattern") // e.g. "1-1000" or "5-2000,5-2100"
+  rowType           String       @map("row_type") // "data", "subtotal", "total"
+  signageMultiplier Decimal      @default(1.0) @map("signage_multiplier") @db.Decimal(3, 1)
+  sortOrder         Int          @map("sort_order")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  @@map("gasb_rows")
 }
 
 model ReportTemplate {
@@ -1168,6 +1224,9 @@ model ImportBatch {
   pipeline              Pipeline @relation(fields: [pipelineId], references: [id])
   cellTraces            CellImportTrace[]
   evidence              SupportingEvidence[]
+  fiscalYear            Int?         @map("fiscal_year")
+  periodCode            String?      @map("period_code")
+  trialBalances         TrialBalanceRecord[]
 
   @@index([organizationId])
   @@index([pipelineId])
@@ -1365,6 +1424,8 @@ model BudgetProposal {
   jurisdictionId String       @map("jurisdiction_id")
   jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
   division       String       // "MARKETING", "OPERATIONS", "IT", "PROCUREMENT"
+  bureau         String       @default("")
+  subunit        String       @default("")
   fiscalYear     Int          @map("fiscal_year")
   status         String       @default("draft") // draft, submitted, approved, rejected
   proposalData   Json         @default("[]") // [{category: "Software", desc: "Licenses", amount: 15000}]
@@ -1374,7 +1435,140 @@ model BudgetProposal {
   notes          String?      @db.Text
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
+  versions       BudgetProposalVersion[]
 
-  @@unique([jurisdictionId, division, fiscalYear])
+  @@unique([jurisdictionId, division, bureau, subunit, fiscalYear])
   @@map("budget_proposals")
 }
+
+model GlCrosswalkRule {
+  id                 String       @id @default(uuid())
+  jurisdictionId     String       @map("jurisdiction_id")
+  jurisdiction       Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  accountPattern     String       @map("account_pattern") // e.g., "40100-*-*-*" or "5-2000"
+  metricId           String       @map("metric_id") // References MetricDefinition.id
+  signageMultiplier  Decimal      @default(1.0) @map("signage_multiplier") @db.Decimal(3, 1) // 1.0 or -1.0
+  effectiveStartDate DateTime     @map("effective_start_date") @db.Date
+  effectiveEndDate   DateTime?    @map("effective_end_date") @db.Date
+  description        String?      @db.Text
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  @@index([jurisdictionId])
+  @@index([accountPattern])
+  @@map("gl_crosswalk_rules")
+}
+
+model PeriodLock {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  fiscalYear     Int          @map("fiscal_year")
+  periodCode     String       @map("period_code") // "P01" to "P13", "Q01" to "Q04"
+  isLocked       Boolean      @default(false) @map("is_locked")
+  lockedById     String?      @map("locked_by_id")
+  lockedBy       User?        @relation(fields: [lockedById], references: [id])
+  lockedAt       DateTime?    @map("locked_at")
+
+  @@unique([jurisdictionId, fiscalYear, periodCode])
+  @@map("period_locks")
+}
+
+model OrgUnit {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  name      String
+  type      String
+  parentId  String?   @map("parent_id")
+  parent    OrgUnit?  @relation("OrgUnitParentChild", fields: [parentId], references: [id])
+  children  OrgUnit[] @relation("OrgUnitParentChild")
+  users     User[]
+  assets    Asset[]
+  
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("org_units")
+}
+
+model BudgetProposalVersion {
+  id            String         @id @default(uuid())
+  proposalId    String         @map("proposal_id")
+  proposal      BudgetProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  versionNumber Int            @map("version_number")
+  proposalData  Json           @map("proposal_data")
+  notes         String?        @db.Text
+  createdAt     DateTime       @default(now()) @map("created_at")
+  createdById   String         @map("created_by_id")
+  createdBy     User           @relation(fields: [createdById], references: [id])
+
+  @@unique([proposalId, versionNumber])
+  @@map("budget_proposal_versions")
+}
+
+model PeriodCloseChecklistItem {
+  id             String       @id @default(uuid())
+  jurisdictionId String       @map("jurisdiction_id")
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  fiscalYear     Int          @map("fiscal_year")
+  periodCode     String       @map("period_code")
+  taskKey        String       @map("task_key") // e.g., "TERMINAL_SALES", "GL_INGESTION", "PRIZE_RECONCILIATION", "VARIANCE_COMMENTARY"
+  isCompleted    Boolean      @default(false) @map("is_completed")
+  completedById  String?      @map("completed_by_id")
+  completedBy    User?        @relation("ChecklistItemCompletedBy", fields: [completedById], references: [id])
+  completedAt    DateTime?    @map("completed_at")
+
+  @@unique([jurisdictionId, fiscalYear, periodCode, taskKey])
+  @@map("period_close_checklist_items")
+}
+
+model SystemJobLock {
+  id                 String   @id @default(uuid())
+  lockKey            String   @unique @map("lock_key")
+  userId             String   @map("user_id")
+  userName           String   @map("user_name")
+  description        String?
+  maxDurationSeconds Int      @map("max_duration_seconds")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("system_job_locks")
+}
+
+model AssetAuditLog {
+  id               String       @id @default(uuid())
+  assetId          String       @map("asset_id")
+  asset            Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  retailerId       String?      @map("retailer_id")
+  retailer         CrmRetailer? @relation(fields: [retailerId], references: [id])
+  auditedAt        DateTime     @map("audited_at")
+  uploadedAt       DateTime     @default(now()) @map("uploaded_at")
+  latitude         Float?
+  longitude        Float?
+  isManual         Boolean      @default(false) @map("is_manual")
+  fileSignature    String       @map("file_signature")
+  originalFilename String?      @map("original_filename")
+  fileSize         Int?         @map("file_size") // in bytes
+  userId           String       @map("user_id")
+  user             User         @relation(fields: [userId], references: [id])
+  batchId          String?      @map("batch_id")
+  batch            AssetAuditBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  verificationStatus String     @default("fully_verified") @map("verification_status")
+
+  @@map("asset_audit_logs")
+}
+
+model AssetAuditBatch {
+  id         String          @id @default(uuid())
+  uploadedAt DateTime        @default(now()) @map("uploaded_at")
+  userId     String          @map("user_id")
+  user       User            @relation(fields: [userId], references: [id])
+  folderName String?         @map("folder_name")
+  fileCount  Int             @map("file_count")
+  status     String          @default("completed") // "completed" or "rolled_back"
+  auditLogs  AssetAuditLog[]
+
+  @@map("asset_audit_batches")
+}
+
+
+

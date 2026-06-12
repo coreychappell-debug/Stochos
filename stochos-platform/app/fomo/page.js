@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AppShell from "../components/AppShell";
 import FomoDashboardClient from "./FomoDashboardClient";
+import HelpTrigger from "@/app/components/HelpTrigger";
+import FomoSubNav from "./FomoSubNav";
 
 export default async function FomoDashboardPage() {
   const session = await auth();
@@ -18,7 +20,8 @@ export default async function FomoDashboardPage() {
     openExceptions,
     recentVisits,
     allMerchLogs,
-    routes
+    routes,
+    unassignedRetailersCount
   ] = await Promise.all([
     prisma.crmVisit.count({ where: { status: "completed" } }).catch(() => 0),
     prisma.crmRetailer.count().catch(() => 0),
@@ -41,10 +44,22 @@ export default async function FomoDashboardPage() {
     prisma.crmMerchandising.findMany().catch(() => []),
     prisma.crmRoute.findMany({
       include: {
-        _count: { select: { retailers: true } },
-        rep: { select: { name: true } }
+        rep: { select: { id: true, name: true, email: true } },
+        retailers: {
+          select: {
+            id: true,
+            status: true,
+            trainingStatus: true,
+            lastVisitDate: true,
+            discrepancies: {
+              where: { status: "open" },
+              select: { id: true }
+            }
+          }
+        }
       }
-    }).catch(() => [])
+    }).catch(() => []),
+    prisma.crmRetailer.count({ where: { routeId: null } }).catch(() => 0)
   ]);
 
   // Calculate Merch Score
@@ -77,21 +92,31 @@ export default async function FomoDashboardPage() {
     coachingCoverage,
     merchScore,
     oosRate,
-    openExceptionsCount: openExceptions.length
+    openExceptionsCount: openExceptions.length,
+    unassignedRetailersCount
   };
 
   return (
     <AppShell>
-      <div className="page-header">
-        <h2>Visitations, Coaching & Relationship Management (VCRM)</h2>
-        <p>Partner Success, Route Freshness & Active Support Opportunities</p>
+      <div className="page-header" style={{ borderBottom: "none", paddingBottom: "12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Visitations, Coaching & Relationship Management (VCRM)</h2>
+            <p style={{ margin: "4px 0 0 0" }}>Partner Success, Route Freshness & Active Support Opportunities</p>
+          </div>
+          <div>
+            <HelpTrigger topicId="fomo" />
+          </div>
+        </div>
       </div>
-      <div className="page-body">
+      <FomoSubNav />
+      <div className="page-body" style={{ paddingTop: 0 }}>
         <FomoDashboardClient 
           stats={stats} 
           recentVisits={JSON.parse(JSON.stringify(recentVisits))} 
           openExceptions={JSON.parse(JSON.stringify(openExceptions))}
           routes={JSON.parse(JSON.stringify(routes))}
+          currentUser={session.user}
         />
       </div>
     </AppShell>

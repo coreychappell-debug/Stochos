@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Radio, AlertTriangle, Trash2, Image, Check, Link2, CheckSquare, FileText, ArrowLeft } from "lucide-react";
 
 const STATUS_LABELS = {
   planning: "Planning",
@@ -223,7 +224,9 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
         <div className="flex items-center justify-between">
           <div>
             <div style={{ marginBottom: 4 }}>
-              <Link href="/marketing" style={{ color: "var(--text-muted)", fontSize: 12 }}>← Marketing Portfolio</Link>
+              <Link href="/marketing" style={{ color: "var(--text-muted)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <ArrowLeft size={12} /> Marketing Portfolio
+              </Link>
             </div>
             <h2>{campaign.name}</h2>
             <p>
@@ -419,7 +422,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
               )}
 
               {campaign.channels.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📡</div><h3>No channels allocated</h3></div>
+                <div className="empty-state"><div className="empty-state-icon"><Radio size={40} style={{ color: "var(--text-muted)" }} /></div><h3>No channels allocated</h3></div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {campaign.channels.map(ch => {
@@ -454,12 +457,12 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
                           <h4 style={{ margin: 0, textTransform: "capitalize", fontSize: 16 }}>
                             {ch.channel.replace(/_/g, " ")} 
                             <span className={`badge badge-${ch.status === "active" ? "active" : ch.status === "completed" ? "completed" : "submitted"}`} style={{ marginLeft: 8 }}>{ch.status}</span>
-                            {isOverspend && <span className="badge badge-expired" style={{ marginLeft: 8 }}>⚠️ Overspend</span>}
-                            {isOutsideDates && <span className="badge badge-warning" style={{ marginLeft: 8 }}>⚠️ Outside Flight Dates</span>}
+                            {isOverspend && <span className="badge badge-expired" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Overspend</span>}
+                            {isOutsideDates && <span className="badge badge-warning" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Outside Flight Dates</span>}
                           </h4>
                           <div className="flex gap-2">
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditingChannelId(ch.id)} style={{ padding: "2px 8px" }}>Edit</button>
-                            <button className="btn btn-secondary btn-sm" aria-label="Delete Channel" onClick={() => handleDeleteChannel(ch.id)} style={{ padding: "2px 8px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Channel" onClick={() => handleDeleteChannel(ch.id)} style={{ padding: "2px 8px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
                           </div>
                         </div>
                         <div className="form-row" style={{ fontSize: 14 }}>
@@ -537,7 +540,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
               )}
 
               {campaign.assets.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">🖼️</div><h3>No assets tracking</h3></div>
+                <div className="empty-state"><div className="empty-state-icon"><Image size={40} style={{ color: "var(--text-muted)" }} /></div><h3>No assets tracking</h3></div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {campaign.assets.map(asset => {
@@ -586,16 +589,16 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
                           <h4 style={{ margin: 0, textTransform: "capitalize", fontSize: 16 }}>
                             {asset.name} <span className="text-muted" style={{ fontSize: 13, fontWeight: "normal" }}>({asset.version})</span>
                             <span className={`badge badge-${asset.status === "live" ? "active" : asset.status === "retired" ? "expired" : "submitted"}`} style={{ marginLeft: 8 }}>{asset.status.replace("_", " ")}</span>
-                            {asset.approvalStatus === "approved" && <span className="badge badge-completed" style={{ marginLeft: 8 }}>✓ Approved</span>}
-                            {isExpired && <span className="badge badge-expired" style={{ marginLeft: 8 }}>⚠️ Past Expiration</span>}
-                            {isLaunchWarning && <span className="badge badge-expired" style={{ marginLeft: 8 }}>⚠️ Launched without Approval</span>}
-                            {usageRightsExpired && <span className="badge badge-expired" style={{ marginLeft: 8 }}>⚠️ Usage Rights Expired</span>}
-                            {usageRightsExpiringSoon && <span className="badge badge-warning" style={{ marginLeft: 8 }}>⚠️ Usage Rights Expiring</span>}
+                            {asset.approvalStatus === "approved" && <span className="badge badge-completed" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={12} /> Approved</span>}
+                            {isExpired && <span className="badge badge-expired" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Past Expiration</span>}
+                            {isLaunchWarning && <span className="badge badge-expired" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Launched without Approval</span>}
+                            {usageRightsExpired && <span className="badge badge-expired" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Usage Rights Expired</span>}
+                            {usageRightsExpiringSoon && <span className="badge badge-warning" style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Usage Rights Expiring</span>}
                           </h4>
                           <div className="flex gap-2">
-                            {asset.assetUrl && <a href={asset.assetUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ padding: "2px 8px", textDecoration: "none" }}>🔗 View</a>}
+                            {asset.assetUrl && <a href={asset.assetUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ padding: "2px 8px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}><Link2 size={12} /> View</a>}
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditingAssetId(asset.id)} style={{ padding: "2px 8px" }}>Edit</button>
-                            <button className="btn btn-secondary btn-sm" aria-label="Delete Asset" onClick={() => handleDeleteAsset(asset.id)} style={{ padding: "2px 8px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Asset" onClick={() => handleDeleteAsset(asset.id)} style={{ padding: "2px 8px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
                           </div>
                         </div>
                         <div className="form-row" style={{ fontSize: 14 }}>
@@ -671,7 +674,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
               )}
 
               {campaign.milestones.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">✅</div><h3>No milestones tracking</h3></div>
+                <div className="empty-state"><div className="empty-state-icon"><CheckSquare size={40} style={{ color: "var(--text-muted)" }} /></div><h3>No milestones tracking</h3></div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {campaign.milestones.map(m => {
@@ -730,15 +733,15 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
                           </h4>
                           <div className="flex gap-2">
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditingMilestoneId(m.id)} style={{ padding: "2px 8px" }}>Edit</button>
-                            <button className="btn btn-secondary btn-sm" aria-label="Delete Milestone" onClick={() => handleDeleteMilestone(m.id)} style={{ padding: "2px 8px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Milestone" onClick={() => handleDeleteMilestone(m.id)} style={{ padding: "2px 8px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
                           </div>
                         </div>
                         <div style={{ marginBottom: 12 }}>
-                            {isBlocked && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4 }}>⚠️ <b>Blocked:</b> {m.blockerReason || "No reason provided"}</div>}
-                            {isOverdue && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4 }}>⚠️ <b>Overdue</b></div>}
-                            {isDueSoon && !isOverdue && <div style={{ color: "var(--yellow)", fontSize: 13, marginBottom: 4 }}>⚠️ <b>Due within 7 days</b></div>}
-                            {isLaunchBlocked && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4 }}>⚠️ <b>Launch Blocked:</b> Campaign has unapproved active assets</div>}
-                            {isCloseoutBlocked && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4 }}>⚠️ <b>Closeout Blocked:</b> Campaign has active channels or live assets</div>}
+                            {isBlocked && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} /> <b>Blocked:</b> {m.blockerReason || "No reason provided"}</div>}
+                            {isOverdue && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} /> <b>Overdue</b></div>}
+                            {isDueSoon && !isOverdue && <div style={{ color: "var(--yellow)", fontSize: 13, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} /> <b>Due within 7 days</b></div>}
+                            {isLaunchBlocked && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} /> <b>Launch Blocked:</b> Campaign has unapproved active assets</div>}
+                            {isCloseoutBlocked && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} /> <b>Closeout Blocked:</b> Campaign has active channels or live assets</div>}
                         </div>
                         <div className="form-row" style={{ fontSize: 14 }}>
                           <div><div className="form-label" style={{ fontSize: 12 }}>Type</div><div style={{ textTransform: "capitalize" }}>{m.milestoneType.replace("_", " ")}</div></div>
@@ -773,7 +776,7 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
             <div className="card-header"><h3>Audit Log</h3></div>
             <div className="card-body">
               {auditLog.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📝</div><h3>No audit entries</h3></div>
+                <div className="empty-state"><div className="empty-state-icon"><FileText size={40} style={{ color: "var(--text-muted)" }} /></div><h3>No audit entries</h3></div>
               ) : (
                 <table className="data-table">
                   <thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead>

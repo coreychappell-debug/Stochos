@@ -339,6 +339,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   flex: 1;
   overflow-y: auto;
   background: var(--dark-bg);
+  padding-right: var(--help-dock-offset, 0px);
+  transition: padding-right 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
 .page-header {

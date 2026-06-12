@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Home, TrendingUp, GraduationCap, Palette, Settings, CheckCircle2, XCircle, AlertTriangle, ArrowLeft } from "lucide-react";
 
 export default function FomoVisitDetailClient({ visit }) {
   const isMerchCompliant = visit.merchandising?.dispensersCleanAndFilled && 
@@ -24,11 +25,11 @@ export default function FomoVisitDetailClient({ visit }) {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <Link href={`/fomo/retailers/${visit.retailerId}`} className="btn btn-secondary">
-            ⬅ Back to Retailer Profile
+          <Link href={`/fomo/retailers/${visit.retailerId}`} className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <ArrowLeft size={14} /> Back to Retailer Profile
           </Link>
-          <Link href="/fomo" className="btn btn-secondary">
-            🏠 FOMO Dashboard
+          <Link href="/fomo" className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Home size={14} /> FOMO Dashboard
           </Link>
         </div>
       </div>
@@ -85,26 +86,50 @@ export default function FomoVisitDetailClient({ visit }) {
           {/* Process Improvement Card */}
           <div className="card">
             <div className="card-header">
-              <h3>📈 Process & Sales Improvement Review</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><TrendingUp size={20} style={{ color: "var(--blue)" }} /> Process & Sales Improvement Review</h3>
             </div>
             <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={{ padding: 12, backgroundColor: "var(--surface-3)", borderRadius: 6 }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Reviewed sales trends</div>
                   <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>
-                    {visit.process?.salesTrendReviewed ? "✅ Yes" : "❌ No"}
+                    {visit.process?.salesTrendReviewed ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--green)" }}>
+                        <CheckCircle2 size={16} /> Yes
+                      </span>
+                    ) : (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--red)" }}>
+                        <XCircle size={16} /> No
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ padding: 12, backgroundColor: "var(--surface-3)", borderRadius: 6 }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>OOS prevented</div>
                   <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>
-                    {visit.process?.outOfStockPrevented ? "✅ Yes" : "❌ No"}
+                    {visit.process?.outOfStockPrevented ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--green)" }}>
+                        <CheckCircle2 size={16} /> Yes
+                      </span>
+                    ) : (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--red)" }}>
+                        <XCircle size={16} /> No
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ padding: 12, backgroundColor: "var(--surface-3)", borderRadius: 6 }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Optimal layout applied</div>
                   <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>
-                    {visit.process?.optimalLayoutApplied ? "✅ Yes" : "❌ No"}
+                    {visit.process?.optimalLayoutApplied ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--green)" }}>
+                        <CheckCircle2 size={16} /> Yes
+                      </span>
+                    ) : (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--red)" }}>
+                        <XCircle size={16} /> No
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ padding: 12, backgroundColor: "var(--surface-3)", borderRadius: 6 }}>
@@ -129,7 +154,7 @@ export default function FomoVisitDetailClient({ visit }) {
           {/* Coaching Details Card */}
           <div className="card">
             <div className="card-header">
-              <h3>🎓 "Ask for the Sale" Coaching Log</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><GraduationCap size={20} style={{ color: "var(--blue)" }} /> "Ask for the Sale" Coaching Log</h3>
             </div>
             <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: 16 }}>
@@ -170,7 +195,7 @@ export default function FomoVisitDetailClient({ visit }) {
           {/* Merchandising Details Card */}
           <div className="card">
             <div className="card-header">
-              <h3>🎨 Point of Sale & Merchandising Compliance</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><Palette size={20} style={{ color: "var(--blue)" }} /> Point of Sale & Merchandising Compliance</h3>
             </div>
             <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -203,7 +228,7 @@ export default function FomoVisitDetailClient({ visit }) {
       {/* Equipment Audit Card - Spans full width at bottom */}
       <div className="card">
         <div className="card-header">
-          <h3>⚙️ Equipment & Field Asset Audit Check</h3>
+          <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><Settings size={20} style={{ color: "var(--blue)" }} /> Equipment & Field Asset Audit Check</h3>
           <span className="badge badge-active">{visit.verifications.length} Audited items</span>
         </div>
         <div className="card-body" style={{ padding: 0 }}>
@@ -247,12 +272,12 @@ export default function FomoVisitDetailClient({ visit }) {
                           ver.observedStatus === "present" ? "approved" : 
                           ver.observedStatus === "missing" ? "rejected" : "pending"
                         }`}>
-                          {ver.observedStatus === "present" ? "🟢 Present" : 
-                           ver.observedStatus === "missing" ? "🔴 Missing" : "🟡 Incorrect Placement"}
+                          {ver.observedStatus === "present" ? "Present" : 
+                           ver.observedStatus === "missing" ? "Missing" : "Incorrect Placement"}
                         </span>
                         {ver.isDisputed && (
-                          <div style={{ fontSize: 10, color: "var(--red)", marginTop: 4, fontWeight: 700 }}>
-                            ⚠️ ASSIGNMENT DISPUTED
+                          <div style={{ fontSize: 10, color: "var(--red)", marginTop: 4, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                            <AlertTriangle size={12} /> ASSIGNMENT DISPUTED
                           </div>
                         )}
                       </td>

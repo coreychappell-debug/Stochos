@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { FileText, FileSpreadsheet, History, Package, Trash2, DollarSign, ShieldCheck, ShieldAlert, FileSearch, Users, X, Activity, Check } from "lucide-react";
+import CollapsibleCard from "../../components/CollapsibleCard";
 
 const STATUS_LABELS = { 
   draft: "Draft", 
@@ -271,9 +273,9 @@ export default function ContractDetailClient({ contract, auditLog, products, app
               <button className="btn btn-secondary" onClick={() => setShowExport(!showExport)}>Export ▼</button>
               {showExport && (
                 <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 4, background: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 10, minWidth: 220, padding: "4px 0" }}>
-                  <button onClick={handlePrint} style={{ width: "100%", textAlign: "left", padding: "8px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--text)" }}>📄 Print Summary (PDF)</button>
-                  <a href={`/api/contracts/${contract.id}/export/accounting`} onClick={() => setShowExport(false)} style={{ display: "block", padding: "8px 16px", textDecoration: "none", color: "var(--text)", fontSize: 14 }}>📊 Accounting Data (CSV)</a>
-                  <a href={`/api/contracts/${contract.id}/export/audit`} onClick={() => setShowExport(false)} style={{ display: "block", padding: "8px 16px", textDecoration: "none", color: "var(--text)", fontSize: 14 }}>📝 Audit History (CSV)</a>
+                  <button onClick={handlePrint} style={{ width: "100%", textAlign: "left", padding: "8px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--text)", display: "inline-flex", alignItems: "center", gap: "6px" }}><FileText size={14} /> Print Summary (PDF)</button>
+                  <a href={`/api/contracts/${contract.id}/export/accounting`} onClick={() => setShowExport(false)} style={{ display: "inline-flex", alignItems: "center", gap: "6px", width: "100%", padding: "8px 16px", textDecoration: "none", color: "var(--text)", fontSize: 14 }}><FileSpreadsheet size={14} /> Accounting Data (CSV)</a>
+                  <a href={`/api/contracts/${contract.id}/export/audit`} onClick={() => setShowExport(false)} style={{ display: "inline-flex", alignItems: "center", gap: "6px", width: "100%", padding: "8px 16px", textDecoration: "none", color: "var(--text)", fontSize: 14 }}><History size={14} /> Audit History (CSV)</a>
                 </div>
               )}
             </div>
@@ -324,80 +326,81 @@ export default function ContractDetailClient({ contract, auditLog, products, app
         {tab === "overview" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {approvals.length > 0 && (
-              <div className="card" style={{ borderLeft: "5px solid var(--gold)" }}>
-                <div className="card-header">
-                  <h3 style={{ margin: 0 }}>Workflow Approvals Chain</h3>
-                  <p className="muted" style={{ margin: "4px 0 0 0", fontSize: 12 }}>Sequential review checklist required to transition this contract to active status.</p>
-                </div>
-                <div className="card-body" style={{ padding: 20 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {approvals.map((app, index) => {
-                      const isApproved = app.status === "approved";
-                      const isPending = app.status === "pending";
-                      const badgeCls = isApproved ? "active" : isPending ? "pending" : "rejected";
-                      const statusText = isApproved ? "Approved" : isPending ? "Pending Review" : "Rejected";
-                      const roleDesc = app.approver?.division 
-                        ? `${app.approver.division.charAt(0).toUpperCase() + app.approver.division.slice(1).toLowerCase()} Executive`
-                        : "Administrator";
-                      
-                      return (
-                        <div key={app.id} style={{ display: "flex", alignItems: "flex-start", gap: 16, paddingBottom: 16, borderBottom: index < approvals.length - 1 ? "1px solid var(--border)" : "none" }}>
-                          <div style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: "50%",
-                            background: isApproved ? "var(--green-dim)" : "var(--surface-3)",
-                            color: isApproved ? "var(--green)" : "var(--text-muted)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 12,
-                            fontWeight: "bold",
-                            border: isPending ? "1px dashed var(--gold)" : "none"
-                          }}>
-                            {isApproved ? "✓" : index + 1}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                              <div style={{ fontWeight: 600, fontSize: 14 }}>{app.approver?.name || "System Reviewer"}</div>
-                              <span className={`badge badge-${badgeCls}`} style={{ fontSize: 11 }}>{statusText}</span>
-                            </div>
-                            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
-                              {app.approver?.email} · {roleDesc}
-                            </div>
-                            {app.comment && (
-                              <div style={{ 
-                                marginTop: 8, 
-                                padding: "8px 12px", 
-                                background: "var(--surface-overlay)", 
-                                borderRadius: "var(--radius-sm)", 
-                                fontSize: 13,
-                                color: "var(--text-secondary)",
-                                borderLeft: "3px solid var(--green)"
-                              }}>
-                                "{app.comment}"
-                              </div>
-                            )}
-                          </div>
+              <CollapsibleCard
+                title="Workflow Approvals Chain"
+                icon={Check}
+                badge={<span style={{ fontSize: 11, color: "var(--text-secondary)", marginLeft: 6 }}>(Review Checklist)</span>}
+                initialCollapsed={false}
+                storageKey={`contract-approvals-${contract.id}`}
+                style={{ borderLeft: "5px solid var(--gold)" }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {approvals.map((app, index) => {
+                    const isApproved = app.status === "approved";
+                    const isPending = app.status === "pending";
+                    const badgeCls = isApproved ? "active" : isPending ? "pending" : "rejected";
+                    const statusText = isApproved ? "Approved" : isPending ? "Pending Review" : "Rejected";
+                    const roleDesc = app.approver?.division 
+                      ? `${app.approver.division.charAt(0).toUpperCase() + app.approver.division.slice(1).toLowerCase()} Executive`
+                      : "Administrator";
+                    
+                    return (
+                      <div key={app.id} style={{ display: "flex", alignItems: "flex-start", gap: 16, paddingBottom: 16, borderBottom: index < approvals.length - 1 ? "1px solid var(--border)" : "none" }}>
+                        <div style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          background: isApproved ? "var(--green-dim)" : "var(--surface-3)",
+                          color: isApproved ? "var(--green)" : "var(--text-muted)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          fontWeight: "bold",
+                          border: isPending ? "1px dashed var(--gold)" : "none"
+                        }}>
+                          {isApproved ? <Check size={12} strokeWidth={3} /> : index + 1}
                         </div>
-                      );
-                    })}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14 }}>{app.approver?.name || "System Reviewer"}</div>
+                            <span className={`badge badge-${badgeCls}`} style={{ fontSize: 11 }}>{statusText}</span>
+                          </div>
+                          <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+                            {app.approver?.email} · {roleDesc}
+                          </div>
+                          {app.comment && (
+                            <div style={{ 
+                              marginTop: 8, 
+                              padding: "8px 12px", 
+                              background: "var(--surface-overlay)", 
+                              borderRadius: "var(--radius-sm)", 
+                              fontSize: 13,
+                              color: "var(--text-secondary)",
+                              borderLeft: "3px solid var(--green)"
+                            }}>
+                              "{app.comment}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
 
-                    <div style={{ 
-                      marginTop: 8, 
-                      padding: 12, 
-                      background: "rgba(255, 159, 67, 0.05)", 
-                      border: "1px solid rgba(255, 159, 67, 0.15)", 
-                      borderRadius: "var(--radius-md)",
-                      fontSize: 12,
-                      color: "var(--gold)",
-                      lineHeight: 1.4
-                    }}>
-                      <strong>Workflow Configuration Note:</strong> The Operations Manager has system clearance to customize, bypass, or re-route this approval sequence by editing the contract routing parameters in Settings.
-                    </div>
+                  <div style={{ 
+                    marginTop: 8, 
+                    padding: 12, 
+                    background: "rgba(255, 159, 67, 0.05)", 
+                    border: "1px solid rgba(255, 159, 67, 0.15)", 
+                    borderRadius: "var(--radius-md)",
+                    fontSize: 12,
+                    color: "var(--gold)",
+                    lineHeight: 1.4
+                  }}>
+                    <strong>Workflow Configuration Note:</strong> The Operations Manager has system clearance to customize, bypass, or re-route this approval sequence by editing the contract routing parameters in Settings.
                   </div>
                 </div>
-              </div>
+              </CollapsibleCard>
             )}
 
             <div className="card">
@@ -505,7 +508,7 @@ export default function ContractDetailClient({ contract, auditLog, products, app
                 </form>
               )}
               {(contract.lineItems || []).length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📦</div><h3>No deliverables yet</h3><p>Add line items to track deliverables and budget allocation.</p></div>
+                <div className="empty-state"><div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Package size={48} style={{ color: "var(--text-muted)" }} /></div><h3>No deliverables yet</h3><p>Add line items to track deliverables and budget allocation.</p></div>
               ) : (
                 <table className="data-table">
                   <thead><tr><th>Description</th><th>Type</th><th>Product</th><th>Budget</th><th>Spent</th><th>Due</th><th>Status</th><th></th></tr></thead>
@@ -513,7 +516,7 @@ export default function ContractDetailClient({ contract, auditLog, products, app
                     {contract.lineItems.map((li) => (
                       <tr key={li.id}><td style={{ fontWeight: 500 }}>{li.description}</td><td className="muted">{li.deliverableType || "—"}</td><td className="muted">{li.product?.name || "—"}</td><td>{fmt$(li.budgetAmount)}</td><td>{fmt$(li.spentAmount)}</td><td className="muted">{fmtDate(li.dueDate)}</td>
                         <td><span className={`badge badge-${li.status === "delivered" ? "active" : li.status}`}>{ITEM_STATUS[li.status] || li.status}</span></td>
-                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" aria-label="Delete Line Item" onClick={() => handleDeleteLineItem(li.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
+                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" aria-label="Delete Line Item" onClick={() => handleDeleteLineItem(li.id)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px" }}><Trash2 size={13} /></button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -550,7 +553,7 @@ export default function ContractDetailClient({ contract, auditLog, products, app
                 </form>
               )}
               {(contract.invoices || []).length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">💰</div><h3>No invoices yet</h3><p>Track vendor invoices against this contract.</p></div>
+                <div className="empty-state"><div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><DollarSign size={48} style={{ color: "var(--text-muted)" }} /></div><h3>No invoices yet</h3><p>Track vendor invoices against this contract.</p></div>
               ) : (
                 <table className="data-table">
                   <thead><tr><th>Date</th><th>Invoice #</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
@@ -572,36 +575,46 @@ export default function ContractDetailClient({ contract, auditLog, products, app
         )}
 
         {tab === "documents" && (
-          <div className="card">
-            <div className="card-header"><h3>Compliance Documents</h3><button className="btn btn-primary btn-sm" onClick={() => setShowAddDoc(!showAddDoc)}>{showAddDoc ? "Cancel" : "+ Add Document"}</button></div>
-            <div className="card-body">
-              {showAddDoc && (
-                <form onSubmit={handleAddDoc} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, marginBottom: 20, border: "1px solid var(--border)" }}>
-                  <div className="form-row">
-                    <div className="form-group"><label className="form-label">Document Type</label><select name="documentType" className="form-select" required><option value="">Select...</option><option value="bond">Bond</option><option value="insurance">Insurance Certificate</option><option value="nda">NDA</option><option value="background_check">Background Check</option><option value="license">License</option></select></div>
-                    <div className="form-group"><label className="form-label">Description</label><input name="description" className="form-input" placeholder="General liability — $1M" /></div>
-                    <div className="form-group"><label className="form-label">Expiration Date</label><input name="expirationDate" className="form-input" type="date" /></div>
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Adding..." : "Add Document"}</button>
-                </form>
-              )}
-              {(contract.compliance || []).length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📄</div><h3>No compliance documents</h3><p>Track bonds, insurance, NDAs, and licenses with expiration alerts.</p></div>
-              ) : (
-                <table className="data-table">
-                  <thead><tr><th>Type</th><th>Description</th><th>Expires</th><th>Status</th><th></th></tr></thead>
-                  <tbody>
-                    {contract.compliance.map((doc) => {
-                      const isExpired = doc.expirationDate && new Date(doc.expirationDate) < new Date();
-                      return (<tr key={doc.id}><td style={{ fontWeight: 500, textTransform: "capitalize" }}>{doc.documentType?.replace(/_/g, " ")}</td><td className="muted">{doc.description || "—"}</td><td style={{ color: isExpired ? "var(--red)" : "inherit" }}>{fmtDate(doc.expirationDate)}{isExpired && " ⚠️"}</td><td><span className={`badge badge-${doc.status === "received" ? "active" : doc.status}`}>{doc.status}</span></td>
-                        <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" aria-label="Delete Document" onClick={() => handleDeleteDoc(doc.id)} style={{ padding: "2px 6px" }}>🗑️</button></td>
-                      </tr>);
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+          <CollapsibleCard
+            title="Compliance Documents"
+            icon={ShieldCheck}
+            initialCollapsed={false}
+            storageKey="contract-compliance-docs"
+            rightElement={
+              <button 
+                className="btn btn-primary btn-sm" 
+                onClick={() => setShowAddDoc(!showAddDoc)}
+              >
+                {showAddDoc ? "Cancel" : "+ Add Document"}
+              </button>
+            }
+          >
+            {showAddDoc && (
+              <form onSubmit={handleAddDoc} style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, marginBottom: 20, border: "1px solid var(--border)" }}>
+                <div className="form-row">
+                  <div className="form-group"><label className="form-label">Document Type</label><select name="documentType" className="form-select" required><option value="">Select...</option><option value="bond">Bond</option><option value="insurance">Insurance Certificate</option><option value="nda">NDA</option><option value="background_check">Background Check</option><option value="license">License</option></select></div>
+                  <div className="form-group"><label className="form-label">Description</label><input name="description" className="form-input" placeholder="General liability — $1M" /></div>
+                  <div className="form-group"><label className="form-label">Expiration Date</label><input name="expirationDate" className="form-input" type="date" /></div>
+                </div>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? "Adding..." : "Add Document"}</button>
+              </form>
+            )}
+            {(contract.compliance || []).length === 0 ? (
+              <div className="empty-state"><div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ShieldCheck size={48} style={{ color: "var(--text-muted)" }} /></div><h3>No compliance documents</h3><p>Track bonds, insurance, NDAs, and licenses with expiration alerts.</p></div>
+            ) : (
+              <table className="data-table">
+                <thead><tr><th>Type</th><th>Description</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  {contract.compliance.map((doc) => {
+                    const isExpired = doc.expirationDate && new Date(doc.expirationDate) < new Date();
+                    return (<tr key={doc.id}><td style={{ fontWeight: 500, textTransform: "capitalize" }}>{doc.documentType?.replace(/_/g, " ")}</td><td className="muted">{doc.description || "—"}</td><td style={{ color: isExpired ? "var(--red)" : "inherit" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>{fmtDate(doc.expirationDate)}{isExpired && <ShieldAlert size={12} />}</span></td><td><span className={`badge badge-${doc.status === "received" ? "active" : doc.status}`}>{doc.status}</span></td>
+                      <td style={{ textAlign: "right" }}><button className="btn btn-secondary btn-sm" aria-label="Delete Document" onClick={() => handleDeleteDoc(doc.id)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px" }}><Trash2 size={13} /></button></td>
+                    </tr>);
+                  })}
+                </tbody>
+              </table>
+            )}
+          </CollapsibleCard>
         )}
 
         {tab === "purchase_orders" && (
@@ -639,7 +652,7 @@ export default function ContractDetailClient({ contract, auditLog, products, app
                 </form>
               )}
               {(contract.purchaseOrders || []).length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📝</div><h3>No Purchase Orders yet</h3><p>Manage official procurement commitments and lifecycle statuses here.</p></div>
+                <div className="empty-state"><div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><FileSearch size={48} style={{ color: "var(--text-muted)" }} /></div><h3>No Purchase Orders yet</h3><p>Manage official procurement commitments and lifecycle statuses here.</p></div>
               ) : (
                 <table className="data-table">
                   <thead><tr><th>PO Number</th><th>Description</th><th>Amount</th><th>Issued Date</th><th>Status</th><th>Actions</th></tr></thead>
@@ -671,7 +684,7 @@ export default function ContractDetailClient({ contract, auditLog, products, app
                               <option value="disputed">Disputed</option>
                               <option value="closed">Closed</option>
                             </select>
-                            <button className="btn btn-secondary btn-sm" aria-label="Delete Purchase Order" onClick={() => handleDeletePO(po.id)} style={{ padding: "2px 6px" }}>🗑️</button>
+                            <button className="btn btn-secondary btn-sm" aria-label="Delete Purchase Order" onClick={() => handleDeletePO(po.id)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "4px" }}><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -684,77 +697,104 @@ export default function ContractDetailClient({ contract, auditLog, products, app
         )}
 
         {tab === "sharing" && (
-          <div className="card">
-            <div className="card-header">
-              <h3>Resource Sharing (ACL)</h3>
-            </div>
-            <div className="card-body">
-              <form onSubmit={handleShareContract} className="flex gap-2 items-end mb-6" style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, border: "1px solid var(--border)", marginBottom: 20 }}>
-                <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
-                  <label className="form-label">Employee / User</label>
-                  <select name="userId" className="form-select" required>
-                    <option value="">Select user to share with...</option>
-                    {allUsers.map((u) => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Permission</label>
-                  <select name="permission" className="form-select">
-                    <option value="read">Read Only</option>
-                    <option value="write">Write/Edit</option>
-                  </select>
-                </div>
-                <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: "8px 16px" }}>Grant Access</button>
-              </form>
+          <CollapsibleCard
+            title="Resource Sharing (ACL)"
+            icon={Users}
+            initialCollapsed={false}
+            storageKey="contract-acl-sharing"
+          >
+            <form onSubmit={handleShareContract} className="flex gap-2 items-end mb-6" style={{ background: "var(--surface-1)", borderRadius: "var(--radius-md)", padding: 16, border: "1px solid var(--border)", marginBottom: 20 }}>
+              <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
+                <label className="form-label">Employee / User</label>
+                <select name="userId" className="form-select" required>
+                  <option value="">Select user to share with...</option>
+                  {allUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                <label className="form-label">Permission</label>
+                <select name="permission" className="form-select">
+                  <option value="read">Read Only</option>
+                  <option value="write">Write/Edit</option>
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: "8px 16px" }}>Grant Access</button>
+            </form>
 
-              {(contract.accessList || []).length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">👥</div><h3>Not shared yet</h3><p>This contract is currently open to all team members with contracts-unit clearance. Share it to restrict visibility.</p></div>
-              ) : (
-                <table className="data-table">
-                  <thead><tr><th>Name</th><th>Email</th><th>Permission Level</th><th>Actions</th></tr></thead>
-                  <tbody>
-                    {contract.accessList.map((access) => (
-                      <tr key={access.id}>
-                        <td style={{ fontWeight: 500 }}>{access.user?.name}</td>
-                        <td className="muted">{access.user?.email}</td>
-                        <td>
-                          <span className="badge badge-submitted">
-                            {access.permission === "write" ? "Write / Edit" : "Read Only"}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleRevokeAccess(access.user?.id)} style={{ padding: "2px 6px" }}>Revoke ✕</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+            {(contract.accessList || []).length === 0 ? (
+              <div className="empty-state"><div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Users size={48} style={{ color: "var(--text-muted)" }} /></div><h3>Not shared yet</h3><p>This contract is currently open to all team members with contracts-unit clearance. Share it to restrict visibility.</p></div>
+            ) : (
+              <table className="data-table">
+                <thead><tr><th>Name</th><th>Email</th><th>Permission Level</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {contract.accessList.map((access) => (
+                    <tr key={access.id}>
+                      <td style={{ fontWeight: 500 }}>{access.user?.name}</td>
+                      <td className="muted">{access.user?.email}</td>
+                      <td>
+                        <span className="badge badge-submitted">
+                          {access.permission === "write" ? "Write / Edit" : "Read Only"}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => handleRevokeAccess(access.userId)}
+                          disabled={saving}
+                        >
+                          Revoke
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CollapsibleCard>
         )}
 
         {tab === "audit" && (
-          <div className="card">
-            <div className="card-header"><h3>Audit History</h3></div>
-            <div className="card-body">
-              {auditLog.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📝</div><h3>No audit entries</h3><p>Changes to this contract will be logged here.</p></div>
-              ) : (
-                <table className="data-table">
-                  <thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead>
-                  <tbody>
-                    {auditLog.map((entry) => (
-                      <tr key={entry.id}><td className="muted">{fmtDateTime(entry.createdAt)}</td><td>{entry.user?.name || "System"}</td>
-                        <td><span className={`badge badge-${entry.action === "create" ? "active" : entry.action === "delete" ? "expired" : "submitted"}`}>{entry.action}</span></td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+          <CollapsibleCard
+            title="Audit History"
+            icon={History}
+            initialCollapsed={true}
+            storageKey="contract-audit-history"
+          >
+            {auditLog.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Activity size={48} style={{ color: "var(--text-muted)" }} />
+                </div>
+                <h3>No audit entries</h3>
+                <p>Changes to this contract will be logged here.</p>
+              </div>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLog.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="muted">{fmtDateTime(entry.createdAt)}</td>
+                      <td>{entry.user?.name || "System"}</td>
+                      <td>
+                        <span className={`badge badge-${entry.action === "create" ? "active" : entry.action === "delete" ? "expired" : "submitted"}`}>
+                          {entry.action}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CollapsibleCard>
         )}
       </div>
     </>

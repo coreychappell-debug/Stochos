@@ -6,7 +6,6 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./lib/db.js');
 
-const TEST_JURISDICTION = '52066ac6-27d4-4495-953b-8f8def2a7851'; // NY jurisdiction ID
 const TEST_PERIOD = new Date('2024-06-30');
 
 async function runTests() {
@@ -14,6 +13,12 @@ async function runTests() {
   let testRecordId = null;
 
   try {
+    const jur = await prisma.jurisdiction.findFirst({
+      where: { OR: [{ id: 'NY-LOTTERY' }, { abbreviation: 'NY' }] }
+    }) || await prisma.jurisdiction.findFirst();
+    const TEST_JURISDICTION = jur ? jur.id : 'NY-LOTTERY';
+    console.log(`✓ Using Jurisdiction: ${jur ? jur.name : 'Default'} (${TEST_JURISDICTION})`);
+
     // 1. GET - Fetch paginated results (imitating GET route logic)
     console.log('\n[1] Querying first page of records (limit=10)...');
     const limit = 10;
@@ -80,6 +85,8 @@ async function runTests() {
       data: {
         jurisdictionId: TEST_JURISDICTION,
         periodDate: TEST_PERIOD,
+        fiscalYear: 2025,
+        periodCode: 'P03',
         accountCode: '99999-TEST-PRISMA',
         accountName: 'Prisma Integration Test Adjusting Entry',
         balance: -5500.25,

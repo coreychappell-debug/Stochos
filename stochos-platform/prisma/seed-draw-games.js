@@ -19,8 +19,11 @@ async function main() {
   const itUser = await prisma.user.findUnique({ where: { email: 'it.user@gaming.ny.gov' } });
   const marketingUser = await prisma.user.findUnique({ where: { email: 'marketing.user@gaming.ny.gov' } });
   const procurementUser = await prisma.user.findUnique({ where: { email: 'procurement.user@gaming.ny.gov' } });
+  const opsUser = await prisma.user.findUnique({ where: { email: 'ops.user@gaming.ny.gov' } });
+  const financeUser = await prisma.user.findUnique({ where: { email: 'finance.user@gaming.ny.gov' } });
+  const adminUser = await prisma.user.findUnique({ where: { email: 'admin.user@gaming.ny.gov' } });
   
-  if (!itUser || !marketingUser || !procurementUser) {
+  if (!itUser || !marketingUser || !procurementUser || !opsUser || !financeUser || !adminUser) {
     throw new Error('Missing seed users. Run seed-divisions-users.js first.');
   }
   console.log('  ✓ Found divisional seed users');
@@ -105,40 +108,89 @@ async function main() {
   }
   console.log('  ✓ Seeded draw game projections in base plan');
 
+  // Query Contracts to associate them with the budget line items
+  const igt = await prisma.contract.findFirst({ where: { title: { contains: 'IGT' } } });
+  const mc = await prisma.contract.findFirst({ where: { title: { contains: 'McCann' } } });
+  const verizon = await prisma.contract.findFirst({ where: { title: { contains: 'Verizon' } } });
+  const havas = await prisma.contract.findFirst({ where: { title: { contains: 'Havas' } } });
+  const shi = await prisma.contract.findFirst({ where: { title: { contains: 'SHI' } } });
+  const nrc = await prisma.contract.findFirst({ where: { title: { contains: 'NRC' } } });
+
   // Seed Budget Proposals
   const proposals = [
     {
       division: 'IT',
       fiscalYear: 2027,
-      status: 'submitted',
+      status: 'draft', // Seeded as draft so the user can test the EOL hardware sync and then submit/approve
       submittedById: itUser.id,
       proposalData: [
-        { category: 'Software', desc: 'Prisma v8 Enterprise Support & Database Tooling', amount: 18000.00 },
-        { category: 'Hardware', desc: 'Developer Workstation & WSL2 Laptop Upgrades', amount: 24000.00 },
-        { category: 'Infrastructure', desc: 'Caddy & Docker staging cluster hosting', amount: 12000.00 }
+        { category: 'Software & Licensing', desc: 'SHI Enterprise Software & Oracle Databases', amount: 1600000.00, contractId: shi?.id || "" },
+        { category: 'Telecommunications', desc: 'Verizon Secure MPLS Networking for Retail Terminals', amount: 1200000.00, contractId: verizon?.id || "" },
+        { category: 'Infrastructure', desc: 'Cloud Infrastructure Staging & Hosting', amount: 800000.00, contractId: "" }
       ],
-      notes: 'Standard IT operational budget for supporting WSL2/PostgreSQL containers and web platform security.'
+      notes: 'Initial IT operational budget for support, security, network routing, and software license maintenance.'
     },
     {
       division: 'MARKETING',
       fiscalYear: 2027,
-      status: 'draft',
+      status: 'approved', // Seeded as approved so it rolls up to the adopted budget immediately
       submittedById: marketingUser.id,
       proposalData: [
-        { category: 'Advertising', desc: 'Multi-channel POS & outdoor placements', amount: 120000.00 },
-        { category: 'Events', desc: 'Scratcher launch events & media buying', amount: 45000.00 }
+        { category: 'Advertising', desc: 'McCann Worldgroup Creative POS & Campaigns', amount: 22000000.00, contractId: mc?.id || "" },
+        { category: 'Media Buying', desc: 'Havas Media Broadcast & Print Buying Services', amount: 15000000.00, contractId: havas?.id || "" },
+        { category: 'Regional Events', desc: 'Scratcher Launch Events & Regional Promotions', amount: 4000000.00, contractId: "" },
+        { category: 'POS Materials', desc: 'POS Counter Display & Printed Inserts Refresh', amount: 1500000.00, contractId: "" }
       ],
-      notes: 'Initial draft for Q1 media placements and event tracking.'
+      notes: 'Creative campaigns, broadcast placements, POS materials, and regional event ads for FY2027.'
+    },
+    {
+      division: 'OPERATIONS',
+      fiscalYear: 2027,
+      status: 'approved', // Seeded as approved so it rolls up
+      submittedById: opsUser.id,
+      proposalData: [
+        { category: 'Gaming System Support', desc: 'IGT Central Gaming System Operational Support', amount: 18000000.00, contractId: igt?.id || "" },
+        { category: 'Fleet Operations', desc: 'Fleet Cargo Vans Fuel, Leasing & Maintenance', amount: 3500000.00, contractId: "" },
+        { category: 'Logistics', desc: 'Scratch-off Ticket Delivery & Warehouse Logistics', amount: 5400000.00, contractId: "" },
+        { category: 'Training & Safety', desc: 'Operational Staff Safety Training & Gear', amount: 1500000.00, contractId: "" }
+      ],
+      notes: 'Core operations budget including main IGT contract fees, fleet logistics, and warehouse operations.'
+    },
+    {
+      division: 'FINANCE',
+      fiscalYear: 2027,
+      status: 'approved', // Seeded as approved
+      submittedById: financeUser.id,
+      proposalData: [
+        { category: 'Audit Services', desc: 'Independent Audits & Statutory Compliance Reviews', amount: 1200000.00, contractId: "" },
+        { category: 'Personnel', desc: 'Finance & Accounting Department Salaries', amount: 1100000.00, contractId: "" },
+        { category: 'G&A', desc: 'Office Administrative Expenses & G&A', amount: 500000.00, contractId: "" }
+      ],
+      notes: 'Finance division operating costs, internal audits, and accounting salaries.'
     },
     {
       division: 'PROCUREMENT',
       fiscalYear: 2027,
-      status: 'approved',
+      status: 'approved', // Seeded as approved
       submittedById: procurementUser.id,
       proposalData: [
-        { category: 'Operations', desc: 'Third-party contract compliance background checks', amount: 8000.00 }
+        { category: 'Compliance Reviews', desc: 'NRC Group Consumer Insights & Vendor Audits', amount: 650000.00, contractId: nrc?.id || "" },
+        { category: 'Personnel', desc: 'Procurement Department Salaries', amount: 600000.00, contractId: "" },
+        { category: 'Travel & G&A', desc: 'Compliance Travel & Procurement Operations G&A', amount: 200000.00, contractId: "" }
       ],
-      notes: 'Approved background check compliance budget.'
+      notes: 'Approved procurement compliance, vendor audits, and procurement team salaries.'
+    },
+    {
+      division: 'EXECUTIVE',
+      fiscalYear: 2027,
+      status: 'approved', // Seeded as approved
+      submittedById: adminUser.id,
+      proposalData: [
+        { category: 'Personnel', desc: 'Commission Leadership & Board Salaries', amount: 1200000.00, contractId: "" },
+        { category: 'Legal Services', desc: 'Statutory Hearings & General Counsel Services', amount: 500000.00, contractId: "" },
+        { category: 'Travel & G&A', desc: 'Executive Travel & Administrative G&A', amount: 200000.00, contractId: "" }
+      ],
+      notes: 'Executive leadership, board oversight, legal hearings, and G&A.'
     }
   ];
 

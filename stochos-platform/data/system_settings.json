@@ -1,0 +1,23 @@
+{
+  "feature_organization": true,
+  "feature_analytics_overview": true,
+  "feature_analytics_retailers": true,
+  "feature_analytics_portfolio": true,
+  "feature_reporting": true,
+  "feature_reporting_prep": true,
+  "feature_reporting_grid": true,
+  "feature_reporting_workflow": true,
+  "feature_budgeting": true,
+  "feature_analytics_geography": true,
+  "feature_analytics_forecast": true,
+  "feature_marketing": true,
+  "feature_instant_tickets": true,
+  "feature_draw_planning": true,
+  "feature_products": true,
+  "feature_fomo": true,
+  "feature_contracts": true,
+  "feature_fleet": true,
+  "feature_vendors": true,
+  "feature_spatial_ops": true,
+  "feature_assets": true
+}

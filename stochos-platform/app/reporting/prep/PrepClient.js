@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Scissors, Search, Link2, Tag, GitFork, Ban, Sigma, PlusCircle, Edit, X } from 'lucide-react';
+import HelpTrigger from '../../components/HelpTrigger';
 
 export default function PrepClient() {
   const router = useRouter();
@@ -267,6 +269,7 @@ export default function PrepClient() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px', margin: 0 }}>Visual ETL Pipeline & Smart Crosswalk</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <HelpTrigger topicId="reporting_prep" />
           <button 
             onClick={() => router.push('/reporting')} 
             style={{ padding: '8px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', boxShadow: 'var(--shadow-card)' }}
@@ -334,7 +337,7 @@ export default function PrepClient() {
 
             {nodes.map((step, index) => (
               <div key={step.id} style={{ background: 'var(--surface-1)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', borderLeft: '4px solid var(--blue)', position: 'relative' }}>
-                <button onClick={() => removeNode(step.id)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                <button onClick={() => removeNode(step.id)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                 <div style={{ fontSize: '11px', color: 'var(--blue)', fontWeight: 'bold', marginBottom: '8px' }}>NODE {index + 1}: {step.type.toUpperCase()}</div>
                 
                 {step.type === 'split' && (
@@ -434,15 +437,15 @@ export default function PrepClient() {
             ))}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
-              <button onClick={() => addNode('split')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>✂️ Split</button>
-              <button onClick={() => addNode('regex_extract')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>🔍 Regex</button>
-              <button onClick={() => addNode('map_account')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>📋 Map Account</button>
-              <button onClick={() => addNode('map_dimension')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>🏷️ Map Dim</button>
-              <button onClick={() => addNode('conditional_map')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>🔀 Cond Map</button>
-              <button onClick={() => addNode('exclude_row')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>🚫 Exclude Row</button>
-              <button onClick={() => addNode('aggregate')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>∑ Aggregate</button>
-              <button onClick={() => addNode('normalize_sign')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>➕ Flips sign</button>
-              <button onClick={() => addNode('replace_text')} style={{ padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', gridColumn: 'span 2' }}>✍️ Replace Text</button>
+              <button onClick={() => addNode('split')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Scissors size={13} /> Split</button>
+              <button onClick={() => addNode('regex_extract')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Search size={13} /> Regex</button>
+              <button onClick={() => addNode('map_account')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Link2 size={13} /> Map Account</button>
+              <button onClick={() => addNode('map_dimension')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Tag size={13} /> Map Dim</button>
+              <button onClick={() => addNode('conditional_map')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><GitFork size={13} /> Cond Map</button>
+              <button onClick={() => addNode('exclude_row')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Ban size={13} /> Exclude Row</button>
+              <button onClick={() => addNode('aggregate')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><Sigma size={13} /> Aggregate</button>
+              <button onClick={() => addNode('normalize_sign')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}><PlusCircle size={13} /> Flips sign</button>
+              <button onClick={() => addNode('replace_text')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', background: 'var(--blue-dim)', color: 'var(--blue)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', gridColumn: 'span 2' }}><Edit size={13} /> Replace Text</button>
             </div>
 
           </div>

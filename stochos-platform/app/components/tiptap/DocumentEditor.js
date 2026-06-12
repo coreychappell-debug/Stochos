@@ -17,6 +17,7 @@ import { MetricNode } from './MetricNode';
 import { ChartNode } from './ChartNode';
 import { PageBreakNode } from './PageBreakNode';
 import { useState, useEffect } from 'react';
+import { Scissors, BarChart4, Plus, X } from 'lucide-react';
 
 const getBorderCssValue = (type) => {
   if (!type || type === 'none') return 'none';
@@ -513,10 +514,10 @@ export default function DocumentEditor({ initialContent, onChange }) {
           {editor.isActive('highlight') && (
             <button 
               onClick={(e) => { e.preventDefault(); editor.chain().focus().unsetHighlight().run(); }} 
-              style={{ background: 'transparent', color: '#ef476f', border: 'none', padding: '0 4px', cursor: 'pointer', fontSize: '11px' }}
+              style={{ background: 'transparent', color: '#ef476f', border: 'none', padding: '0 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
               title="Clear Highlight"
             >
-              ✕
+              <X size={12} />
             </button>
           )}
         </div>
@@ -732,21 +733,21 @@ export default function DocumentEditor({ initialContent, onChange }) {
           onClick={() => editor.chain().focus().insertPageBreak().run()} 
           style={{ background: '#ffffff', color: '#475569', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
         >
-          <span>✂️</span> Page Break
+          <Scissors size={14} /> Page Break
         </button>
 
         <button 
           onClick={() => setShowChartModal(true)} 
           style={{ background: '#ffffff', color: '#0284c7', border: '1px solid #93c5fd', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500' }}
         >
-          <span>📈</span> Insert Chart
+          <BarChart4 size={14} /> Insert Chart
         </button>
 
         <button 
           onClick={() => setShowMetricModal(true)} 
           style={{ background: '#ffffff', color: '#0284c7', border: '1px solid #93c5fd', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500' }}
         >
-          <span>➕</span> Insert Metric Pill
+          <Plus size={14} /> Insert Metric Pill
         </button>
       </div>
 
@@ -770,7 +771,9 @@ export default function DocumentEditor({ initialContent, onChange }) {
           <div style={{ background: '#ffffff', width: '500px', borderRadius: '8px', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
             <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: '#0f172a', fontSize: '16px', fontWeight: 'bold' }}>Insert Metric Link</h3>
-              <button onClick={() => setShowMetricModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+              <button onClick={() => setShowMetricModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="Close modal">
+                <X size={18} />
+              </button>
             </div>
             <div style={{ padding: '16px' }}>
               <input type="text" placeholder="Search metric registry..." style={{ width: '100%', padding: '8px 12px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', borderRadius: '6px', marginBottom: '16px', outline: 'none' }} />
@@ -799,7 +802,9 @@ export default function DocumentEditor({ initialContent, onChange }) {
           <div style={{ background: '#ffffff', width: '500px', borderRadius: '8px', border: '1px solid #cbd5e1', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
             <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: '#0f172a', fontSize: '16px', fontWeight: 'bold' }}>{editingChart ? 'Edit Embedded Chart' : 'Chart Builder'}</h3>
-              <button onClick={() => { setShowChartModal(false); setEditingChart(null); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+              <button onClick={() => { setShowChartModal(false); setEditingChart(null); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="Close modal">
+                <X size={18} />
+              </button>
             </div>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>

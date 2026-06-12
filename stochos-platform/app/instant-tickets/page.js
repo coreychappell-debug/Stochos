@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Sidebar from "@/app/components/Sidebar";
 import Link from "next/link";
+import HelpTrigger from "@/app/components/HelpTrigger";
+import { Ticket } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +79,9 @@ export default async function InstantTicketsPage() {
             <h2>Instant Ticket Planner</h2>
             <p>Fiscal year game portfolio planning, vendor allocation, and procurement tracking.</p>
           </div>
+          <div>
+            <HelpTrigger topicId="tickets" />
+          </div>
         </div>
 
         <div className="page-body">
@@ -102,7 +107,9 @@ export default async function InstantTicketsPage() {
             <div className="card-body">
               {enrichedPlans.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">🎰</div>
+                  <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                    <Ticket size={48} style={{ strokeWidth: 1.5, color: "var(--text-muted)" }} />
+                  </div>
                   <h3>No plans found</h3>
                   <p>Create your first instant ticket fiscal year plan.</p>
                 </div>

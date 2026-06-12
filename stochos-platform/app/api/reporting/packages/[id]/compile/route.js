@@ -4,10 +4,16 @@ import { evaluateValidationRules } from '@/lib/rulesEngine';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { acquireLock, releaseLock } from '@/lib/jobLock';
+import { auth } from '@/lib/auth';
 
 export async function POST(request, { params }) {
   try {
     const { id } = await params;
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // 1. Fetch package details with sections
     const pkg = await prisma.reportPackage.findUnique({
@@ -53,111 +59,135 @@ export async function POST(request, { params }) {
       }, { status: 400 });
     }
 
-    // 5. Combine sections content to build canonical HTML
-    let canonicalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${pkg.name}</title>`;
-    canonicalHtml += `<style>body { font-family: sans-serif; padding: 2rem; } h1 { color: #333; }</style></head><body>`;
-    canonicalHtml += `<h1>${pkg.name}</h1>`;
-    
-    for (const sec of pkg.sections) {
-      canonicalHtml += `<section id="${sec.id}"><h2>${sec.name}</h2>${sec.content}</section>`;
+    // Acquire lock
+    const lockKey = `packages-compile-${id}`;
+    const lockResult = await acquireLock(
+      lockKey,
+      session.user.id || 'system',
+      session.user.name || 'System',
+      `Compile Package ${pkg.name}`,
+      120 // 2 minutes timeout
+    );
+
+    if (!lockResult.success) {
+      return NextResponse.json(
+        { error: `A job is currently running on the server: ${lockResult.activeLock.description} started by ${lockResult.activeLock.userName}.` },
+        { status: 429 }
+      );
     }
-    canonicalHtml += `</body></html>`;
 
-    // 6. Compute SHA-256 Hash of HTML content
-    const htmlHash = crypto.createHash('sha256').update(canonicalHtml).digest('hex');
+    // Fire-and-forget background execution
+    Promise.resolve().then(async () => {
+      try {
+        // 5. Combine sections content to build canonical HTML
+        let canonicalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${pkg.name}</title>`;
+        canonicalHtml += `<style>body { font-family: sans-serif; padding: 2rem; } h1 { color: #333; }</style></head><body>`;
+        canonicalHtml += `<h1>${pkg.name}</h1>`;
+        
+        for (const sec of pkg.sections) {
+          canonicalHtml += `<section id="${sec.id}"><h2>${sec.name}</h2>${sec.content}</section>`;
+        }
+        canonicalHtml += `</body></html>`;
 
-    // 7. Write HTML file to disk
-    const exportDir = path.join(process.cwd(), 'public', 'exports');
-    if (!fs.existsSync(exportDir)) {
-      fs.mkdirSync(exportDir, { recursive: true });
-    }
-    
-    const htmlFilename = `compiled-${pkg.id}.html`;
-    const htmlPath = path.join(exportDir, htmlFilename);
-    fs.writeFileSync(htmlPath, canonicalHtml, 'utf-8');
+        // 6. Compute SHA-256 Hash of HTML content
+        const htmlHash = crypto.createHash('sha256').update(canonicalHtml).digest('hex');
 
-    // 8. Generate stubs for alternate compiled formats (PDF, XLSX, ZIP) & compute hashes
-    const pdfStub = `%PDF-1.4\n%Compiled Report: ${pkg.name}\n%Hash: ${htmlHash}`;
-    const pdfFilename = `compiled-${pkg.id}.pdf`;
-    const pdfPath = path.join(exportDir, pdfFilename);
-    fs.writeFileSync(pdfPath, pdfStub, 'utf-8');
-    const pdfHash = crypto.createHash('sha256').update(pdfStub).digest('hex');
+        // 7. Write HTML file to disk
+        const exportDir = path.join(process.cwd(), 'public', 'exports');
+        if (!fs.existsSync(exportDir)) {
+          fs.mkdirSync(exportDir, { recursive: true });
+        }
+        
+        const htmlFilename = `compiled-${pkg.id}.html`;
+        const htmlPath = path.join(exportDir, htmlFilename);
+        fs.writeFileSync(htmlPath, canonicalHtml, 'utf-8');
 
-    const xlsxStub = `Account Code,Account Name,Balance\n4-1000,Gross Ticket Sales,850000000.00\n5-2000,Prize Expense,-520000000.00\n5-2100,Retailer Commissions,-48000000.00`;
-    const xlsxFilename = `compiled-${pkg.id}.xlsx`;
-    const xlsxPath = path.join(exportDir, xlsxFilename);
-    fs.writeFileSync(xlsxPath, xlsxStub, 'utf-8');
-    const xlsxHash = crypto.createHash('sha256').update(xlsxStub).digest('hex');
+        // 8. Generate stubs for alternate compiled formats (PDF, XLSX, ZIP) & compute hashes
+        const pdfStub = `%PDF-1.4\n%Compiled Report: ${pkg.name}\n%Hash: ${htmlHash}`;
+        const pdfFilename = `compiled-${pkg.id}.pdf`;
+        const pdfPath = path.join(exportDir, pdfFilename);
+        fs.writeFileSync(pdfPath, pdfStub, 'utf-8');
+        const pdfHash = crypto.createHash('sha256').update(pdfStub).digest('hex');
 
-    const zipStub = `Board Packet Bundle: HTML, PDF, and Spreadsheet stubs for ${pkg.name}.`;
-    const zipFilename = `compiled-${pkg.id}.zip`;
-    const zipPath = path.join(exportDir, zipFilename);
-    fs.writeFileSync(zipPath, zipStub, 'utf-8');
-    const zipHash = crypto.createHash('sha256').update(zipStub).digest('hex');
+        const xlsxStub = `Account Code,Account Name,Balance\n4-1000,Gross Ticket Sales,850000000.00\n5-2000,Prize Expense,-520000000.00\n5-2100,Retailer Commissions,-48000000.00`;
+        const xlsxFilename = `compiled-${pkg.id}.xlsx`;
+        const xlsxPath = path.join(exportDir, xlsxFilename);
+        fs.writeFileSync(xlsxPath, xlsxStub, 'utf-8');
+        const xlsxHash = crypto.createHash('sha256').update(xlsxStub).digest('hex');
 
-    // Fetch active Trial Balance records for the snapshot mapping
-    const tbRecords = await prisma.trialBalanceRecord.findMany({
-      where: {
-        jurisdictionId: pkg.jurisdictionId,
-        periodDate: pkg.periodDate
+        const zipStub = `Board Packet Bundle: HTML, PDF, and Spreadsheet stubs for ${pkg.name}.`;
+        const zipFilename = `compiled-${pkg.id}.zip`;
+        const zipPath = path.join(exportDir, zipFilename);
+        fs.writeFileSync(zipPath, zipStub, 'utf-8');
+        const zipHash = crypto.createHash('sha256').update(zipStub).digest('hex');
+
+        // Fetch active Trial Balance records for the snapshot mapping
+        const tbRecords = await prisma.trialBalanceRecord.findMany({
+          where: {
+            jurisdictionId: pkg.jurisdictionId,
+            periodDate: pkg.periodDate
+          }
+        });
+
+        const metricMapSnapshot = {};
+        for (const rec of tbRecords) {
+          metricMapSnapshot[rec.accountCode] = parseFloat(rec.balance.toString());
+        }
+
+        // 9. Execute transaction to create CompiledArtifact, LockedReportSnapshot, and update status
+        await prisma.$transaction(async (tx) => {
+          // Create artifact entry
+          const artifact = await tx.compiledArtifact.create({
+            data: {
+              packageId: pkg.id,
+              htmlPath: `/exports/${htmlFilename}`,
+              pdfPath: `/exports/${pdfFilename}`,
+              xlsxPath: `/exports/${xlsxFilename}`,
+              boardPacketPath: `/exports/${zipFilename}`,
+              htmlHash,
+              pdfHash,
+              xlsxHash,
+              boardPacketHash: zipHash,
+              accessibilityValidatedAt: new Date(),
+              accessibilityStatus: 'passed', // Automated WCAG 2.1 check simulation
+              governanceSnapshot: {
+                validationResults: valResults,
+                commentaryTasks: pkg.commentaryTasks
+              },
+              isLitigationHold: true, // Prevents deletion for auditing compliance
+              publicUrl: `/exports/${htmlFilename}`
+            }
+          });
+
+          // Create prior-year locked snapshot
+          await tx.lockedReportSnapshot.create({
+            data: {
+              artifactId: artifact.id,
+              metricMapSnapshot
+            }
+          });
+
+          // Advance report package status to published
+          await tx.reportPackage.update({
+            where: { id: pkg.id },
+            data: { status: 'published' }
+          });
+        });
+      } catch (backgroundError) {
+        console.error("Background package compile failed:", backgroundError);
+      } finally {
+        await releaseLock(lockKey);
       }
-    });
-
-    const metricMapSnapshot = {};
-    for (const rec of tbRecords) {
-      metricMapSnapshot[rec.accountCode] = parseFloat(rec.balance.toString());
-    }
-
-    // 9. Execute transaction to create CompiledArtifact, LockedReportSnapshot, and update status
-    const result = await prisma.$transaction(async (tx) => {
-      // Create artifact entry
-      const artifact = await tx.compiledArtifact.create({
-        data: {
-          packageId: pkg.id,
-          htmlPath: `/exports/${htmlFilename}`,
-          pdfPath: `/exports/${pdfFilename}`,
-          xlsxPath: `/exports/${xlsxFilename}`,
-          boardPacketPath: `/exports/${zipFilename}`,
-          htmlHash,
-          pdfHash,
-          xlsxHash,
-          boardPacketHash: zipHash,
-          accessibilityValidatedAt: new Date(),
-          accessibilityStatus: 'passed', // Automated WCAG 2.1 check simulation
-          governanceSnapshot: {
-            validationResults: valResults,
-            commentaryTasks: pkg.commentaryTasks
-          },
-          isLitigationHold: true, // Prevents deletion for auditing compliance
-          publicUrl: `/exports/${htmlFilename}`
-        }
-      });
-
-      // Create prior-year locked snapshot
-      await tx.lockedReportSnapshot.create({
-        data: {
-          artifactId: artifact.id,
-          metricMapSnapshot
-        }
-      });
-
-      // Advance report package status to published
-      await tx.reportPackage.update({
-        where: { id: pkg.id },
-        data: { status: 'published' }
-      });
-
-      return artifact;
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Compilation completed and report locked.',
-      artifact: result
-    });
+      message: 'Report compilation successfully started in the background.'
+    }, { status: 202 });
 
   } catch (error) {
     console.error('Error during report package compilation:', error);
     return NextResponse.json({ error: 'Failed to compile report package', details: error.message }, { status: 500 });
   }
 }
+

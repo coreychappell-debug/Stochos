@@ -24,13 +24,24 @@ export default function VcrmMapClient() {
   // Fetch routes data
   useEffect(() => {
     fetch("/api/fomo/map")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
-        setRoutes(data);
+        if (Array.isArray(data)) {
+          setRoutes(data);
+        } else {
+          console.error("Expected array from map API, got:", data);
+          setRoutes([]);
+        }
         setLoading(false);
       })
       .catch((err) => {
         console.error("Error loading map data:", err);
+        setRoutes([]);
         setLoading(false);
       });
   }, []);
@@ -102,8 +113,8 @@ export default function VcrmMapClient() {
     layersRef.current.warnings.clearLayers();
 
     const activeRoutes = selectedRouteId === "all" 
-      ? routes 
-      : routes.filter((r) => r.id === selectedRouteId);
+      ? (Array.isArray(routes) ? routes : []) 
+      : (Array.isArray(routes) ? routes.filter((r) => r.id === selectedRouteId) : []);
 
     const latLngBounds = [];
 
@@ -151,8 +162,8 @@ export default function VcrmMapClient() {
 
         // Popup details
         const discrepanciesList = ret.discrepancies.length > 0
-          ? `<div style="margin-top:8px; border-top:1px solid #ccc; padding-top:6px;">
-               <strong style="color:#ef476f;">🚨 Open Discrepancies (${ret.discrepancies.length}):</strong>
+           ? `<div style="margin-top:8px; border-top:1px solid #ccc; padding-top:6px;">
+                <strong style="color:#ef476f; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:#ef476f; margin-right:4px;"></span>Open Discrepancies (${ret.discrepancies.length}):</strong>
                <ul style="margin:4px 0 0 16px; padding:0; font-size:11px; color:#ef476f;">
                  ${ret.discrepancies.map(d => `<li>${d.type}: ${d.notes || 'No details'}</li>`).join('')}
                </ul>
@@ -170,7 +181,7 @@ export default function VcrmMapClient() {
             <strong>Visit Cadence:</strong> ${ret.visitCadence}<br/>
             <strong>Coaching Status:</strong> <span style="font-weight:bold; color:${markerColors[ret.freshness]}">${statusLabels[ret.freshness]}</span><br/>
             <strong>Last Visited:</strong> ${ret.lastVisitDate ? new Date(ret.lastVisitDate).toLocaleDateString() : 'Never'}<br/>
-            <strong>Training:</strong> ${ret.trainingStatus === 'trained' ? '🟢 Ask-for-Sale Trained' : '⚪ Untrained'}<br/>
+            <strong>Training:</strong> ${ret.trainingStatus === 'trained' ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#06d6a0; margin-right:4px;"></span>Trained' : '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#8899aa; margin-right:4px;"></span>Untrained'}<br/>
             ${discrepanciesList}
           </div>
         `;
@@ -222,13 +233,7 @@ export default function VcrmMapClient() {
     }
   }, [routes, selectedRouteId, filterFreshness, loading]);
 
-  if (loading) {
-    return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "500px" }}>
-        <p style={{ color: "var(--text-muted)" }}>Loading VCRM Partners data...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
@@ -251,6 +256,7 @@ export default function VcrmMapClient() {
           <select 
             value={selectedRouteId}
             onChange={(e) => setSelectedRouteId(e.target.value)}
+            disabled={loading}
             style={{
               padding: "6px 12px",
               borderRadius: "6px",
@@ -259,15 +265,22 @@ export default function VcrmMapClient() {
               color: "var(--text)",
               outline: "none",
               fontSize: "14px",
-              cursor: "pointer"
+              cursor: "pointer",
+              opacity: loading ? 0.6 : 1
             }}
           >
-            <option value="all">All Routes (Overview)</option>
-            {routes.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name} ({r.code}) - {r.repName}
-              </option>
-            ))}
+            {loading ? (
+              <option>Loading routes...</option>
+            ) : (
+              <>
+                <option value="all">All Routes (Overview)</option>
+                {Array.isArray(routes) && routes.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({r.code}) - {r.repName}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </div>
 
@@ -282,7 +295,10 @@ export default function VcrmMapClient() {
               onChange={(e) => setFilterFreshness({ ...filterFreshness, fresh: e.target.checked })}
               style={{ accentColor: "#06d6a0" }}
             />
-            <span style={{ color: "#06d6a0", fontWeight: 600 }}>🟢 Visited Recently</span>
+            <span style={{ color: "#06d6a0", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#06d6a0" }}></span>
+              Visited Recently
+            </span>
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "13px", cursor: "pointer" }}>
@@ -292,7 +308,10 @@ export default function VcrmMapClient() {
               onChange={(e) => setFilterFreshness({ ...filterFreshness, warning: e.target.checked })}
               style={{ accentColor: "#ffd166" }}
             />
-            <span style={{ color: "#ffd166", fontWeight: 600 }}>🟡 Warning</span>
+            <span style={{ color: "#ffd166", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ffd166" }}></span>
+              Warning
+            </span>
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "13px", cursor: "pointer" }}>
@@ -302,7 +321,10 @@ export default function VcrmMapClient() {
               onChange={(e) => setFilterFreshness({ ...filterFreshness, overdue: e.target.checked })}
               style={{ accentColor: "#ef476f" }}
             />
-            <span style={{ color: "#ef476f", fontWeight: 600 }}>🔴 Overdue / Needs Coaching</span>
+            <span style={{ color: "#ef476f", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ef476f" }}></span>
+              Overdue / Needs Coaching
+            </span>
           </label>
         </div>
       </div>

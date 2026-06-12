@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Sidebar from "@/app/components/Sidebar";
 import PlanDetailClient from "./PlanDetailClient";
+import { calculateAllocation } from "@/lib/allocationEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,27 @@ export default async function InstantTicketPlanPage({ params }) {
   });
 
   if (!plan) redirect("/instant-tickets");
+
+  // Run allocation engine for both sales and volume bases
+  let salesBasis = null;
+  let volumeBasis = null;
+  try {
+    const rawSalesBasis = await calculateAllocation(id, "sales");
+    const rawVolumeBasis = await calculateAllocation(id, "volume");
+
+    salesBasis = JSON.parse(
+      JSON.stringify(rawSalesBasis, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+    volumeBasis = JSON.parse(
+      JSON.stringify(rawVolumeBasis, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+  } catch (err) {
+    console.error("Failed to calculate cost allocations:", err);
+  }
 
   // Serialize BigInt/Decimal for client component
   const serializedPlan = JSON.parse(
@@ -82,6 +104,8 @@ export default async function InstantTicketPlanPage({ params }) {
     vendorAlloc, pipeline, gamesByDenom: serializedGamesByDenom,
     marketingItems: serializedMarketing, games: serializedGames,
     scenario: scenario ? { name: scenario.name } : null,
+    salesBasis,
+    volumeBasis,
   };
 
   return (
@@ -93,3 +117,4 @@ export default async function InstantTicketPlanPage({ params }) {
     </div>
   );
 }
+

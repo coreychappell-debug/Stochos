@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import FormatPanel from './FormatPanel';
 import { useRouter } from 'next/navigation';
+import { Settings } from 'lucide-react';
+import HelpTrigger from '../../components/HelpTrigger';
 
 export default function GridClient() {
   const router = useRouter();
@@ -485,6 +487,7 @@ export default function GridClient() {
               ))}
             </select>
 
+            <HelpTrigger topicId="reporting_grid" />
             <button onClick={() => router.push('/reporting')} style={{ padding: '8px 16px', background: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               Back to Dashboard
             </button>
@@ -862,19 +865,25 @@ export default function GridClient() {
                   onClick={() => handleColumnClick('col_actuals_2024')}
                   style={{ padding: '12px', textAlign: 'right', color: selectedColumn === 'col_actuals_2024' ? '#107c41' : '#475569', cursor: 'pointer', borderBottom: selectedColumn === 'col_actuals_2024' ? '2px solid #107c41' : 'none', borderRight: '1px solid #cbd5e1', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}
                 >
-                  2024 Actuals ⚙️
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%' }}>
+                    2024 Actuals <Settings size={13} style={{ color: '#64748b' }} />
+                  </span>
                 </th>
                 <th 
                   onClick={() => handleColumnClick('col_compare')}
                   style={{ padding: '12px', textAlign: 'right', color: selectedColumn === 'col_compare' ? '#107c41' : '#475569', cursor: 'pointer', borderBottom: selectedColumn === 'col_compare' ? '2px solid #107c41' : 'none', borderRight: '1px solid #cbd5e1', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}
                 >
-                  {comparisonMode === 'prior_year' ? '2023 Actuals' : 'Target Budget'} ⚙️
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%' }}>
+                    {comparisonMode === 'prior_year' ? '2023 Actuals' : 'Target Budget'} <Settings size={13} style={{ color: '#64748b' }} />
+                  </span>
                 </th>
                 <th 
                   onClick={() => handleColumnClick('col_variance')}
                   style={{ padding: '12px', textAlign: 'right', color: selectedColumn === 'col_variance' ? '#107c41' : '#475569', cursor: 'pointer', borderBottom: selectedColumn === 'col_variance' ? '2px solid #107c41' : 'none', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}
                 >
-                  Variance ⚙️
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%' }}>
+                    Variance <Settings size={13} style={{ color: '#64748b' }} />
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -977,8 +986,12 @@ export default function GridClient() {
         </div>
 
         {!selectedCell && !selectedColumn && (
-          <div style={{ marginTop: '40px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>
-            {loading ? 'Loading financial models...' : 'Select a cell to style formats, or click column settings (⚙️) to apply layout changes universally.'}
+          <div style={{ marginTop: '40px', textAlign: 'center', color: '#475569', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {loading ? 'Loading financial models...' : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                Select a cell to style formats, or click column settings (<Settings size={13} style={{ display: 'inline-block' }} />) to apply layout changes universally.
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -96,7 +96,7 @@ export const ChartNode = Node.create({
         'data-type': 'chart',
         style: 'border: 1px solid #ccc; padding: 40px; text-align: center; background: #f4f6f8; border-radius: 8px; margin: 20px 0; color: #334155; font-family: sans-serif;'
       }),
-      `📈 [Dynamic ${HTMLAttributes.type} Chart: ${HTMLAttributes.title}] - Renders in PDF Generator`
+      `[Dynamic ${HTMLAttributes.type} Chart: ${HTMLAttributes.title}] - Renders in PDF Generator`
     ];
   },
 

@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { BookOpen, Plus } from "lucide-react";
+import HelpDrawer from "../components/HelpDrawer";
 
 const statusStyles = {
   active: { bg: "rgba(16,185,129,0.15)", color: "#10b981", label: "Active" },
@@ -30,6 +32,7 @@ export default function ProductsClient({ initialProducts, jurisdictions }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", category: "draw_game", type: "", price: "", externalCode: "", jurisdictionId: jurisdictions[0]?.id || "" });
   const [updating, setUpdating] = useState(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const drawGames = products.filter(p => p.category !== "instant");
   const instantGames = products.filter(p => p.category === "instant");
@@ -71,9 +74,36 @@ export default function ProductsClient({ initialProducts, jurisdictions }) {
           <h2>Products</h2>
           <p>All lottery products — draw games and instant tickets with full lifecycle tracking.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} style={{ padding: "8px 20px", background: "var(--primary)", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontSize: "13px" }}>
-          {showForm ? "Cancel" : "+ Add Product"}
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button
+            onClick={() => setIsHelpOpen(true)}
+            style={{
+              padding: "8px 16px",
+              background: "var(--surface-3)",
+              border: "1px solid var(--border)",
+              borderRadius: "6px",
+              color: "var(--text)",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "13px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s"
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = "var(--border)";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = "var(--surface-3)";
+            }}
+          >
+            <BookOpen size={16} /> Help & Guide
+          </button>
+          <button onClick={() => setShowForm(!showForm)} style={{ padding: "8px 20px", background: "var(--primary)", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <Plus size={16} /> {showForm ? "Cancel" : "Add Product"}
+          </button>
+        </div>
       </div>
 
       <div className="page-body">
@@ -207,6 +237,7 @@ export default function ProductsClient({ initialProducts, jurisdictions }) {
           </div>
         </div>
       </div>
+      <HelpDrawer topicId="products" isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </>
   );
 }

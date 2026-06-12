@@ -3,8 +3,15 @@ export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/db";
 import AppShell from "../components/AppShell";
 import FleetClient from "./FleetClient";
+import { getFeatureFlag } from "@/lib/settings";
+import FeatureBlocker from "../components/FeatureBlocker";
 
 export default async function FleetPage() {
+  const isEnabled = await getFeatureFlag("feature_fleet");
+  if (!isEnabled) {
+    return <FeatureBlocker moduleName="Fleet Management" />;
+  }
+
   const [vehicles, jurisdictions, users] = await Promise.all([
     prisma.vehicle.findMany({
       include: {

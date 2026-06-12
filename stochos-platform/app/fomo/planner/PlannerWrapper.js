@@ -14,6 +14,6 @@ const PlannerClient = dynamicImport(() => import("./PlannerClient"), {
   )
 });
 
-export default function PlannerWrapper({ retailers, routes, chains }) {
-  return <PlannerClient retailers={retailers} routes={routes} chains={chains} />;
+export default function PlannerWrapper({ retailers, routes, chains, users, currentUser }) {
+  return <PlannerClient retailers={retailers} routes={routes} chains={chains} users={users} currentUser={currentUser} />;
 }

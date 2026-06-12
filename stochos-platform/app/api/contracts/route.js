@@ -33,13 +33,15 @@ export async function GET(request) {
     where: { id: session.user.id },
     include: { role: true }
   });
+  const isPrivileged = user?.role?.name === "admin" || user?.role?.name === "analyst" || user?.division === "FINANCE" || user?.division === "EXECUTIVE";
   const isAdmin = user?.role?.name === "admin";
 
-  if (!isAdmin) {
+  if (!isPrivileged && user) {
     where.AND = [
       {
         OR: [
           { createdById: session.user.id },
+          { division: user.division },
           { contractAccess: { some: { userId: session.user.id } } }
         ]
       }
@@ -52,6 +54,8 @@ export async function GET(request) {
       vendor: { select: { id: true, name: true, type: true } },
       jurisdiction: { select: { abbreviation: true } },
       lineItems: { select: { id: true, budgetAmount: true, spentAmount: true } },
+      purchaseOrders: { select: { id: true, amount: true, status: true } },
+      invoices: { select: { id: true, amount: true, status: true } },
       _count: { select: { lineItems: true, invoices: true, amendments: true } },
     },
     orderBy: { updatedAt: "desc" },

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ClipboardList, Wifi, WifiOff, MapPin, RefreshCw, GraduationCap, Palette, Settings, TrendingUp, Target, AlertTriangle } from "lucide-react";
 
 export default function FomoNewVisitClient({ retailers, initialRetailer }) {
   const router = useRouter();
@@ -266,7 +267,9 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
       {/* Page Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)" }}>📝 Log Store Visit Audit</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}>
+            <ClipboardList size={24} style={{ color: "var(--blue)" }} /> Log Store Visit Audit
+          </h2>
           <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>
             Record coaching metrics, verify equipment inventory, and complete displaying reviews.
           </p>
@@ -276,9 +279,9 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
             type="button" 
             className={`btn ${offlineSimulate ? "btn-rejected" : "btn-secondary"}`}
             onClick={() => setOfflineSimulate(!offlineSimulate)}
-            style={{ fontSize: 12 }}
+            style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            🔌 Offline Simulation: {offlineSimulate ? "ON" : "OFF"}
+            {offlineSimulate ? <WifiOff size={14} /> : <Wifi size={14} />} Offline Simulation: {offlineSimulate ? "ON" : "OFF"}
           </button>
           <Link href="/fomo/retailers" className="btn btn-secondary">
             Cancel
@@ -290,9 +293,11 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
       {queuedVisits.length > 0 && (
         <div className="card" style={{ borderLeft: "4px solid var(--gold)" }}>
           <div className="card-header" style={{ justifyContent: "space-between" }}>
-            <h3 style={{ color: "var(--gold)" }}>📍 Unsynced Visits ({queuedVisits.length} Queued)</h3>
-            <button className="btn btn-primary btn-sm" onClick={handleSyncQueued}>
-              🔄 Sync Queued Now
+            <h3 style={{ color: "var(--gold)", display: "flex", alignItems: "center", gap: 8 }}>
+              <MapPin size={18} /> Unsynced Visits ({queuedVisits.length} Queued)
+            </h3>
+            <button className="btn btn-primary btn-sm" style={{ display: "inline-flex", alignItems: "center", gap: 6 }} onClick={handleSyncQueued}>
+              <RefreshCw size={12} /> Sync Queued Now
             </button>
           </div>
           <div className="card-body">
@@ -363,10 +368,10 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
         {/* Form Tabs Nav */}
         <div style={{ display: "flex", gap: 4, borderBottom: "2px solid var(--surface-3)", paddingBottom: 2 }}>
           {[
-            { id: "general", label: "📋 General & Process" },
-            { id: "coaching", label: "🎓 Ask for Sale Coaching" },
-            { id: "merch", label: "🎨 POS Merchandising" },
-            { id: "assets", label: "⚙️ Equipment Audit" }
+            { id: "general", label: <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><ClipboardList size={14} /> General & Process</span> },
+            { id: "coaching", label: <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><GraduationCap size={14} /> Ask for Sale Coaching</span> },
+            { id: "merch", label: <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Palette size={14} /> POS Merchandising</span> },
+            { id: "assets", label: <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Settings size={14} /> Equipment Audit</span> }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -428,7 +433,9 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
               <hr style={{ border: "none", borderTop: "1px solid var(--surface-3)", margin: "10px 0" }} />
 
               <div>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>📈 Sales & Process Checklist</h4>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <TrendingUp size={16} style={{ color: "var(--blue)" }} /> Sales & Process Checklist
+                </h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                     <input
@@ -483,8 +490,8 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
 
               {openActionItems.length > 0 && (
                 <div style={{ marginTop: 10, padding: 16, backgroundColor: "var(--surface-4)", borderRadius: 6, border: "1px solid var(--border-color)", display: "flex", flexDirection: "column", gap: 12 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                    🎯 Outstanding Tasks for this Visit
+                  <h4 style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Target size={16} style={{ color: "var(--gold)" }} /> Outstanding Tasks for this Visit
                   </h4>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {openActionItems.map((item) => {
@@ -568,7 +575,7 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
         {activeTab === "coaching" && (
           <div className="card">
             <div className="card-header">
-              <h3>🎓 Clerk Salesmanship Coaching</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><GraduationCap size={20} style={{ color: "var(--blue)" }} /> Clerk Salesmanship Coaching</h3>
             </div>
             <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               
@@ -639,7 +646,7 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
         {activeTab === "merch" && (
           <div className="card">
             <div className="card-header">
-              <h3>🎨 Point of Sale & Merchandising compliance</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><Palette size={20} style={{ color: "var(--blue)" }} /> Point of Sale & Merchandising Compliance</h3>
             </div>
             <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               
@@ -706,7 +713,7 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
         {activeTab === "assets" && (
           <div className="card">
             <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3>⚙️ Equipment & Asset Presence Check</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><Settings size={20} style={{ color: "var(--blue)" }} /> Equipment & Asset Presence Check</h3>
               <span className="badge badge-active">{verifications.length} Assets Registered</span>
             </div>
             <div className="card-body">
@@ -768,9 +775,9 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
                                 fontWeight: 600
                               }}
                             >
-                              <option value="present">🟢 Present</option>
-                              <option value="missing">🔴 Missing</option>
-                              <option value="incorrect_placement">🟡 Incorrect Zone</option>
+                              <option value="present">Present</option>
+                              <option value="missing">Missing</option>
+                              <option value="incorrect_placement">Incorrect Zone</option>
                             </select>
                           </div>
                           <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
@@ -804,8 +811,8 @@ export default function FomoNewVisitClient({ retailers, initialRetailer }) {
                       </div>
 
                       {ver.observedStatus === "missing" && (
-                        <div style={{ fontSize: 11, color: "var(--red)", marginTop: 8, fontWeight: 600 }}>
-                          ⚠️ Warning: This will trigger an automatic 'Missing' discrepancy ticket upon submission.
+                        <div style={{ fontSize: 11, color: "var(--red)", marginTop: 8, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                          <AlertTriangle size={14} /> Warning: This will trigger an automatic 'Missing' discrepancy ticket upon submission.
                         </div>
                       )}
 

@@ -1,0 +1,122 @@
+Account Code,Account Name,Balance
+1-1000,Cash and cash equivalents,1025519440.0
+1-1200,"Accounts receivable, net",437139000.0
+1-1310,Instant ticket inventory,15076000.0
+1-1400,Investments,104091500.0
+1-2200,"Long-term investments, net",1025050500.0
+1-2300,Leases,9071000.0
+1-2400,Capital assets,286500.0
+1-3000,Deferred outflows of resources,9599500.0
+2-1100,Prizes payable,-129150000.0
+2-1010,Leases payable,-851000.0
+2-1150,Unclaimed prizes,-482149500.0
+2-1200,Due to Lottery Aid to Education,-605570500.0
+2-1000,Accounts payable and accrued liabilities,-5461500.0
+2-1300,Unearned ticket sales,-9400500.0
+2-1400,Compensated absences,-920500.0
+2-2400,"Compensated absences, noncurrent",-185500.0
+2-2010,Long-term leases payable,-8322500.0
+2-2500,Net pension liability,-6224500.0
+2-2600,Other postemployment benefits,-62036500.0
+2-2100,Long-term prizes payable,-941684000.0
+2-3000,Deferred inflows of resources,-10000500.0
+3-1000,Invested in capital assets,-46000.0
+3-1100,Restricted for future prizes,-327374500.0
+3-1200,Unrestricted,-27951500.0
+4-3000,Investment gain,-35128100.0
+4-4000,"Other revenue, net",-6172530.0
+5-3000,"Investment expense, net",21569800.0
+5-2200,Gaming contractor fees,133638190.0
+5-2400,Instant ticket direct expenses,8311870.0
+5-2500,Telecommunications expenses,8044820.0
+6-4000,Marketing and advertising expenses,38891790.0
+6-4100,Personal service and fringe benefits,11935420.0
+6-4200,Other administrative costs,2332400.0
+6-4300,State agency charges,2914520.0
+6-4400,Amortization - leases,1239700.0
+6-4500,Depreciation,6860.0
+5-2300,Required allocation for Lottery Aid to Education,1849931300.0
+5-2350,Lottery Aid Guarantee,-68600000.0
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-D3),-103387599.0
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-D4),-62032559.4
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-DD),-41355039.6
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-F5),-103387599.0
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-HS),-206775198.0
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-MM),-827100792.0
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-PB),-620325594.0
+4-1000,Sales - Draw Games Sales (40000-00-00-0000-SLP),-103387599.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1159),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1200),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1213),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1223),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1234),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1250),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1300),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1350),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1400),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1450),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1460),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1470),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1480),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1490),-206775198.0
+4-1000,Sales - Scratchers Sales (40100-00-00-0000-1500),-206775198.0
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-D3),48195243.6
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-D4),28917146.16
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-DD),19278097.44
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-F5),48195243.6
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-HS),96390487.2
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-MM),385561948.8
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-PB),289171461.6
+5-2000,Prize Expense - Draw Games Prize Expense (64101-00-00-0000-SLP),48195243.6
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1159),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1200),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1213),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1223),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1234),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1250),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1300),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1350),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1400),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1450),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1460),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1470),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1480),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1490),96390487.2
+5-2000,Prize Expense - Scratchers Prize Expense (64100-00-00-0000-1500),96390487.2
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-D3),15643945.8
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-D4),9386367.48
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-DD),6257578.32
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-F5),15643945.8
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-HS),31287891.6
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-MM),125151566.4
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-PB),93863674.8
+5-2100,Retailer Commission - Draw Games Retailer Commission (64201-00-00-0000-SLP),15643945.8
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+5-2100,Retailer Commission - Scratchers Retailer Commission (64200-00-00-0000-1459),31287891.6
+cf-receipts,Cash received from net lottery revenue,-5149047890.0
+cf-other-receipts,Other cash receipts,-6172530.0
+cf-prizes,Cash payments for prizes,2448618200.0
+cf-commissions,Cash payments for commissions,782210030.0
+cf-contractor,Cash payments for contractor fees,132970810.0
+cf-telecom,Cash payments for telecommunications,8044820.0
+cf-instant,Cash payments for instant ticket direct expenses,8661240.0
+cf-admin,Cash payments for other operating expenses,63391790.0
+cf-education,Cash transfer to State for Lottery Aid to Education,1634636080.0
+cf-capital,"Purchases of capital assets, net of disposals",246470.0
+cf-inv-mat,Proceeds from investment maturities,-46172700.0
+cf-inv-purch,Purchases of investments,1733620.0
+cf-inv-int,Interest on cash and cash equivalents and investments,-39045650.0
+cf-offset,Cash Flow balance sheet offset,159925710.0

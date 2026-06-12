@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Link from "next/link";
 import Skeleton from "../components/Skeleton";
+import { Save, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 
 export default function DrawPlanningPage() {
   const [scenario, setScenario] = useState(null);
@@ -180,20 +181,24 @@ export default function DrawPlanningPage() {
                   </svg>
                   Saving...
                 </>
-              ) : "Save Plan 💾"}
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <Save size={14} /> Save Plan
+                </span>
+              )}
             </button>
           </div>
         </div>
 
         {error && (
-          <div style={{ padding: "12px", backgroundColor: "#fef2f2", color: "#b91c1c", borderRadius: "6px", border: "1px solid #fee2e2", marginBottom: "1.5rem", fontSize: 14 }}>
-            ⚠️ {error}
+          <div style={{ padding: "12px", backgroundColor: "#fef2f2", color: "#b91c1c", borderRadius: "6px", border: "1px solid #fee2e2", marginBottom: "1.5rem", fontSize: 14, display: "flex", alignItems: "center", gap: "8px" }}>
+            <AlertTriangle size={16} /> {error}
           </div>
         )}
 
         {success && (
-          <div style={{ padding: "12px", backgroundColor: "#f0fdf4", color: "#166534", borderRadius: "6px", border: "1px solid #dcfce7", marginBottom: "1.5rem", fontSize: 14 }}>
-            ✓ {success}
+          <div style={{ padding: "12px", backgroundColor: "#f0fdf4", color: "#166534", borderRadius: "6px", border: "1px solid #dcfce7", marginBottom: "1.5rem", fontSize: 14, display: "flex", alignItems: "center", gap: "8px" }}>
+            <CheckCircle2 size={16} style={{ color: "#166534" }} /> {success}
           </div>
         )}
 
@@ -377,10 +382,10 @@ export default function DrawPlanningPage() {
                             <td style={{ padding: "10px 16px", textAlign: "center" }}>
                               <button 
                                 onClick={() => handleRemoveGame(index)}
-                                style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontSize: 16 }}
+                                style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", padding: "4px" }}
                                 title="Remove game"
                               >
-                                🗑️
+                                <Trash2 size={16} />
                               </button>
                             </td>
                           </tr>

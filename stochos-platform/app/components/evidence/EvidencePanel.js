@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Paperclip, FileText, Lock } from 'lucide-react';
 
 export default function EvidencePanel({ packageId, sectionId, importBatchId, currentUser }) {
   const [evidenceList, setEvidenceList] = useState([]);
@@ -84,7 +85,9 @@ export default function EvidencePanel({ packageId, sectionId, importBatchId, cur
       
       {/* Session/Role Switcher for testing */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '16px' }}>
-        <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text)', fontWeight: 'bold' }}>📎 Supporting Evidence</h4>
+        <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Paperclip size={16} /> Supporting Evidence
+        </h4>
         
         {/* Test Simulator Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -152,10 +155,12 @@ export default function EvidencePanel({ packageId, sectionId, importBatchId, cur
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '700', color: 'var(--text)' }}>
-                  <span>📄 {ev.fileName}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <FileText size={14} style={{ color: 'var(--text-secondary)' }} /> {ev.fileName}
+                  </span>
                   {ev.isConfidential && (
-                    <span style={{ fontSize: '11px', color: 'var(--status-warning-text)', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-                      🔒 Confidential
+                    <span style={{ fontSize: '11px', color: 'var(--status-warning-text)', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Lock size={10} /> Confidential
                     </span>
                   )}
                 </div>

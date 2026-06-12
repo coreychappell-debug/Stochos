@@ -1,6 +1,8 @@
 "use client";
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { ClipboardList, AlertTriangle, BookOpen } from "lucide-react";
+import HelpDrawer from "../components/HelpDrawer";
 
 const CONTRACT_TYPES = {
   lead_agency: "Lead Agency",
@@ -40,6 +42,7 @@ function getBudgetPct(lineItems) {
 }
 
 export default function ContractListClient({ initialContracts }) {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -80,6 +83,34 @@ export default function ContractListClient({ initialContracts }) {
 
   return (
     <>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+        <button
+          onClick={() => setIsHelpOpen(true)}
+          style={{
+            padding: "8px 16px",
+            background: "var(--surface-3)",
+            border: "1px solid var(--border)",
+            borderRadius: "6px",
+            color: "var(--text)",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "13px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            transition: "all 0.15s"
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = "var(--border)";
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = "var(--surface-3)";
+          }}
+        >
+          <BookOpen size={16} /> Help & Guide
+        </button>
+      </div>
+
       <div className="search-bar">
         <input
           className="search-input"
@@ -138,7 +169,9 @@ export default function ContractListClient({ initialContracts }) {
 
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <ClipboardList size={48} color="var(--text-secondary)" />
+          </div>
           <h3>No contracts found</h3>
           <p>
             {initialContracts.length === 0
@@ -224,11 +257,14 @@ export default function ContractListClient({ initialContracts }) {
                                 marginLeft: 8, 
                                 fontSize: 10,
                                 background: "rgba(255, 209, 102, 0.15)",
-                                color: "var(--gold)"
+                                color: "var(--gold)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
                               }}
                               title="Less than 6 months remaining. Recommended time to initiate competitive bidding."
                             >
-                              ⚠️ Bid Cycle Required
+                              <AlertTriangle size={10} /> Bid Cycle Required
                             </span>
                           );
                         }
@@ -243,6 +279,7 @@ export default function ContractListClient({ initialContracts }) {
           </table>
         </div>
       )}
+      <HelpDrawer topicId="contracts" isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </>
   );
 }

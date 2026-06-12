@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { Store, MapPin, Tv, Building2, Globe } from "lucide-react";
 
 export default function FomoRetailerListClient({ initialRetailers, routes, chains }) {
   const [inputValue, setInputValue] = useState("");
@@ -113,7 +114,7 @@ export default function FomoRetailerListClient({ initialRetailers, routes, chain
       {/* Retailers Table */}
       {filteredRetailers.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🏪</div>
+          <div className="empty-state-icon"><Store size={48} style={{ color: "var(--text-muted)" }} /></div>
           <h3>No retailers found</h3>
           <p>Try adjusting your search query or filters.</p>
         </div>
@@ -144,7 +145,7 @@ export default function FomoRetailerListClient({ initialRetailers, routes, chain
                       {r.address}, {r.city}
                     </div>
                     <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                      📍 {r.county ? `${r.county} Co` : 'No County'} | 📺 {r.dma || 'No DMA'} | 🏢 {r.serviceCenter || 'No Service Center'} | 🌐 {r.latitude && r.longitude ? <span style={{ fontVariantNumeric: "tabular-nums" }}>{r.latitude.toFixed(5)}, {r.longitude.toFixed(5)}</span> : 'No Coordinates'}
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><MapPin size={11} /> {r.county ? `${r.county} Co` : 'No County'}</span> | <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><Tv size={11} /> {r.dma || 'No DMA'}</span> | <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><Building2 size={11} /> {r.serviceCenter || 'No Service Center'}</span> | <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><Globe size={11} /> {r.latitude && r.longitude ? <span style={{ fontVariantNumeric: "tabular-nums" }}>{r.latitude.toFixed(5)}, {r.longitude.toFixed(5)}</span> : 'No Coordinates'}</span>
                     </div>
                   </td>
                   <td>{r.chain?.name || "Independent"}</td>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { CheckCircle2, AlertTriangle, Search, ClipboardList, MapPin, Calendar, FileText } from "lucide-react";
 
 export default function FomoRetailerDetailClient({ retailer }) {
   const router = useRouter();
@@ -119,8 +120,8 @@ export default function FomoRetailerDetailClient({ retailer }) {
           <Link href="/fomo/retailers" className="btn btn-secondary">
             ⬅ Back to Registry
           </Link>
-          <Link href={`/fomo/visits/new?retailerId=${retailer.id}`} className="btn btn-primary">
-            📝 Log Store Visit
+          <Link href={`/fomo/visits/new?retailerId=${retailer.id}`} className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <FileText size={14} /> Log Store Visit
           </Link>
         </div>
       </div>
@@ -191,14 +192,14 @@ export default function FomoRetailerDetailClient({ retailer }) {
                     </div>
                   ) : verifyData.bypassed ? (
                     <div style={{ padding: 8, backgroundColor: "rgba(0, 123, 255, 0.08)", borderRadius: 4, borderLeft: "3px solid var(--blue)" }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--blue)" }}>✓ OVERRIDE APPROVED</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "4px" }}><CheckCircle2 size={12} /> OVERRIDE APPROVED</span>
                       <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
                         Supervisor verified and approved stored coordinates manually (Bypassed).
                       </p>
                     </div>
                   ) : !verifyData.verified ? (
                     <div style={{ padding: 10, backgroundColor: "rgba(220, 53, 69, 0.08)", borderRadius: 4, borderLeft: "3px solid var(--red)", display: "flex", flexDirection: "column", gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--red)" }}>⚠️ UNMATCHED ADDRESS</span>
+                       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--red)", display: "inline-flex", alignItems: "center", gap: "4px" }}><AlertTriangle size={12} /> UNMATCHED ADDRESS</span>
                       <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>This address could not be verified by the USPS database.</p>
                       <button 
                         type="button"
@@ -213,7 +214,7 @@ export default function FomoRetailerDetailClient({ retailer }) {
                   ) : !verifyData.coordsMatch ? (
                     <div style={{ padding: 10, backgroundColor: "rgba(255, 193, 7, 0.08)", borderRadius: 4, borderLeft: "3px solid var(--gold)", display: "flex", flexDirection: "column", gap: 8 }}>
                       <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)" }}>⚠️ COORDINATES MISMATCH</span>
+                         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", display: "inline-flex", alignItems: "center", gap: "4px" }}><AlertTriangle size={12} /> COORDINATES MISMATCH</span>
                         <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
                           Stored coordinates are off by <strong>{verifyData.distanceMeters} meters</strong> from official USPS geodata.
                         </p>
@@ -241,7 +242,7 @@ export default function FomoRetailerDetailClient({ retailer }) {
                     </div>
                   ) : (
                     <div style={{ padding: 8, backgroundColor: "rgba(40, 167, 69, 0.08)", borderRadius: 4, borderLeft: "3px solid var(--green)" }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--green)" }}>✓ COORDINATES VERIFIED</span>
+                       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--green)", display: "inline-flex", alignItems: "center", gap: "4px" }}><CheckCircle2 size={12} /> COORDINATES VERIFIED</span>
                       <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
                         Store matches USPS standard (Diff: {verifyData.distanceMeters}m).
                       </p>
@@ -251,10 +252,10 @@ export default function FomoRetailerDetailClient({ retailer }) {
               ) : (
                 <button 
                   className="btn btn-secondary btn-sm"
-                  style={{ width: "100%", justifyContent: "center" }}
+                  style={{ width: "100%", justifyContent: "center", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   onClick={checkAddress}
                 >
-                  🔍 Run Geodata Audit
+                  <Search size={14} /> Run Geodata Audit
                 </button>
               )}
             </div>
@@ -264,7 +265,7 @@ export default function FomoRetailerDetailClient({ retailer }) {
         {/* Expected Equipment & Assets */}
         <div className="card">
           <div className="card-header">
-            <h3>📋 Expected Equipment & Collateral</h3>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}><ClipboardList size={18} /> Expected Equipment & Collateral</h3>
             <span className="badge badge-submitted">{retailer.assignments.length} items</span>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
@@ -315,7 +316,7 @@ export default function FomoRetailerDetailClient({ retailer }) {
       {openExceptions.length > 0 && (
         <div className="card" style={{ borderLeft: "4px solid var(--red)" }}>
           <div className="card-header">
-            <h3 style={{ color: "var(--red)" }}>⚠️ Active Equipment Exceptions & Discrepancies</h3>
+            <h3 style={{ color: "var(--red)", display: "flex", alignItems: "center", gap: "8px" }}><AlertTriangle size={18} /> Active Equipment Exceptions & Discrepancies</h3>
           </div>
           <div className="card-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {openExceptions.map((ex) => (
@@ -345,7 +346,7 @@ export default function FomoRetailerDetailClient({ retailer }) {
         {/* Outstanding Action Items */}
         <div className="card">
           <div className="card-header">
-            <h3>📍 Route Action Items</h3>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}><MapPin size={18} /> Route Action Items</h3>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             {retailer.actionItems.length === 0 ? (
@@ -385,7 +386,7 @@ export default function FomoRetailerDetailClient({ retailer }) {
         {/* Visit logs history */}
         <div className="card">
           <div className="card-header">
-            <h3>📝 Visit Audits History</h3>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}><Calendar size={18} /> Visit Audits History</h3>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             {retailer.visits.length === 0 ? (

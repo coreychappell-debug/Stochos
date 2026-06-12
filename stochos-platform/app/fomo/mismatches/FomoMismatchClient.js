@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Store, Download, Search, Settings, Zap, Octagon, CheckCircle2, AlertTriangle, ArrowLeft, Clock } from "lucide-react";
 
 export default function FomoMismatchClient({ initialRetailers }) {
   const router = useRouter();
@@ -329,11 +330,11 @@ export default function FomoMismatchClient({ initialRetailers }) {
       {/* Header and Exporter Action Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <Link href="/fomo" className="btn btn-secondary">
-            ⬅ FOMO Dashboard
+          <Link href="/fomo" className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <ArrowLeft size={14} /> FOMO Dashboard
           </Link>
-          <Link href="/fomo/retailers" className="btn btn-secondary">
-            🏪 Retailer Registry
+          <Link href="/fomo/retailers" className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <Store size={14} /> Retailer Registry
           </Link>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
@@ -341,17 +342,26 @@ export default function FomoMismatchClient({ initialRetailers }) {
             <a 
               href="/api/fomo/retailers/export-corrections" 
               className="btn btn-primary"
-              style={{ backgroundColor: "var(--purple)", borderColor: "var(--purple)" }}
+              style={{ backgroundColor: "var(--purple)", borderColor: "var(--purple)", display: "inline-flex", alignItems: "center", gap: "6px" }}
             >
-              📥 Download Host Update CSV ({stats.pendingHost} Pending)
+              <Download size={14} /> Download Host Update CSV ({stats.pendingHost} Pending)
             </a>
           )}
           <button 
             onClick={handleStartAudit} 
             disabled={scanning}
             className="btn btn-primary"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
-            {scanning ? "⚡ Scanning..." : "🔍 Audit Unchecked Stores in View"}
+            {scanning ? (
+              <>
+                <Zap size={14} /> Scanning...
+              </>
+            ) : (
+              <>
+                <Search size={14} /> Audit Unchecked Stores in View
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -366,7 +376,7 @@ export default function FomoMismatchClient({ initialRetailers }) {
         gap: 16,
         borderRadius: "var(--radius-md)"
       }}>
-        <div style={{ fontSize: 24 }}>⚙️</div>
+        <div style={{ color: "var(--purple)", display: "flex", alignItems: "center" }}><Settings size={28} /></div>
         <div>
           <strong style={{ color: "var(--purple)", fontSize: 15 }}>Automated Nightly Geodata Audits Active</strong>
           <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 6, lineHeight: "1.4" }}>
@@ -381,9 +391,11 @@ export default function FomoMismatchClient({ initialRetailers }) {
       {scanning && (
         <div className="card" style={{ borderLeft: "4px solid var(--blue)", padding: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontWeight: 600, color: "var(--blue)" }}>⚡ On-Demand Geodata Audit In Progress...</span>
-            <button onClick={handleCancelAudit} className="btn btn-secondary btn-sm" style={{ padding: "4px 8px", fontSize: 11 }}>
-              🛑 Cancel Scan
+            <span style={{ fontWeight: 600, color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <Zap size={14} /> On-Demand Geodata Audit In Progress...
+            </span>
+            <button onClick={handleCancelAudit} className="btn btn-secondary btn-sm" style={{ padding: "4px 8px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              <Octagon size={12} /> Cancel Scan
             </button>
           </div>
           <div style={{ height: 8, width: "100%", backgroundColor: "var(--surface-3)", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
@@ -510,15 +522,15 @@ export default function FomoMismatchClient({ initialRetailers }) {
                 let verifiedAddressText = r.geodataStandardAddress || "—";
                 
                 if (r.geodataBypassed) {
-                  statusBadge = <span className="badge" style={{ backgroundColor: "var(--blue-dim)", color: "var(--blue)" }}>✓ Override Approved</span>;
+                  statusBadge = <span className="badge" style={{ backgroundColor: "var(--blue-dim)", color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "4px" }}><CheckCircle2 size={12} /> Override Approved</span>;
                 } else if (r.geodataHostCorrectionRequested) {
-                  statusBadge = <span className="badge" style={{ backgroundColor: "var(--purple-dim)", color: "var(--purple)" }}>⏳ Host Update Flagged</span>;
+                  statusBadge = <span className="badge" style={{ backgroundColor: "var(--purple-dim)", color: "var(--purple)", display: "inline-flex", alignItems: "center", gap: "4px" }}><Clock size={12} /> Host Update Flagged</span>;
                 } else if (r.geodataStatus === "verified") {
-                  statusBadge = <span className="badge badge-approved">✓ Verified Match</span>;
+                  statusBadge = <span className="badge badge-approved" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><CheckCircle2 size={12} /> Verified Match</span>;
                 } else if (r.geodataStatus === "mismatch") {
-                  statusBadge = <span className="badge" style={{ backgroundColor: "var(--gold-dim)", color: "var(--gold)" }}>⚠️ Mismatch</span>;
+                  statusBadge = <span className="badge" style={{ backgroundColor: "var(--gold-dim)", color: "var(--gold)", display: "inline-flex", alignItems: "center", gap: "4px" }}><AlertTriangle size={12} /> Mismatch</span>;
                 } else if (r.geodataStatus === "unmatched") {
-                  statusBadge = <span className="badge badge-rejected">⚠️ Unmatched Address</span>;
+                  statusBadge = <span className="badge badge-rejected" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><AlertTriangle size={12} /> Unmatched Address</span>;
                 }
 
                 if (r.geodataDistance !== null && r.geodataDistance !== undefined) {

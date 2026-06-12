@@ -16,14 +16,17 @@ export async function evaluateValidationRules(jurisdictionId: string, periodDate
     where: { jurisdictionId, periodDate }
   });
 
-  // 2. Sum key GL account actuals
+  // 2. Sum key GL account actuals and calculate total balance for double-entry check
   let grossSales = 0;
   let prizeExpense = 0;
   let commissions = 0;
+  let totalBalance = 0;
 
   for (const r of records) {
     const code = r.accountCode || '';
     const val = parseFloat(r.balance.toString());
+    totalBalance += val;
+
     if (code === '4-1000' || code.startsWith('40000') || code.startsWith('40100')) {
       grossSales += val;
     } else if (code === '5-2000' || code.startsWith('6410')) {
@@ -33,7 +36,23 @@ export async function evaluateValidationRules(jurisdictionId: string, periodDate
     }
   }
 
+  const roundedTotal = Math.round(totalBalance * 100) / 100;
+  const isBalanced = Math.abs(roundedTotal) <= 0.01;
+
   const results: RuleResult[] = [];
+
+  // Rule 0: Double-Entry Balancing Check
+  results.push({
+    id: 'val-rule-double-entry',
+    name: 'Double-Entry Balance Check',
+    description: 'Verifies that the sum of all debit and credit balances in the General Ledger equals $0.00.',
+    status: isBalanced ? 'passed' : 'warning',
+    actualValue: `${roundedTotal >= 0 ? '' : '-'}$${Math.abs(roundedTotal).toFixed(2)}`,
+    expectedValue: '$0.00',
+    details: isBalanced
+      ? 'The General Ledger is perfectly balanced ($0.00).'
+      : `Warning: General Ledger is out of balance by $${roundedTotal.toFixed(2)}. Double-entry accounting requires debits and credits to reconcile to $0.00 before period lock.`
+  });
 
   // Rule A: Positive Gross Ticket Sales
   const salesPassed = grossSales > 0;

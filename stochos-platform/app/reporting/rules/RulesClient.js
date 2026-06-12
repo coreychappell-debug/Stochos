@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Sparkles, FileText, ClipboardList, XCircle, CheckCircle2 } from 'lucide-react';
+import HelpTrigger from '../../components/HelpTrigger';
 
 export default function RulesClient() {
   const router = useRouter();
@@ -117,12 +119,15 @@ export default function RulesClient() {
             Audit financial data structures and enforce policy commentaries before final package closes.
           </p>
         </div>
-        <button 
-          onClick={() => router.push('/reporting')}
-          style={{ padding: '8px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', boxShadow: 'var(--shadow-card)' }}
-        >
-          Back to Dashboard
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <HelpTrigger topicId="reporting_rules" />
+          <button 
+            onClick={() => router.push('/reporting')}
+            style={{ padding: '8px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', boxShadow: 'var(--shadow-card)' }}
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
 
       {/* Navigation tabs */}
@@ -290,9 +295,9 @@ export default function RulesClient() {
                 <button 
                   type="button" 
                   onClick={fillExplanationsPreset}
-                  style={{ background: 'var(--status-passed-bg)', color: 'var(--green)', border: '1px solid var(--status-passed-border)', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--status-passed-bg)', color: 'var(--green)', border: '1px solid var(--status-passed-border)', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  Load Valid Commentary Preset ✨
+                  <Sparkles size={11} /> Load Valid Commentary Preset
                 </button>
               </div>
               
@@ -306,11 +311,15 @@ export default function RulesClient() {
               <button 
                 type="submit" 
                 disabled={isGating}
-                style={{ padding: '12px', background: 'var(--green)', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.1s', boxShadow: '0 2px 4px rgba(16, 124, 65, 0.15)' }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', background: 'var(--green)', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.1s', boxShadow: '0 2px 4px rgba(16, 124, 65, 0.15)' }}
                 onMouseOver={(e) => e.currentTarget.style.background = 'var(--green-dim)'}
                 onMouseOut={(e) => e.currentTarget.style.background = 'var(--green)'}
               >
-                {isGating ? 'Evaluating Gate Constraints...' : 'Submit Section for Approval 📄'}
+                {isGating ? 'Evaluating Gate Constraints...' : (
+                  <>
+                    Submit Section for Approval <FileText size={16} />
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -321,7 +330,7 @@ export default function RulesClient() {
             {/* Policy Threshold card */}
             <div style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)', borderRadius: '12px', padding: '20px' }}>
               <h3 style={{ color: 'var(--status-warning-text)', fontSize: '15px', fontWeight: 'bold', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📋</span> Variance Policy Requirement
+                <ClipboardList size={18} /> Variance Policy Requirement
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--status-warning-text)', lineHeight: '1.5', margin: 0 }}>
                 Under finance guidelines, any actual expenditure category (e.g. Commissions) deviating from planned budgets by <strong>&gt; 10%</strong> triggers a mandatory audit commentary check. Report sections cannot transition status to <em>Submitted</em> without narrative clearance.
@@ -336,11 +345,11 @@ export default function RulesClient() {
                 {/* Blocked / Success banner */}
                 {gateResults.blocked ? (
                   <div style={{ padding: '12px', background: 'var(--status-failed-bg)', border: '1px solid var(--status-failed-border)', color: 'var(--status-failed-text)', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
-                    <span>❌</span> Submission Blocked: Policy triggers unfulfilled.
+                    <XCircle size={16} /> Submission Blocked: Policy triggers unfulfilled.
                   </div>
                 ) : (
                   <div style={{ padding: '12px', background: 'var(--status-passed-bg)', border: '1px solid var(--status-passed-border)', color: 'var(--status-passed-text)', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
-                    <span>✅</span> Submission Successful! Gate clearance resolved.
+                    <CheckCircle2 size={16} /> Submission Successful! Gate clearance resolved.
                   </div>
                 )}
 

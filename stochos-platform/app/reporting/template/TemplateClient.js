@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DocumentEditor from '../../components/tiptap/DocumentEditor';
+import { FileText, Eye, EyeOff, BookOpen } from 'lucide-react';
+import HelpTrigger from '../../components/HelpTrigger';
 
 // Simple Markdown to HTML parser for the live preview
 const parseMarkdown = (text) => {
@@ -148,7 +150,7 @@ export default function TemplateClient() {
       }}>
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text)', margin: 0, letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#1a73e8' }}>📝</span> Stochos Template Studio
+            <FileText size={22} style={{ color: '#1a73e8' }} /> Stochos Template Studio
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '2px', margin: 0 }}>
             Design report structures, map governing metrics, and preview populated data templates.
@@ -176,8 +178,17 @@ export default function TemplateClient() {
             onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
             onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
           >
-            {showPreviewPanel ? '✕ Collapse Preview' : '👁️ Show Preview'}
+            {showPreviewPanel ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <EyeOff size={14} /> Collapse Preview
+              </span>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Eye size={14} /> Show Preview
+              </span>
+            )}
           </button>
+          <HelpTrigger topicId="reporting_template" />
           <button 
             type="button"
             onClick={() => router.push('/reporting')} 
@@ -207,7 +218,9 @@ export default function TemplateClient() {
           
           {/* Template Library Dropdown */}
           <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text)' }}>📚 Template Library:</span>
+            <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <BookOpen size={16} style={{ color: '#475569' }} /> Template Library:
+            </span>
             <select 
               onChange={(e) => loadTemplate(e.target.value)}
               style={{ padding: '8px 12px', background: '#ffffff', border: '1px solid #cbd5e1', color: 'var(--text)', borderRadius: '6px', outline: 'none', cursor: 'pointer', flex: 1, fontSize: '14px' }}

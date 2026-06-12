@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Sidebar from "../components/Sidebar";
+import { ShieldAlert } from "lucide-react";
 
 export default function UnauthorizedPage() {
   return (
@@ -16,8 +17,8 @@ export default function UnauthorizedPage() {
         <div className="page-body" style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", padding: "40px" }}>
           <div className="card" style={{ maxWidth: "500px", width: "100%", borderLeft: "4px solid var(--red)", background: "linear-gradient(135deg, var(--card-bg) 0%, var(--surface-1) 100%)", boxShadow: "var(--shadow-elevated)" }}>
             <div className="card-body" style={{ padding: "40px 32px", textAlign: "center" }}>
-              <div style={{ fontSize: "64px", marginBottom: "20px", display: "inline-block", filter: "drop-shadow(0 0 10px rgba(239, 71, 111, 0.3))" }}>
-                🔒
+              <div style={{ display: "inline-flex", justifyContent: "center", marginBottom: "20px", filter: "drop-shadow(0 0 10px rgba(239, 71, 111, 0.3))" }}>
+                <ShieldAlert size={64} style={{ color: "var(--red)" }} />
               </div>
               <h3 style={{ fontSize: "20px", fontWeight: "700", color: "var(--text)", marginBottom: "12px" }}>
                 Access Denied
