@@ -45,7 +45,7 @@ graph TD
 
 ### 1.2 Shared Identity, Session & RBAC
 * **Session Management**: NextAuth v5 (Beta 31) using secure JSON Web Tokens (JWT) for session persistence. Sessions are maintained through signed and encrypted HttpOnly cookies, reducing exposure to client-side script access and supporting secure session persistence.
-* **Enterprise Authentication (SSO Federation)**: The authentication layer is designed to integrate with corporate directories, supporting SAML 2.0, OpenID Connect (OIDC), Azure Active Directory (AD), and Google Workspace federation for single sign-on (SSO).
+* **Enterprise Authentication (SSO Federation) [Planned Capability]**: The authentication layer is architected to integrate with corporate directories, designed to support SAML 2.0, OpenID Connect (OIDC), Azure Active Directory (AD), and Google Workspace federation for single sign-on (SSO) as a planned integration layer.
 * **Route Protection (Edge Middleware)**: A centralized `middleware.js` intercepts all browser page routing. It parses the active JWT and redirects unauthorized attempts to `/login` or `/unauthorized` before page rendering begins.
 * **Granular Role-Based Access Control (RBAC)**: Stochos supports modular permission configurations. Roles (such as `admin`, `it_manager`, `analyst`, `procurement_officer`) carry specific access metrics (None, Read, Write) across individual system modules, which are validated server-side on every API action.
 
@@ -63,7 +63,7 @@ graph TD
 
 ### 1.4 Data Integrity & Database Performance
 * **Atomic Database Transactions (`$transaction`)**: Every bulk operation executes inside an atomic write block. If any single data record fails validation or the server loses connection midway, **the entire transaction rolls back**, ensuring no partial, corrupt data remains.
-* **Relational Mutual Exclusion**: Strict schema-level constraints enforce logical business rules (e.g., an asset can belong to a retail location OR a corporate office, but never both simultaneously), preventing ledger contradictions.
+* **Relational Mutual Exclusion**: Database relationships combined with application-level API validation engine rules enforce logical business rules (e.g., an asset can belong to a retail location OR a corporate office, but never both simultaneously), preventing ledger contradictions.
 * **Query Performance Scaling**: Indexes are applied to frequently queried columns (including `status`, `category`, `deploymentType`, `retailerId`, and `orgUnitId`) to maintain performant query execution as data volumes scale.
 
 ### 1.5 Data Architecture (Hybrid Transactional/Analytical Model)
@@ -114,6 +114,7 @@ Stochos organizes business operations into functional, decoupled modules. The fo
 | **XBRL Industry Standardization** | GFPA Reporting | **Roadmap** | Planned Capability |
 | **AI-Driven Audit Spot-checks** | VCRM Operations | **Roadmap** | Planned Capability |
 | **Advanced Telematics OCR** | Fleet & Asset Management | **Roadmap** | Planned Capability |
+| **Enterprise SSO Federation** | Identity & Access | **Roadmap** | Planned Capability |
 
 ---
 
