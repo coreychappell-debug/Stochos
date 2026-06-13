@@ -89,5 +89,35 @@ This document outlines key technical items, feature improvements, and completed 
   - **Creative Asset Review Board**: Integrate digital design sign-off flows (Draft, Under Review, Approved) for TV/Radio ads and creative mockups.
   - **Channel Spend Breakdown**: Track advertising channel costs (TV, Radio, Digital, POS) with ROI impression and sales uplift estimators.
 
+---
+
+## 6. Next-Generation UX/UI Enhancements
+
+### 6.1 Operational "Actionability" (Drill-to-Action)
+- **Objective:** Bridge the gap between static charts and active operational workflows.
+- **Key Enhancements:**
+  - **Context-Snapping Drawers**: Clicking on visual data points (e.g. points in the Retailer Profitability Scatterplot) opens the corresponding CRM profile in a right-hand slide drawer to instantly assign visitations or log coaching notes without reloading.
+
+### 6.2 Role-Based Landing Cockpits
+- **Objective:** Customize the homepage experience dynamically based on security roles.
+- **Key Enhancements:**
+  - **Persona Dashboards**: Load tailored landing pages based on NextAuth session credentials (e.g., CFO lands on GFPA balance sheets, Operations lands on Fleet compliance alerts, IT lands on hardware lifecycle grids).
+
+### 6.3 Global Spotlight Command Menu (Cmd+K)
+- **Objective:** Enable lightning-fast, keyboard-driven navigation and search.
+- **Key Enhancements:**
+  - **Omni-Search Overlay**: Integrate a Cmd+K / Ctrl+K command bar queryable by pages, assets, license plates, and stores, providing direct page jumps and quick operational triggers.
+
+### 6.4 Interactive "What-If" Planning Sliders
+- **Objective:** Turn static forecasts into interactive sandbox models.
+- **Key Enhancements:**
+  - **Live Compounding Sliders**: Embed sliders for inflation rates, product mix adjustments, and commission caps, allowing charts to dynamically recalculate and animate results.
+
+### 6.5 Proactive Anomaly Detection Feed
+- **Objective:** Inform managers of critical issues immediately rather than forcing manual dashboard checks.
+- **Key Enhancements:**
+  - **Anomaly Heartbeats**: A highlight feed showcasing significant sales variance anomalies, upcoming contract EOL milestones, and compliance alerts.
+
+
 
 
