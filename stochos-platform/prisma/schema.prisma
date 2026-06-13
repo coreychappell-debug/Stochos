@@ -152,6 +152,7 @@ model User {
   campaignsCreated Campaign[]
   contractAccess   ContractAccess[]
   vehicles         Vehicle[]
+  vehicleLogs      VehicleLog[]
   assets           Asset[]
   budgetProposals  BudgetProposal[] @relation("BudgetProposalCreator")
   budgetProposalVersions BudgetProposalVersion[]
@@ -609,8 +610,29 @@ model Vehicle {
   value            Decimal?     @db.Decimal(10, 2)
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
+  logs             VehicleLog[]
 
   @@map("vehicles")
+}
+
+model VehicleLog {
+  id               String   @id @default(uuid())
+  vehicleId        String   @map("vehicle_id")
+  vehicle          Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverId         String   @map("driver_id")
+  driver           User     @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  type             String   @default("start") // 'start', 'end', 'reconciliation'
+  odometer         Int
+  checkWalkaround  Boolean  @default(true) @map("check_walkaround")
+  checkBrakes      Boolean  @default(true) @map("check_brakes")
+  checkTires       Boolean  @default(true) @map("check_tires")
+  checkLights      Boolean  @default(true) @map("check_lights")
+  checkFluids      Boolean  @default(true) @map("check_fluids")
+  checkEngineLight Boolean  @default(false) @map("check_engine_light")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("vehicle_logs")
 }
 
 model Asset {

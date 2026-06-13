@@ -1,8 +1,9 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Calendar, FileText, Download, Upload, AlertTriangle, Wrench, X, BookOpen, Trash2, RefreshCw } from "lucide-react";
+import { ClipboardList, Calendar, FileText, Download, Upload, AlertTriangle, Wrench, X, BookOpen, Trash2, RefreshCw, Gauge } from "lucide-react";
 import HelpDrawer from "../components/HelpDrawer";
+import QRCode from "qrcode";
 
 const VEHICLE_STATUSES = {
   active: "Active",
@@ -100,6 +101,60 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Compliance Alerts & Logs States
+  const [complianceAlerts, setComplianceAlerts] = useState([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [copiedAlertId, setCopiedAlertId] = useState(null);
+  const [vehicleLogs, setVehicleLogs] = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [drawerTab, setDrawerTab] = useState("details"); // 'details' or 'inspections'
+
+  // Fetch Compliance Alerts
+  const fetchComplianceAlerts = async () => {
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch("/api/fleet/compliance");
+      if (res.ok) {
+        const data = await res.json();
+        setComplianceAlerts(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch compliance alerts", err);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComplianceAlerts();
+  }, [vehicles]);
+
+  // Fetch log history and generate QR Code on vehicle select
+  useEffect(() => {
+    if (selectedVehicle) {
+      setDrawerTab("details");
+      setLoadingLogs(true);
+      fetch(`/api/fleet/${selectedVehicle.id}/logs`)
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error();
+        })
+        .then(data => setVehicleLogs(data))
+        .catch(() => setVehicleLogs([]))
+        .finally(() => setLoadingLogs(false));
+
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const checkinUrl = `${origin}/fleet/${selectedVehicle.id}/checkin`;
+      QRCode.toDataURL(checkinUrl, { width: 200, margin: 2 })
+        .then(url => setQrCodeUrl(url))
+        .catch(err => console.error(err));
+    } else {
+      setVehicleLogs([]);
+      setQrCodeUrl("");
+    }
+  }, [selectedVehicle]);
 
   // Tab & Replacement Planner States
   const [activeView, setActiveView] = useState("inventory");
@@ -574,65 +629,149 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
         {activeView === "inventory" ? (
-          <div style={{ flex: 1 }} className="card">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>License Plate</th>
-                  <th>Vehicle Details</th>
-                  <th>Jurisdiction</th>
-                  <th>Mileage</th>
-                  <th>Assigned Driver</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((v) => {
-                  const lifecycle = getVehicleStatusDetails(v);
-                  return (
-                    <tr 
-                      key={v.id} 
-                      className="cursor-pointer" 
-                      onClick={() => setSelectedVehicle(v)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedVehicle(v); } }}
-                    >
-                      <td style={{ fontWeight: 600 }}>{v.licensePlate}</td>
-                      <td>
-                        <div>{v.year} {v.make} {v.model}</div>
-                        {lifecycle.isEol && (
-                          <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(220, 53, 69, 0.15)", color: "#e63946", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px", marginTop: "2px" }}>
-                            <AlertTriangle size={10} /> EOL
+          <>
+            <div style={{ flex: 1 }} className="card">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>License Plate</th>
+                    <th>Vehicle Details</th>
+                    <th>Jurisdiction</th>
+                    <th>Mileage</th>
+                    <th>Assigned Driver</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((v) => {
+                    const lifecycle = getVehicleStatusDetails(v);
+                    return (
+                      <tr 
+                        key={v.id} 
+                        className="cursor-pointer" 
+                        onClick={() => setSelectedVehicle(v)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedVehicle(v); } }}
+                      >
+                        <td style={{ fontWeight: 600 }}>{v.licensePlate}</td>
+                        <td>
+                          <div>{v.year} {v.make} {v.model}</div>
+                          {lifecycle.isEol && (
+                            <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(220, 53, 69, 0.15)", color: "#e63946", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px", marginTop: "2px" }}>
+                              <AlertTriangle size={10} /> EOL
+                            </span>
+                          )}
+                          {lifecycle.isNearingEol && (
+                            <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(247, 127, 0, 0.15)", color: "#f77f00", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px", marginTop: "2px" }}>
+                              <AlertTriangle size={10} /> Nearing EOL
+                            </span>
+                          )}
+                        </td>
+                        <td className="muted">{v.jurisdiction?.abbreviation || "Global"}</td>
+                        <td>{v.mileage.toLocaleString()} mi</td>
+                        <td className="muted">{v.assignedTo?.name || "Unassigned"}</td>
+                        <td>
+                          <span className={`badge badge-${v.status === "active" ? "active" : v.status === "maintenance" ? "submitted" : "expired"}`}>
+                            {VEHICLE_STATUSES[v.status] || v.status}
                           </span>
-                        )}
-                        {lifecycle.isNearingEol && (
-                          <span style={{ fontSize: "10px", padding: "1px 5px", borderRadius: "3px", background: "rgba(247, 127, 0, 0.15)", color: "#f77f00", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px", marginTop: "2px" }}>
-                            <AlertTriangle size={10} /> Nearing EOL
-                          </span>
-                        )}
-                      </td>
-                      <td className="muted">{v.jurisdiction?.abbreviation || "Global"}</td>
-                      <td>{v.mileage.toLocaleString()} mi</td>
-                      <td className="muted">{v.assignedTo?.name || "Unassigned"}</td>
-                      <td>
-                        <span className={`badge badge-${v.status === "active" ? "active" : v.status === "maintenance" ? "submitted" : "expired"}`}>
-                          {VEHICLE_STATUSES[v.status] || v.status}
-                        </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center", padding: 24 }} className="muted">
+                        No vehicles found matching search parameters.
                       </td>
                     </tr>
-                  );
-                })}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: 24 }} className="muted">
-                      No vehicles found matching search parameters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Compliance Alerts Panel (appears on right when no vehicle is selected) */}
+            {!selectedVehicle && (
+              <div className="card" style={{ width: 300, flexShrink: 0, alignSelf: "stretch", display: "flex", flexDirection: "column" }}>
+                <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px", margin: 0, color: "var(--gold)" }}>
+                    <AlertTriangle size={16} /> Compliance Alerts
+                  </h3>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={fetchComplianceAlerts} 
+                    disabled={loadingAlerts}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px" }}
+                  >
+                    <RefreshCw size={12} className={loadingAlerts ? "animate-spin" : ""} />
+                  </button>
+                </div>
+                <div className="card-body" style={{ padding: "16px", overflowY: "auto", maxHeight: "70vh", display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+                  {complianceAlerts.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-secondary)", fontSize: "13px" }}>
+                      ✅ All active vehicles compliant.
+                    </div>
+                  ) : (
+                    complianceAlerts.map((alert) => (
+                      <div 
+                        key={alert.id} 
+                        style={{ 
+                          border: "1px solid var(--border)", 
+                          borderRadius: "8px", 
+                          padding: "12px", 
+                          background: "var(--surface-2)", 
+                          display: "flex", 
+                          flexDirection: "column", 
+                          gap: "6px",
+                          boxShadow: "var(--shadow-sm)"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: "600", alignItems: "center" }}>
+                          <span style={{ color: "var(--text)" }}>{alert.licensePlate}</span>
+                          <span style={{ 
+                            fontSize: "11px", 
+                            fontWeight: "700", 
+                            color: "var(--red)", 
+                            background: "rgba(220, 53, 69, 0.1)", 
+                            padding: "2px 6px", 
+                            borderRadius: "4px" 
+                          }}>
+                            {alert.lapseHours}h dormant
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                          {alert.make} {alert.model}
+                        </div>
+                        <div style={{ fontSize: "11px", marginTop: "4px", color: "var(--text)" }}>
+                          <strong>Driver:</strong> {alert.assignedTo?.name || "Unassigned"}
+                        </div>
+                        {alert.assignedTo?.manager && (
+                          <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+                            <strong>Manager:</strong> {alert.assignedTo.manager.name}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ marginTop: "8px", fontSize: "11px", width: "100%", padding: "6px" }}
+                          onClick={() => {
+                            const managerName = alert.assignedTo?.manager?.name || "N/A";
+                            const txt = `🚨 STOCHOS COMPLIANCE ALERT 🚨\nVehicle ${alert.licensePlate} (${alert.make} ${alert.model}) assigned to ${alert.assignedTo?.name || "Unassigned"} has not completed a compliance check-in log for ${alert.lapseHours} hours.\nManager/Supervisor (${managerName}) has been notified for escalation.`;
+                            navigator.clipboard.writeText(txt);
+                            setCopiedAlertId(alert.id);
+                            setTimeout(() => setCopiedAlertId(null), 2000);
+                          }}
+                        >
+                          {copiedAlertId === alert.id ? "Copied!" : "Copy Escalation Text"}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
             {/* KPI Cards Row */}
@@ -928,150 +1067,307 @@ export default function FleetClient({ initialVehicles, jurisdictions, users }) {
             <div className="card" style={{ width: 340, flexShrink: 0 }}>
               <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3>Vehicle Profile</h3>
-                <button 
-                  className="btn btn-secondary btn-sm" 
-                  aria-label="Close" 
-                  onClick={() => setSelectedVehicle(null)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px" }}
-                >
-                  <X size={14} />
-                </button>
+                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  {qrCodeUrl && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        const printWin = window.open("", "_blank");
+                        printWin.document.write(`
+                          <!DOCTYPE html>
+                          <html>
+                          <head>
+                            <title>Print Vehicle QR Code - ${selectedVehicle.licensePlate}</title>
+                            <style>
+                              body {
+                                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                height: 95vh;
+                                margin: 0;
+                                background: white;
+                              }
+                              .card {
+                                border: 2px dashed #999;
+                                border-radius: 8px;
+                                padding: 24px;
+                                width: 3.5in;
+                                height: 3.5in;
+                                box-sizing: border-box;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: space-between;
+                                text-align: center;
+                              }
+                              h1 { font-size: 15px; margin: 0 0 8px 0; color: #333; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; }
+                              img { width: 150px; height: 150px; }
+                              .plate { font-size: 18px; font-weight: 800; margin: 8px 0 2px 0; }
+                              .meta { font-size: 12px; color: #666; }
+                              @media print {
+                                body { padding: 0; }
+                                .card { border: none; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="card">
+                              <h1>Stochos Fleet Portal</h1>
+                              <img src="${qrCodeUrl}" />
+                              <div>
+                                <div class="plate">PLATE: ${selectedVehicle.licensePlate}</div>
+                                <div class="meta">${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}</div>
+                              </div>
+                            </div>
+                            <script>
+                              window.onload = function() {
+                                setTimeout(function() {
+                                  window.print();
+                                  window.close();
+                                }, 500);
+                              };
+                            </script>
+                          </body>
+                          </html>
+                        `);
+                        printWin.document.close();
+                      }}
+                      title="Print Dashboard QR Sticker"
+                      style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", fontSize: "11px" }}
+                    >
+                      Print QR
+                    </button>
+                  )}
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    aria-label="Close" 
+                    onClick={() => setSelectedVehicle(null)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px" }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
               <div className="card-body" style={{ maxHeight: "75vh", overflowY: "auto" }}>
+                {/* Tab Pill Headers */}
+                <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: "16px" }}>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: "8px",
+                      background: "none",
+                      border: "none",
+                      borderBottom: drawerTab === "details" ? "2px solid var(--gold)" : "none",
+                      color: drawerTab === "details" ? "var(--text)" : "var(--text-secondary)",
+                      fontWeight: drawerTab === "details" ? "600" : "400",
+                      cursor: "pointer",
+                      fontSize: "13px"
+                    }}
+                    onClick={() => setDrawerTab("details")}
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: "8px",
+                      background: "none",
+                      border: "none",
+                      borderBottom: drawerTab === "inspections" ? "2px solid var(--gold)" : "none",
+                      color: drawerTab === "inspections" ? "var(--text)" : "var(--text-secondary)",
+                      fontWeight: drawerTab === "inspections" ? "600" : "400",
+                      cursor: "pointer",
+                      fontSize: "13px"
+                    }}
+                    onClick={() => setDrawerTab("inspections")}
+                  >
+                    Inspections ({vehicleLogs.length})
+                  </button>
+                </div>
+
                 {error && <div className="login-error" style={{ marginBottom: 12 }}>{error}</div>}
-                <form onSubmit={handleUpdateVehicle}>
-                  <div className="form-group">
-                    <label className="form-label">License Plate</label>
-                    <input name="licensePlate" className="form-input" required defaultValue={selectedVehicle.licensePlate} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Make</label>
-                      <input name="make" className="form-input" required defaultValue={selectedVehicle.make} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Model</label>
-                      <input name="model" className="form-input" required defaultValue={selectedVehicle.model} />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Year</label>
-                      <input name="year" type="number" className="form-input" required defaultValue={selectedVehicle.year} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Mileage</label>
-                      <input name="mileage" type="number" className="form-input" required defaultValue={selectedVehicle.mileage} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">VIN</label>
-                    <input name="vin" className="form-input" required defaultValue={selectedVehicle.vin} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Driver Assignment</label>
-                      <select name="assignedToId" className="form-select" defaultValue={selectedVehicle.assignedToId || ""}>
-                        <option value="">Unassigned</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Status</label>
-                      <select name="status" className="form-select" defaultValue={selectedVehicle.status}>
-                        <option value="active">Active</option>
-                        <option value="maintenance">Maintenance</option>
-                        <option value="retired">Retired</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Last Service Date</label>
-                    <input name="lastService" type="date" className="form-input" defaultValue={selectedVehicle.lastService ? selectedVehicle.lastService.split('T')[0] : ""} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Notes</label>
-                    <textarea name="notes" className="form-input" rows="2" defaultValue={selectedVehicle.notes || ""} style={{ width: "100%", background: "var(--surface-overlay)", color: "var(--text)" }} />
-                  </div>
 
-                  {/* Lifecycle & Valuation Fields */}
-                  <div style={{ margin: "16px 0 8px 0", borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-                    <h4 style={{ fontSize: "13px", fontWeight: 600, color: "var(--primary)", marginBottom: 8 }}>Lifecycle & Valuation</h4>
-                  </div>
-                  
-                  <div className="form-row">
+                {drawerTab === "details" ? (
+                  <form onSubmit={handleUpdateVehicle}>
                     <div className="form-group">
-                      <label className="form-label">Purchase Price ($)</label>
-                      <input name="value" type="number" step="0.01" className="form-input" placeholder="0.00" defaultValue={selectedVehicle.value || ""} />
+                      <label className="form-label">License Plate</label>
+                      <input name="licensePlate" className="form-input" required defaultValue={selectedVehicle.licensePlate} />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Useful Life (Mos)</label>
-                      <input name="usefulLifeMonths" type="number" className="form-input" defaultValue={selectedVehicle.usefulLifeMonths ?? 120} />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Useful Life (Mi)</label>
-                      <input name="usefulLifeMiles" type="number" className="form-input" defaultValue={selectedVehicle.usefulLifeMiles ?? 100000} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Disposal Method</label>
-                      <select name="disposalMethod" className="form-select" defaultValue={selectedVehicle.disposalMethod || ""}>
-                        <option value="">None</option>
-                        <option value="sold">Sold</option>
-                        <option value="scrapped">Scrapped</option>
-                        <option value="donated">Donated</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Disposal Date</label>
-                      <input name="disposalDate" type="date" className="form-input" defaultValue={selectedVehicle.disposalDate ? selectedVehicle.disposalDate.split('T')[0] : ""} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Sale / Salvage ($)</label>
-                      <input name="salePrice" type="number" step="0.01" className="form-input" placeholder="0.00" defaultValue={selectedVehicle.salePrice || ""} />
-                    </div>
-                  </div>
-
-                  {selectedVehicle.value && (
-                    <div style={{ background: "var(--surface-overlay)", padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", marginTop: 12, fontSize: "11px", lineHeight: "1.4" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                        <span className="muted">Book Value:</span>
-                        <span style={{ fontWeight: 600 }}>${parseFloat(lifecycle.bookValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Make</label>
+                        <input name="make" className="form-input" required defaultValue={selectedVehicle.make} />
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                        <span className="muted">Accum. Depr.:</span>
-                        <span>${parseFloat(lifecycle.accumulatedDepreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <div className="form-group">
+                        <label className="form-label">Model</label>
+                        <input name="model" className="form-input" required defaultValue={selectedVehicle.model} />
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
-                        <span className="muted">Monthly Depr.:</span>
-                        <span>${parseFloat(lifecycle.monthlyDepreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Year</label>
+                        <input name="year" type="number" className="form-input" required defaultValue={selectedVehicle.year} />
                       </div>
-                      {lifecycle.isEol && (
-                        <div style={{ color: "#e63946", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <AlertTriangle size={14} /> Exceeded Useful Lifecycle Boundaries.
+                      <div className="form-group">
+                        <label className="form-label">Mileage</label>
+                        <input name="mileage" type="number" className="form-input" required defaultValue={selectedVehicle.mileage} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">VIN</label>
+                      <input name="vin" className="form-input" required defaultValue={selectedVehicle.vin} />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Driver Assignment</label>
+                        <select name="assignedToId" className="form-select" defaultValue={selectedVehicle.assignedToId || ""}>
+                          <option value="">Unassigned</option>
+                          {users.map((u) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Status</label>
+                        <select name="status" className="form-select" defaultValue={selectedVehicle.status}>
+                          <option value="active">Active</option>
+                          <option value="maintenance">Maintenance</option>
+                          <option value="retired">Retired</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Last Service Date</label>
+                      <input name="lastService" type="date" className="form-input" defaultValue={selectedVehicle.lastService ? selectedVehicle.lastService.split('T')[0] : ""} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Notes</label>
+                      <textarea name="notes" className="form-input" rows="2" defaultValue={selectedVehicle.notes || ""} style={{ width: "100%", background: "var(--surface-overlay)", color: "var(--text)" }} />
+                    </div>
+
+                    {/* Lifecycle & Valuation Fields */}
+                    <div style={{ margin: "16px 0 8px 0", borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+                      <h4 style={{ fontSize: "13px", fontWeight: 600, color: "var(--primary)", marginBottom: 8 }}>Lifecycle & Valuation</h4>
+                    </div>
+                    
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Purchase Price ($)</label>
+                        <input name="value" type="number" step="0.01" className="form-input" placeholder="0.00" defaultValue={selectedVehicle.value || ""} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Useful Life (Mos)</label>
+                        <input name="usefulLifeMonths" type="number" className="form-input" defaultValue={selectedVehicle.usefulLifeMonths ?? 120} />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Useful Life (Mi)</label>
+                        <input name="usefulLifeMiles" type="number" className="form-input" defaultValue={selectedVehicle.usefulLifeMiles ?? 100000} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Disposal Method</label>
+                        <select name="disposalMethod" className="form-select" defaultValue={selectedVehicle.disposalMethod || ""}>
+                          <option value="">None</option>
+                          <option value="sold">Sold</option>
+                          <option value="scrapped">Scrapped</option>
+                          <option value="donated">Donated</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Disposal Date</label>
+                        <input name="disposalDate" type="date" className="form-input" defaultValue={selectedVehicle.disposalDate ? selectedVehicle.disposalDate.split('T')[0] : ""} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Sale / Salvage ($)</label>
+                        <input name="salePrice" type="number" step="0.01" className="form-input" placeholder="0.00" defaultValue={selectedVehicle.salePrice || ""} />
+                      </div>
+                    </div>
+
+                    {selectedVehicle.value && (
+                      <div style={{ background: "var(--surface-overlay)", padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", marginTop: 12, fontSize: "11px", lineHeight: "1.4" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                          <span className="muted">Book Value:</span>
+                          <span style={{ fontWeight: 600 }}>${parseFloat(lifecycle.bookValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                      )}
-                      {lifecycle.isNearingEol && (
-                        <div style={{ color: "#f77f00", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <AlertTriangle size={14} /> Nearing useful lifecycle boundaries.
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                          <span className="muted">Accum. Depr.:</span>
+                          <span>${parseFloat(lifecycle.accumulatedDepreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                          <span className="muted">Monthly Depr.:</span>
+                          <span>${parseFloat(lifecycle.monthlyDepreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        {lifecycle.isEol && (
+                          <div style={{ color: "#e63946", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <AlertTriangle size={14} /> Exceeded Useful Lifecycle Boundaries.
+                          </div>
+                        )}
+                        {lifecycle.isNearingEol && (
+                          <div style={{ color: "#f77f00", fontWeight: 600, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <AlertTriangle size={14} /> Nearing useful lifecycle boundaries.
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  <div className="flex gap-2" style={{ marginTop: 20 }}>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>Save Changes</button>
-                    <button type="button" className="btn btn-danger btn-sm" style={{ background: "var(--red)", borderColor: "var(--red)", color: "white" }} onClick={() => handleDeleteVehicle(selectedVehicle.id)} disabled={saving}>Delete</button>
+                    <div className="flex gap-2" style={{ marginTop: 20 }}>
+                      <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>Save Changes</button>
+                      <button type="button" className="btn btn-danger btn-sm" style={{ background: "var(--red)", borderColor: "var(--red)", color: "white" }} onClick={() => handleDeleteVehicle(selectedVehicle.id)} disabled={saving}>Delete</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {loadingLogs ? (
+                      <div style={{ textAlign: "center", padding: "20px", color: "var(--text-secondary)", fontSize: "13px" }}>
+                        Loading inspection records...
+                      </div>
+                    ) : vehicleLogs.length === 0 ? (
+                      <div style={{ textAlign: "center", padding: "30px 10px", color: "var(--text-secondary)", fontSize: "13px" }}>
+                        No inspection logs submitted yet. Scan QR code on dashboard to check in.
+                      </div>
+                    ) : (
+                      vehicleLogs.map((log) => (
+                        <div key={log.id} style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "12px", background: "var(--surface-2)", fontSize: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "600" }}>
+                            <span>{new Date(log.createdAt).toLocaleDateString()}</span>
+                            <span style={{ color: "var(--gold)" }}>{log.odometer.toLocaleString()} mi</span>
+                          </div>
+                          <div style={{ color: "var(--text-secondary)" }}>
+                            <strong>Driver:</strong> {log.driver?.name || "System"}
+                          </div>
+                          <div>
+                            <strong>Type:</strong> {log.type === "start" ? "Start of Shift" : log.type === "end" ? "End of Shift" : "Reconciliation"}
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "11px", marginTop: "4px", borderTop: "1px solid var(--border)", paddingTop: "6px" }}>
+                            <div>Walkaround: {log.checkWalkaround ? "✅" : "❌"}</div>
+                            <div>Brakes: {log.checkBrakes ? "✅" : "❌"}</div>
+                            <div>Tires: {log.checkTires ? "✅" : "❌"}</div>
+                            <div>Lights: {log.checkLights ? "✅" : "❌"}</div>
+                            <div>Fluids: {log.checkFluids ? "✅" : "❌"}</div>
+                            <div style={{ gridColumn: "span 2", color: log.checkEngineLight ? "var(--red)" : "inherit", fontWeight: log.checkEngineLight ? "600" : "normal" }}>
+                              Engine Light: {log.checkEngineLight ? "⚠️ ON / Active" : "✅ Clear"}
+                            </div>
+                          </div>
+                          {log.notes && (
+                            <div style={{ fontStyle: "italic", color: "var(--text-secondary)", borderTop: "1px dashed var(--border)", paddingTop: "4px", marginTop: "4px" }}>
+                              "{log.notes}"
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
-                </form>
+                )}
               </div>
             </div>
           );
