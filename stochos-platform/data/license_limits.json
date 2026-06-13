@@ -1,0 +1,25 @@
+{
+  "licensed_features": [
+    "feature_organization",
+    "feature_analytics_overview",
+    "feature_analytics_retailers",
+    "feature_analytics_portfolio",
+    "feature_reporting",
+    "feature_reporting_prep",
+    "feature_reporting_grid",
+    "feature_reporting_workflow",
+    "feature_budgeting",
+    "feature_analytics_geography",
+    "feature_analytics_forecast",
+    "feature_marketing",
+    "feature_instant_tickets",
+    "feature_draw_planning",
+    "feature_products",
+    "feature_fomo",
+    "feature_contracts",
+    "feature_fleet",
+    "feature_vendors",
+    "feature_spatial_ops",
+    "feature_assets"
+  ]
+}

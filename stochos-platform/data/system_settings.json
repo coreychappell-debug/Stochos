@@ -1,9 +1,9 @@
 {
-  "feature_organization": true,
+  "feature_organization": false,
   "feature_analytics_overview": true,
   "feature_analytics_retailers": true,
   "feature_analytics_portfolio": true,
-  "feature_reporting": true,
+  "feature_reporting": false,
   "feature_reporting_prep": true,
   "feature_reporting_grid": true,
   "feature_reporting_workflow": true,

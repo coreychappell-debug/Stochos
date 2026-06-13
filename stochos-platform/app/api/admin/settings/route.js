@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import path from "path";
 
 const SETTINGS_FILE_PATH = path.join(process.cwd(), "data", "system_settings.json");
+const LICENSE_LIMITS_PATH = path.join(process.cwd(), "data", "license_limits.json");
 
 async function readSettings() {
   try {
@@ -37,6 +38,39 @@ async function readSettings() {
   }
 }
 
+async function readLicenseLimits() {
+  try {
+    const data = await fs.readFile(LICENSE_LIMITS_PATH, "utf-8");
+    const parsed = JSON.parse(data);
+    return parsed.licensed_features || [];
+  } catch (err) {
+    // Fallback: if file doesn't exist, allow all features by default for backwards compatibility
+    return [
+      "feature_organization",
+      "feature_analytics_overview",
+      "feature_analytics_retailers",
+      "feature_analytics_portfolio",
+      "feature_reporting",
+      "feature_reporting_prep",
+      "feature_reporting_grid",
+      "feature_reporting_workflow",
+      "feature_budgeting",
+      "feature_analytics_geography",
+      "feature_analytics_forecast",
+      "feature_marketing",
+      "feature_instant_tickets",
+      "feature_draw_planning",
+      "feature_products",
+      "feature_fomo",
+      "feature_contracts",
+      "feature_fleet",
+      "feature_vendors",
+      "feature_spatial_ops",
+      "feature_assets"
+    ];
+  }
+}
+
 export async function GET(request) {
   const session = await auth();
   if (!session) {
@@ -44,7 +78,8 @@ export async function GET(request) {
   }
 
   const features = await readSettings();
-  return NextResponse.json({ success: true, features });
+  const licensed = await readLicenseLimits();
+  return NextResponse.json({ success: true, features, licensed });
 }
 
 export async function POST(request) {
@@ -64,14 +99,22 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    // Read current settings to merge/validate keys
+    // Read current settings and license boundaries to merge/validate keys
     const current = await readSettings();
+    const licensed = await readLicenseLimits();
     const updated = { ...current };
 
     // Update settings using Zod-like validation for boolean values
     for (const [key, val] of Object.entries(body)) {
       if (key in current) {
         if (typeof val === "boolean") {
+          // Reject attempts to activate unlicensed modules
+          if (val === true && !licensed.includes(key)) {
+            return NextResponse.json(
+              { error: `Cannot activate '${key}': This module is not licensed under your current contract.` },
+              { status: 400 }
+            );
+          }
           updated[key] = val;
         } else {
           return NextResponse.json({ error: `Invalid value type for key '${key}'. Expected boolean.` }, { status: 400 });
@@ -90,3 +133,4 @@ export async function POST(request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

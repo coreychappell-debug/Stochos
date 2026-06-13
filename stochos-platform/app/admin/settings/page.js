@@ -8,7 +8,8 @@ import {
   Users, BarChart3, Store, Package, FileSpreadsheet, 
   Grid, Folders, Briefcase, Map, TrendingUp, 
   Megaphone, Ticket, Dices, Layers, Handshake, 
-  FileText, Car, Building2, Globe, Monitor, ShieldAlert
+  FileText, Car, Building2, Globe, Monitor, ShieldAlert,
+  Lock
 } from "lucide-react";
 import Link from "next/link";
 
@@ -98,10 +99,12 @@ const PRESETS = {
 export default function AdminSettingsPage() {
   const { data: session, status } = useSession();
   const [features, setFeatures] = useState({});
+  const [licensed, setLicensed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [lockedModalModule, setLockedModalModule] = useState(null);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -112,6 +115,7 @@ export default function AdminSettingsPage() {
         })
         .then((data) => {
           setFeatures(data.features || {});
+          setLicensed(data.licensed || []);
         })
         .catch((err) => {
           setErrorMessage(err.message);
@@ -123,6 +127,13 @@ export default function AdminSettingsPage() {
   }, [status]);
 
   const handleToggle = (key) => {
+    const isCurrentlyEnabled = features[key] !== false;
+    // Gating: If turning ON but not licensed under the contract, block and show the upgrade modal
+    if (!isCurrentlyEnabled && !licensed.includes(key)) {
+      const meta = FEATURE_META[key];
+      setLockedModalModule(meta ? meta.label : "Selected Module");
+      return;
+    }
     setFeatures((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -132,8 +143,18 @@ export default function AdminSettingsPage() {
   const applyPreset = (presetName) => {
     const preset = PRESETS[presetName];
     if (preset) {
-      setFeatures({ ...preset.flags });
-      setSuccessMessage(`Applied preset: ${preset.label}. Remember to save!`);
+      const filteredFlags = {};
+      Object.entries(preset.flags).forEach(([key, val]) => {
+        // Enforce license boundaries when applying presets
+        if (val === true) {
+          filteredFlags[key] = licensed.includes(key);
+        } else {
+          filteredFlags[key] = false;
+        }
+      });
+
+      setFeatures(filteredFlags);
+      setSuccessMessage(`Applied preset: ${preset.label} (filtered by contract license limits). Remember to save!`);
       setTimeout(() => setSuccessMessage(""), 4000);
     }
   };
@@ -239,7 +260,10 @@ export default function AdminSettingsPage() {
                 setLoading(true);
                 fetch("/api/admin/settings")
                   .then(r => r.json())
-                  .then(d => setFeatures(d.features))
+                  .then(d => {
+                    setFeatures(d.features || {});
+                    setLicensed(d.licensed || []);
+                  })
                   .finally(() => setLoading(false));
               }}
               style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
@@ -315,10 +339,12 @@ export default function AdminSettingsPage() {
               <div className="card-body" style={{ padding: "0" }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {items.map((item) => {
+                    const isLicensed = licensed.includes(item.key);
                     const isEnabled = features[item.key] !== false;
                     return (
                       <div 
                         key={item.key} 
+                        onClick={!isLicensed ? () => handleToggle(item.key) : undefined}
                         style={{ 
                           display: "flex", 
                           alignItems: "center", 
@@ -326,7 +352,8 @@ export default function AdminSettingsPage() {
                           padding: "18px 24px", 
                           borderBottom: "1px solid var(--border-dim)",
                           background: isEnabled ? "transparent" : "var(--surface-3)",
-                          opacity: isEnabled ? 1 : 0.75,
+                          opacity: isLicensed ? (isEnabled ? 1 : 0.75) : 0.6,
+                          cursor: !isLicensed ? "pointer" : "default",
                           transition: "all 0.15s ease"
                         }}
                       >
@@ -335,8 +362,8 @@ export default function AdminSettingsPage() {
                             width: "32px", 
                             height: "32px", 
                             borderRadius: "6px", 
-                            backgroundColor: isEnabled ? "rgba(217, 119, 6, 0.1)" : "var(--surface-2)", 
-                            color: isEnabled ? "var(--gold)" : "var(--text-secondary)",
+                            backgroundColor: (isEnabled && isLicensed) ? "rgba(217, 119, 6, 0.1)" : "var(--surface-2)", 
+                            color: (isEnabled && isLicensed) ? "var(--gold)" : "var(--text-secondary)",
                             display: "flex", 
                             alignItems: "center", 
                             justifyContent: "center" 
@@ -344,28 +371,47 @@ export default function AdminSettingsPage() {
                             {item.icon}
                           </div>
                           <div>
-                            <strong style={{ display: "block", fontSize: "14px", color: "var(--text)" }}>
+                            <strong style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", color: "var(--text)" }}>
                               {item.label}
+                              {!isLicensed && (
+                                <span style={{ 
+                                  fontSize: "9px", 
+                                  backgroundColor: "rgba(239, 68, 68, 0.08)", 
+                                  color: "var(--red)", 
+                                  border: "1px solid rgba(239, 68, 68, 0.2)", 
+                                  borderRadius: "4px", 
+                                  padding: "2px 6px", 
+                                  marginLeft: "8px", 
+                                  fontWeight: "700", 
+                                  textTransform: "uppercase", 
+                                  display: "inline-flex", 
+                                  alignItems: "center", 
+                                  gap: "4px" 
+                                }}>
+                                  <Lock size={9} /> Locked by Contract
+                                </span>
+                              )}
                             </strong>
-                            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                            <span style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
                               {item.desc}
                             </span>
                           </div>
                         </div>
                         
                         {/* TOGGLE SWITCH */}
-                        <label className="switch" style={{ position: "relative", display: "inline-block", width: "48px", height: "24px" }}>
+                        <label className="switch" style={{ position: "relative", display: "inline-block", width: "48px", height: "24px", opacity: isLicensed ? 1 : 0.5 }}>
                           <input 
                             type="checkbox" 
-                            checked={isEnabled} 
+                            checked={isEnabled && isLicensed} 
+                            disabled={!isLicensed}
                             onChange={() => handleToggle(item.key)}
                             style={{ opacity: 0, width: 0, height: 0 }}
                           />
                           <span style={{
                             position: "absolute",
-                            cursor: "pointer",
+                            cursor: isLicensed ? "pointer" : "not-allowed",
                             top: 0, left: 0, right: 0, bottom: 0,
-                            backgroundColor: isEnabled ? "var(--gold)" : "#d1d5db",
+                            backgroundColor: (isEnabled && isLicensed) ? "var(--gold)" : "#d1d5db",
                             borderRadius: "34px",
                             transition: "0.2s"
                           }}>
@@ -373,12 +419,17 @@ export default function AdminSettingsPage() {
                               position: "absolute",
                               content: '""',
                               height: "18px", width: "18px",
-                              left: isEnabled ? "26px" : "4px",
+                              left: (isEnabled && isLicensed) ? "26px" : "4px",
                               bottom: "3px",
                               backgroundColor: "white",
                               borderRadius: "50%",
-                              transition: "0.2s"
-                            }} />
+                              transition: "0.2s",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center"
+                            }}>
+                              {!isLicensed && <Lock size={10} style={{ color: "#9ca3af" }} />}
+                            </span>
                           </span>
                         </label>
 
@@ -390,6 +441,74 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
+
+        {/* LOCKED MODULE UPGRADE MODAL */}
+        {lockedModalModule && (
+          <div style={{
+            position: "fixed",
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px"
+          }}>
+            <div className="card" style={{
+              maxWidth: "480px",
+              width: "100%",
+              borderLeft: "4px solid var(--red)",
+              background: "linear-gradient(135deg, var(--card-bg) 0%, var(--surface-1) 100%)",
+              boxShadow: "var(--shadow-elevated)",
+              borderRadius: "12px",
+              overflow: "hidden",
+              animation: "scaleIn 0.2s ease-out"
+            }}>
+              <div className="card-body" style={{ padding: "32px", textAlign: "center" }}>
+                <div style={{
+                  display: "inline-flex",
+                  justifyContent: "center",
+                  marginBottom: "20px",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                  color: "var(--red)",
+                  alignItems: "center"
+                }}>
+                  <Lock size={28} />
+                </div>
+                <h3 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text)", marginBottom: "12px" }}>
+                  Contract Upgrade Required
+                </h3>
+                <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: "1.6", marginBottom: "28px" }}>
+                  The module <strong>{lockedModalModule}</strong> is not enabled under your current Stochos platform contract license. 
+                  To request activation or schedule a product walkthrough, click the button below to notify your account representative.
+                </p>
+                <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: "8px 20px" }}
+                    onClick={() => setLockedModalModule(null)}
+                  >
+                    Close
+                  </button>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ padding: "8px 20px", backgroundColor: "var(--red)", borderColor: "var(--red)", color: "white" }}
+                    onClick={() => {
+                      alert(`Your upgrade request for ${lockedModalModule} has been sent to Stochos support! Our team will contact you shortly.`);
+                      setLockedModalModule(null);
+                    }}
+                  >
+                    Request Activation
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       
       <style jsx global>{`
