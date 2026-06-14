@@ -1,4 +1,10 @@
-const allowedDevOrigins = ["192.168.1.74", "100.79.201.44", "localhost"];
+const allowedDevOrigins = [
+  "192.168.1.74",
+  "100.79.201.44",
+  "localhost",
+  "stochosgroup.tail88cba8.ts.net",
+  "stochosgroup.tail0f1180.ts.net"
+];
 if (process.env.NEXTAUTH_URL) {
   try {
     const hostname = new URL(process.env.NEXTAUTH_URL).hostname;
