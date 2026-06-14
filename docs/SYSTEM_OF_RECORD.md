@@ -90,6 +90,7 @@
 | Internal Financial Model | `docs/business/internal_financial_model.md` | Burdened labor rate math, partner equity splits |
 | DuckDB operations | `docs/operations/duckdb_operations.md` | Warehouse philosophy, writer/reader rules, backup |
 | Docker operations | `docs/operations/docker_operations.md` | Container lifecycle, image updates, volume management |
+| Local sharing guide | `docs/operations/local_sharing_guide.md` | Securely sharing local host with remote team via Tailscale & Caddy |
 | Analytics architecture | `docs/architecture/analytics_architecture.md` | DuckDB layers, R/Shiny pipeline, mart design |
 | Platform architecture | `docs/architecture/platform_architecture.md` | Next.js, PostgreSQL, Prisma, auth stack |
 | IT Manual | `docs/STOCHOS_MASTER_IT_MANUAL.md` | Deployment, module docs, R package manifest, change management |
