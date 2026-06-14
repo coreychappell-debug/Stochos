@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  rstudio:
+    image: rocker/tidyverse:latest
+    container_name: rstudio_server
+    ports:
+      - '8585:8787'
+    environment:
+      - PASSWORD=${RSTUDIO_DEV_COREY_PASSWORD}
+      - USERID=1001
+      - GROUPID=1002
+    volumes:
+      - ./projects:/home/rstudio/projects
+
+  shiny:
+    image: rocker/shiny-verse:latest
+    container_name: shiny_server
+    ports:
+      - '3535:3838'
+    volumes:
+      - ./shiny_apps:/srv/shiny-server
+      - ./projects:/srv/shiny-server/projects:ro
+
+  rstudio_tylercabral:
+    image: rocker/tidyverse:latest
+    container_name: rstudio_server_tylercabral
+    environment:
+      - PASSWORD=${RSTUDIO_DEV_TYLER_PASSWORD}
+      - USERID=1001
+      - GROUPID=1002
+    ports:
+      - '8586:8787'
+    volumes:
+      - /mnt/c/Data/RProjects/tylercabral:/home/rstudio/projects

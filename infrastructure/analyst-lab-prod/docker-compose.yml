@@ -1,0 +1,55 @@
+services:
+  rstudio:
+    image: rocker/tidyverse:latest
+    container_name: analyst_lab_prod_rstudio
+    restart: unless-stopped
+    ports:
+      - '8787:8787'
+    environment:
+      PASSWORD: ${RSTUDIO_COREY_PASSWORD}
+      USERID: '1000'
+      GROUPID: '1005'
+    volumes:
+      - ./projects:/home/rstudio/projects
+      - /srv/stochos:/srv/stochos
+
+  rstudio_tyler:
+    image: rocker/tidyverse:latest
+    container_name: analyst_lab_prod_rstudio_tyler
+    restart: unless-stopped
+    ports:
+      - '8788:8787'
+    environment:
+      PASSWORD: ${RSTUDIO_TYLER_PASSWORD}
+      USERID: '1003'
+      GROUPID: '1005'
+    volumes:
+      - ./projects:/home/rstudio/projects
+      - /srv/stochos:/srv/stochos
+
+  rstudio_caitlin:
+    image: rocker/tidyverse:latest
+    container_name: analyst_lab_prod_rstudio_caitlin
+    restart: unless-stopped
+    ports:
+      - '8789:8787'
+    environment:
+      PASSWORD: ${RSTUDIO_CAITLIN_PASSWORD}
+      USERID: '1002'
+      GROUPID: '1005'
+    volumes:
+      - ./projects:/home/rstudio/projects
+      - /srv/stochos:/srv/stochos
+
+  shiny:
+    build:
+      context: .
+      dockerfile: Dockerfile.shiny
+    container_name: analyst_lab_prod_shiny
+    restart: unless-stopped
+    ports:
+      - '3838:3838'
+    volumes:
+      - ./shiny_apps:/srv/shiny-server
+      - ./projects:/srv/shiny-server/projects:ro
+      - /srv/stochos:/srv/stochos

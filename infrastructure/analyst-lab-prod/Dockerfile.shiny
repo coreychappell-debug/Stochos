@@ -1,0 +1,14 @@
+FROM rocker/shiny-verse:latest
+
+# Install system dependencies for geospatial and visualization packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    libabsl-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    libudunits2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install required R packages from CRAN
+RUN Rscript -e "install.packages(c('shinydashboard', 'plotly', 'DT', 'shinycssloaders', 's2', 'sf', 'leaflet', 'leaflet.extras'), repos='https://cloud.r-project.org')"
