@@ -44,4 +44,8 @@ osrm-data/
 **/__pycache__/
 *.pyc
 
+# Caddy binaries
+caddy.exe
+infrastructure/caddy.exe
+
 
