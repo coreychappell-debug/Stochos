@@ -5,13 +5,7 @@ stochosgroup.tail88cba8.ts.net {
         get_certificate tailscale
     }
 
-    # 2. Next.js platform root (Port 3000)
-    reverse_proxy 127.0.0.1:3000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-    }
-
-    # 3. Production Shiny Server dashboards (Port 3838)
+    # 2. Production Shiny Server dashboards (Port 3838)
     # Accessible via: https://stochosgroup.tail88cba8.ts.net/shiny/
     reverse_proxy /shiny/* 127.0.0.1:3838 {
         # Enable sticky sessions for active dashboard metrics
@@ -22,11 +16,39 @@ stochosgroup.tail88cba8.ts.net {
         header_up Upgrade $http_upgrade
     }
 
-    # 4. Production RStudio Server (Port 8787)
-    # Accessible via: https://stochosgroup.tail88cba8.ts.net/rstudio/
-    route /rstudio* {
-        uri strip_prefix /rstudio
+    # 3. Production RStudio Servers (Corey, Tyler, Caitlin)
+    # Redirects to ensure trailing slash
+    redir /rstudio /rstudio/
+    redir /rstudio-tyler /rstudio-tyler/
+    redir /rstudio-caitlin /rstudio-caitlin/
+
+    handle_path /rstudio/* {
         reverse_proxy 127.0.0.1:8787 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-RStudio-Root-Path "/rstudio"
+        }
+    }
+
+    handle_path /rstudio-tyler/* {
+        reverse_proxy 127.0.0.1:8788 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-RStudio-Root-Path "/rstudio-tyler"
+        }
+    }
+
+    handle_path /rstudio-caitlin/* {
+        reverse_proxy 127.0.0.1:8789 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-RStudio-Root-Path "/rstudio-caitlin"
+        }
+    }
+
+    # 4. Next.js platform root (Port 3000) - Catch-all fallback
+    handle {
+        reverse_proxy 127.0.0.1:3000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
         }
