@@ -1592,5 +1592,210 @@ model AssetAuditBatch {
   @@map("asset_audit_batches")
 }
 
+model MartExecOverviewDaily {
+  id                    String   @id @default(uuid())
+  date                  DateTime @db.Date @unique
+  grossRevenue          Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  estimatedPayout       Decimal  @map("estimated_payout") @db.Decimal(16, 2)
+  retailerCommission    Decimal  @map("retailer_commission") @db.Decimal(16, 2)
+  netContribution       Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  activeRetailers       Int      @map("active_retailers")
+  activeGames           Int      @map("active_games")
+  avgSalesPerRetailer   Decimal  @map("avg_sales_per_retailer") @db.Decimal(16, 2)
+  drawRevenue           Decimal  @map("draw_revenue") @db.Decimal(16, 2)
+  scratchRevenue        Decimal  @map("scratch_revenue") @db.Decimal(16, 2)
+
+  @@map("mart_exec_overview_daily")
+}
+
+model MartExecMixSummary {
+  id               String   @id @default(uuid())
+  productGroup     String   @unique @map("product_group")
+  grossRevenue     Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution  Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  pctSales         Decimal  @map("pct_sales") @db.Decimal(8, 6)
+  pctContribution  Decimal  @map("pct_contribution") @db.Decimal(8, 6)
+  contributionRate Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+
+  @@map("mart_exec_mix_summary")
+}
+
+model MartExecAlert {
+  id              String   @id @default(uuid())
+  alertType       String   @map("alert_type")
+  alertLabel      String   @map("alert_label")
+  alertValue      Decimal  @map("alert_value") @db.Decimal(16, 2)
+  comparisonValue Decimal  @map("comparison_value") @db.Decimal(16, 2)
+  varianceAbs     Decimal? @map("variance_abs") @db.Decimal(16, 2)
+  variancePct     Decimal? @map("variance_pct") @db.Decimal(8, 6)
+  severity        String
+  alertDate       DateTime @map("alert_date") @db.Date
+
+  @@map("mart_exec_alerts")
+}
+
+model MartExecRetailerMix {
+  id                 String   @id @default(uuid())
+  retailerId         String   @map("retailer_id")
+  retailerName       String   @map("retailer_name")
+  city               String?
+  county             String?
+  businessType       String?  @map("business_type")
+  quickDrawFlag      String?  @map("quick_draw_flag")
+  latitude           Float?
+  longitude          Float?
+  grossRevenue       Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution    Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  estimatedPayout    Decimal  @map("estimated_payout") @db.Decimal(16, 2)
+  retailerCommission Decimal  @map("retailer_commission") @db.Decimal(16, 2)
+  drawRevenue        Decimal  @map("draw_revenue") @db.Decimal(16, 2)
+  scratchRevenue     Decimal  @map("scratch_revenue") @db.Decimal(16, 2)
+  drawShare          Decimal  @map("draw_share") @db.Decimal(8, 6)
+  scratchShare       Decimal  @map("scratch_share") @db.Decimal(8, 6)
+  contributionRate   Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+  activeDays         Int      @map("active_days")
+  avgDailySales      Decimal  @map("avg_daily_sales") @db.Decimal(16, 2)
+  distinctProducts   Int      @map("distinct_products")
+
+  @@map("mart_exec_retailer_mix")
+}
+
+model MartExecRetailerQuadrant {
+  id                     String   @id @default(uuid())
+  retailerId             String   @map("retailer_id")
+  retailerName           String   @map("retailer_name")
+  city                   String?
+  county                 String?
+  businessType           String?  @map("business_type")
+  drawShare              Decimal  @map("draw_share") @db.Decimal(8, 6)
+  scratchShare           Decimal  @map("scratch_share") @db.Decimal(8, 6)
+  contributionRate       Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+  grossRevenue           Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution        Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  avgDailySales          Decimal  @map("avg_daily_sales") @db.Decimal(16, 2)
+  salesBand              String?  @map("sales_band")
+  quadrantLabel          String?  @map("quadrant_label")
+  medianDrawShare        Decimal  @map("median_draw_share") @db.Decimal(8, 6)
+  medianContributionRate Decimal  @map("median_contribution_rate") @db.Decimal(8, 6)
+
+  @@map("mart_exec_retailer_quadrants")
+}
+
+model MartExecChannelMix {
+  id                  String   @id @default(uuid())
+  businessType        String?  @map("business_type")
+  retailerCount       Int      @map("retailer_count")
+  grossRevenue        Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution     Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  drawRevenue         Decimal  @map("draw_revenue") @db.Decimal(16, 2)
+  scratchRevenue      Decimal  @map("scratch_revenue") @db.Decimal(16, 2)
+  drawShare           Decimal  @map("draw_share") @db.Decimal(8, 6)
+  scratchShare        Decimal  @map("scratch_share") @db.Decimal(8, 6)
+  avgSalesPerRetailer Decimal  @map("avg_sales_per_retailer") @db.Decimal(16, 2)
+  contributionRate    Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+
+  @@map("mart_exec_channel_mix")
+}
+
+model MartExecProductMix {
+  id               String   @id @default(uuid())
+  productGroup     String   @map("product_group")
+  gameFamily       String   @map("game_family")
+  grossRevenue     Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution  Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  retailerCount    Int      @map("retailer_count")
+  pctSales         Decimal  @map("pct_sales") @db.Decimal(8, 6)
+  pctContribution  Decimal  @map("pct_contribution") @db.Decimal(8, 6)
+  contributionRate Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+
+  @@map("mart_exec_product_mix")
+}
+
+model MartExecProductLifecycle {
+  id               String    @id @default(uuid())
+  gameCode         String    @map("game_code")
+  gameName         String    @map("game_name")
+  gameFamily       String    @map("game_family")
+  productGroup     String    @map("product_group")
+  firstObserved    DateTime? @map("first_observed") @db.Date
+  lastObserved     DateTime? @map("last_observed") @db.Date
+  lifecycleStatus  String    @map("lifecycle_status")
+  grossRevenue     Decimal   @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution  Decimal   @map("net_contribution") @db.Decimal(16, 2)
+  activeDays       Int       @map("active_days")
+  contributionRate Decimal   @map("contribution_rate") @db.Decimal(8, 6)
+  trendDirection   String?   @map("trend_direction")
+
+  @@map("mart_exec_product_lifecycle")
+}
+
+model MartExecProductTimeseries {
+  id               String   @id @default(uuid())
+  month            DateTime @db.Date
+  productGroup     String   @map("product_group")
+  grossRevenue     Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution  Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  contributionRate Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+
+  @@map("mart_exec_product_timeseries")
+}
+
+model MartExecGeoContribution {
+  id                      String   @id @default(uuid())
+  geoLevel                String   @map("geo_level")
+  county                  String
+  city                    String?
+  grossRevenue            Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution         Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  retailerCount           Int      @map("retailer_count")
+  avgSalesPerRetailer     Decimal  @map("avg_sales_per_retailer") @db.Decimal(16, 2)
+  contributionRate        Decimal  @map("contribution_rate") @db.Decimal(8, 6)
+  drawShare               Decimal  @map("draw_share") @db.Decimal(8, 6)
+  scratchShare            Decimal  @map("scratch_share") @db.Decimal(8, 6)
+  
+  // County Demographics
+  population              Int?
+  landArea                Float?   @map("land_area")
+  medianIncome            Decimal? @map("median_income") @db.Decimal(16, 2)
+  dma                     String?
+  serviceCenter           String?  @map("service_center")
+  salesPerCapita          Decimal? @map("sales_per_capita") @db.Decimal(16, 2)
+  netContributionPerCapita Decimal? @map("net_contribution_per_capita") @db.Decimal(16, 2)
+  retailersPerSqMile      Float?   @map("retailers_per_sq_mile")
+  residentsPerRetailer    Float?   @map("residents_per_retailer")
+
+  @@map("mart_exec_geo_contribution")
+  @@index([geoLevel])
+  @@index([county])
+}
+
+model MartExecGeoChannelMix {
+  id              String   @id @default(uuid())
+  county          String
+  businessType    String   @map("business_type")
+  retailerCount   Int      @map("retailer_count")
+  grossRevenue    Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  drawShare       Decimal  @map("draw_share") @db.Decimal(8, 6)
+  scratchShare    Decimal  @map("scratch_share") @db.Decimal(8, 6)
+
+  @@map("mart_exec_geo_channel_mix")
+  @@index([county])
+}
+
+model MartNyGameTimeseries {
+  id              String   @id @default(uuid())
+  date            DateTime @db.Date
+  category        String
+  grossRevenue    Decimal  @map("gross_revenue") @db.Decimal(16, 2)
+  netContribution Decimal  @map("net_contribution") @db.Decimal(16, 2)
+  activeRetailers Int      @map("active_retailers")
+
+  @@map("mart_ny_game_timeseries")
+  @@index([category])
+  @@index([date])
+}
+
+
 
 

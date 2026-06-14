@@ -36,6 +36,14 @@
   --border:      #2d3a4a;
   --border-dim:  rgba(255,255,255,0.04);
 
+  /* Deep Chart Palette (Classic Dark) */
+  --chart-1:     #00b4d8;
+  --chart-2:     #06d6a0;
+  --chart-3:     #8c7bfa;
+  --chart-4:     #ffd166;
+  --chart-5:     #ff6b8b;
+  --chart-6:     #e0e6ed;
+
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -103,6 +111,14 @@ body.light-theme {
   --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
   --shadow-elevated: 0 4px 16px rgba(0,0,0,0.08);
 
+  /* Deep Chart Palette (Classic Light) */
+  --chart-1:     #1a73e8;
+  --chart-2:     #107c41;
+  --chart-3:     #7e22ce;
+  --chart-4:     #b45309;
+  --chart-5:     #b91c1c;
+  --chart-6:     #1e293b;
+
   /* Status Colors (Light values) */
   --status-passed-bg:   #eaf5ea;
   --status-passed-text: #107c41;
@@ -133,6 +149,778 @@ body.light-theme {
   --badge-executive-text: #b45309;
   --badge-procurement-bg: #fee2e2;
   --badge-procurement-text: #b91c1c;
+}
+
+/* ─── Brand Palettes ─── */
+
+/* --- New York State (Dark) --- */
+body.theme-newyork {
+  --navy:        #04120a;
+  --dark-bg:     #081e13;
+  --card-bg:     #0c2a1b;
+  --card-border: #16422b;
+  --blue:        #00a651; /* Primary NY Lottery Green */
+  --blue-dim:    rgba(0,166,81,0.08);
+  --blue-glow:   rgba(0,166,81,0.25);
+  --green:       #fed103; /* Secondary brand color (Gold) for comparison contrast */
+  --green-dim:   rgba(254,209,3,0.10);
+  --gold:        #fed103; /* Primary NY Lottery Gold */
+  --gold-dim:    rgba(254,209,3,0.10);
+  --red:         #ff6b8b;
+  --red-dim:     rgba(255,107,139,0.10);
+  --purple:      #8c7bfa;
+  --purple-dim:  rgba(140,123,250,0.10);
+  --text:        #e8f5e9;
+  --text-secondary: #a5d6a7;
+  --text-muted:  #75a478;
+  --surface-1:   #081e13;
+  --surface-2:   #0c2a1b;
+  --surface-3:   #123e27;
+  --border:      #16422b;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (NY Lottery Dark) */
+  --chart-1:     #00a651; /* Spruce Green */
+  --chart-2:     #fed103; /* Brand Gold */
+  --chart-3:     #00796b; /* Accent Teal */
+  --chart-4:     #ff8f00; /* Warm Amber */
+  --chart-5:     #827717; /* Muted Lime */
+  --chart-6:     #00c853; /* Bright Emerald */
+}
+
+/* --- New York State (Light) --- */
+body.theme-newyork.light-theme {
+  --navy:        #f0f7f3;
+  --dark-bg:     #e2eee6;
+  --card-bg:     #ffffff;
+  --card-border: #c8e6c9;
+  --blue:        #107c41; /* Darker green for contrast */
+  --blue-dim:    rgba(16,124,65,0.08);
+  --blue-glow:   rgba(16,124,65,0.25);
+  --green:       #c69214; /* Darker gold for text/accent contrast */
+  --green-dim:   rgba(198,146,20,0.10);
+  --gold:        #c69214; /* Dark gold for contrast */
+  --gold-dim:    rgba(198,146,20,0.10);
+  --red:         #b91c1c;
+  --red-dim:     rgba(185,28,28,0.10);
+  --purple:      #7e22ce;
+  --purple-dim:  rgba(126,34,206,0.10);
+  --text:        #1b3a24;
+  --text-secondary: #2e6f40;
+  --text-muted:  #4f8a60;
+  --surface-1:   #e2eee6;
+  --surface-2:   #ffffff;
+  --surface-3:   #c8e6c9;
+  --border:      #a3d9b1;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (NY Lottery Light) */
+  --chart-1:     #107c41; /* Emerald green */
+  --chart-2:     #c69214; /* Gold/Bronze */
+  --chart-3:     #004d40; /* Dark Teal */
+  --chart-4:     #e65100; /* Dark Orange */
+  --chart-5:     #558b2f; /* Dark Lime */
+  --chart-6:     #2e7d32; /* Deep Green */
+}
+
+/* --- California State (Dark) --- */
+body.theme-california {
+  --navy:        #0f172a;
+  --dark-bg:     #1e293b;
+  --card-bg:     #334155;
+  --card-border: #475569;
+  --blue:        #38bdf8; /* Sky/Oceanside blue */
+  --blue-dim:    rgba(56,189,248,0.08);
+  --blue-glow:   rgba(56,189,248,0.25);
+  --green:       #34d399;
+  --green-dim:   rgba(52,211,153,0.10);
+  --gold:        #fbbf24; /* Golden Poppy */
+  --gold-dim:    rgba(251,191,36,0.10);
+  --red:         #f87171;
+  --red-dim:     rgba(248,113,113,0.10);
+  --purple:      #c084fc;
+  --purple-dim:  rgba(192,132,252,0.10);
+  --text:        #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted:  #94a3b8;
+  --surface-1:   #1e293b;
+  --surface-2:   #334155;
+  --surface-3:   #475569;
+  --border:      #475569;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (California Dark) */
+  --chart-1:     #38bdf8; /* Oceanside Sky Blue */
+  --chart-2:     #fbbf24; /* Golden Poppy */
+  --chart-3:     #14b8a6; /* Pacific Teal */
+  --chart-4:     #f87171; /* Redwood Red */
+  --chart-5:     #818cf8; /* Shasta Sky Indigo */
+  --chart-6:     #34d399; /* Emerald Green */
+}
+
+/* --- California State (Light) --- */
+body.theme-california.light-theme {
+  --navy:        #f8fafc;
+  --dark-bg:     #f1f5f9;
+  --card-bg:     #ffffff;
+  --card-border: #cbd5e1;
+  --blue:        #0284c7; /* Oceanside Blue */
+  --blue-dim:    rgba(2,132,199,0.08);
+  --blue-glow:   rgba(2,132,199,0.25);
+  --green:       #059669;
+  --green-dim:   rgba(5,150,105,0.10);
+  --gold:        #d97706; /* California Poppy */
+  --gold-dim:    rgba(217,119,6,0.10);
+  --red:         #dc2626;
+  --red-dim:     rgba(220,38,38,0.10);
+  --purple:      #7e22ce;
+  --purple-dim:  rgba(126,34,206,0.10);
+  --text:        #0f172a;
+  --text-secondary: #475569;
+  --text-muted:  #64748b;
+  --surface-1:   #f1f5f9;
+  --surface-2:   #ffffff;
+  --surface-3:   #cbd5e1;
+  --border:      #94a3b8;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (California Light) */
+  --chart-1:     #0284c7; /* Oceanside Blue */
+  --chart-2:     #d97706; /* Golden Poppy */
+  --chart-3:     #0d9488; /* Pacific Teal */
+  --chart-4:     #dc2626; /* Redwood Red */
+  --chart-5:     #4f46e5; /* Shasta Sky Indigo */
+  --chart-6:     #059669; /* Sierra Forest Green */
+}
+
+/* --- Texas State (Dark) --- */
+body.theme-texas {
+  --navy:        #081424; /* Deep lone star navy */
+  --dark-bg:     #0c1e33;
+  --card-bg:     #14293f;
+  --card-border: #203c58;
+  --blue:        #00a8cc; /* Electric lone star blue */
+  --blue-dim:    rgba(0,168,204,0.08);
+  --blue-glow:   rgba(0,168,204,0.25);
+  --green:       #ff5252; /* Crimson Red comparison color */
+  --green-dim:   rgba(255,82,82,0.10);
+  --gold:        #ffb703;
+  --gold-dim:    rgba(255,183,3,0.10);
+  --red:         #ff5252;
+  --red-dim:     rgba(255,82,82,0.10);
+  --purple:      #b388ff;
+  --purple-dim:  rgba(179,136,255,0.10);
+  --text:        #e3f2fd;
+  --text-secondary: #90caf9;
+  --text-muted:  #64b5f6;
+  --surface-1:   #0c1e33;
+  --surface-2:   #14293f;
+  --surface-3:   #1d3856;
+  --border:      #203c58;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Texas Dark) */
+  --chart-1:     #38bdf8; /* Blue */
+  --chart-2:     #f87171; /* Red */
+  --chart-3:     #fbbf24; /* Gold */
+  --chart-4:     #c084fc; /* Purple */
+  --chart-5:     #94a3b8; /* Slate */
+  --chart-6:     #1e3a8a; /* Deep Blue */
+}
+
+/* --- Texas State (Light) --- */
+body.theme-texas.light-theme {
+  --navy:        #f0f4f8;
+  --dark-bg:     #e2ebf4;
+  --card-bg:     #ffffff;
+  --card-border: #cbdceb;
+  --blue:        #0f4c81; /* Deep lone star blue */
+  --blue-dim:    rgba(15,76,129,0.08);
+  --blue-glow:   rgba(15,76,129,0.25);
+  --green:       #c8102e; /* Crimson comparison */
+  --green-dim:   rgba(200,16,46,0.10);
+  --gold:        #d97706;
+  --gold-dim:    rgba(217,119,6,0.10);
+  --red:         #c8102e;
+  --red-dim:     rgba(200,16,46,0.10);
+  --purple:      #7e22ce;
+  --purple-dim:  rgba(126,34,206,0.10);
+  --text:        #0c1e33;
+  --text-secondary: #1d3856;
+  --text-muted:  #476b91;
+  --surface-1:   #e2ebf4;
+  --surface-2:   #ffffff;
+  --surface-3:   #cbdceb;
+  --border:      #9cbcdb;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Texas Light) */
+  --chart-1:     #1a73e8; /* Blue */
+  --chart-2:     #b91c1c; /* Crimson */
+  --chart-3:     #b45309; /* Gold */
+  --chart-4:     #7e22ce; /* Purple */
+  --chart-5:     #475569; /* Slate */
+  --chart-6:     #0f766e; /* Teal */
+}
+
+/* --- Florida State (Dark) --- */
+body.theme-florida {
+  --navy:        #021614; /* Deep tropical teal */
+  --dark-bg:     #04221f;
+  --card-bg:     #052e2a;
+  --card-border: #0e4a44;
+  --blue:        #ff8f00; /* Citrus Orange */
+  --blue-dim:    rgba(255,143,0,0.08);
+  --blue-glow:   rgba(255,143,0,0.25);
+  --green:       #06d6a0; /* Mint Green comparison */
+  --green-dim:   rgba(6,214,160,0.10);
+  --gold:        #ffb703;
+  --gold-dim:    rgba(255,183,3,0.10);
+  --red:         #ff5252;
+  --red-dim:     rgba(255,82,82,0.10);
+  --purple:      #b388ff;
+  --purple-dim:  rgba(179,136,255,0.10);
+  --text:        #e0f2f1;
+  --text-secondary: #80cbc4;
+  --text-muted:  #4db6ac;
+  --surface-1:   #04221f;
+  --surface-2:   #052e2a;
+  --surface-3:   #0b3f3a;
+  --border:      #0e4a44;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Florida Dark) */
+  --chart-1:     #ff9f43; /* Orange */
+  --chart-2:     #06d6a0; /* Green */
+  --chart-3:     #f472b6; /* Pink */
+  --chart-4:     #38bdf8; /* Blue */
+  --chart-5:     #fbbf24; /* Gold */
+  --chart-6:     #c084fc; /* Purple */
+}
+
+/* --- Florida State (Light) --- */
+body.theme-florida.light-theme {
+  --navy:        #eaf4f2;
+  --dark-bg:     #d7eae6;
+  --card-bg:     #ffffff;
+  --card-border: #b5dad4;
+  --blue:        #d85d00; /* Deep citrus orange */
+  --blue-dim:    rgba(216,93,0,0.08);
+  --blue-glow:   rgba(216,93,0,0.25);
+  --green:       #00796b; /* Tropical Teal comparison */
+  --green-dim:   rgba(0,121,107,0.10);
+  --gold:        #b45309;
+  --gold-dim:    rgba(217,119,6,0.10);
+  --red:         #b91c1c;
+  --red-dim:     rgba(185,28,28,0.10);
+  --purple:      #7e22ce;
+  --purple-dim:  rgba(126,34,206,0.10);
+  --text:        #002420;
+  --text-secondary: #004d40;
+  --text-muted:  #26a69a;
+  --surface-1:   #d7eae6;
+  --surface-2:   #ffffff;
+  --surface-3:   #b5dad4;
+  --border:      #80cbc4;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Florida Light) */
+  --chart-1:     #d85d00; /* Orange */
+  --chart-2:     #107c41; /* Green */
+  --chart-3:     #be185d; /* Pink */
+  --chart-4:     #1a73e8; /* Blue */
+  --chart-5:     #b45309; /* Gold */
+  --chart-6:     #7e22ce; /* Purple */
+}
+
+/* --- Georgia State (Dark) --- */
+body.theme-georgia {
+  --navy:        #0d0d1a;
+  --dark-bg:     #141427;
+  --card-bg:     #1c1c34;
+  --card-border: #29294b;
+  --blue:        #ff7a59; /* Peach Orange */
+  --blue-dim:    rgba(255,122,89,0.08);
+  --blue-glow:   rgba(255,122,89,0.25);
+  --green:       #4c6ef5; /* Deep Indigo comparison contrast */
+  --green-dim:   rgba(76,110,245,0.10);
+  --gold:        #fab005;
+  --gold-dim:    rgba(250,176,5,0.10);
+  --red:         #fa5252;
+  --red-dim:     rgba(250,82,82,0.10);
+  --purple:      #be4bdb;
+  --purple-dim:  rgba(190,75,219,0.10);
+  --text:        #f1f3f5;
+  --text-secondary: #dee2e6;
+  --text-muted:  #adb5bd;
+  --surface-1:   #141427;
+  --surface-2:   #1c1c34;
+  --surface-3:   #29294b;
+  --border:      #343a40;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Georgia Dark) */
+  --chart-1:     #ff7a59; /* Peach */
+  --chart-2:     #4c6ef5; /* Indigo */
+  --chart-3:     #e64980; /* Pink */
+  --chart-4:     #82c91e; /* Green */
+  --chart-5:     #fab005; /* Gold */
+  --chart-6:     #15aabf; /* Teal */
+}
+
+/* --- Georgia State (Light) --- */
+body.theme-georgia.light-theme {
+  --navy:        #f8f9fa;
+  --dark-bg:     #f1f3f5;
+  --card-bg:     #ffffff;
+  --card-border: #dee2e6;
+  --blue:        #e05330; /* Darker Peach */
+  --blue-dim:    rgba(224,83,48,0.08);
+  --blue-glow:   rgba(224,83,48,0.25);
+  --green:       #364fc7; /* Navy Indigo contrast */
+  --green-dim:   rgba(54,79,199,0.10);
+  --gold:        #d9480f;
+  --gold-dim:    rgba(217,72,15,0.10);
+  --red:         #c92a2a;
+  --red-dim:     rgba(201,42,42,0.10);
+  --purple:      #862e9c;
+  --purple-dim:  rgba(134,46,156,0.10);
+  --text:        #212529;
+  --text-secondary: #495057;
+  --text-muted:  #868e96;
+  --surface-1:   #f1f3f5;
+  --surface-2:   #ffffff;
+  --surface-3:   #dee2e6;
+  --border:      #ced4da;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Georgia Light) */
+  --chart-1:     #e05330; /* Peach */
+  --chart-2:     #364fc7; /* Indigo */
+  --chart-3:     #c2255c; /* Pink */
+  --chart-4:     #5c940d; /* Green */
+  --chart-5:     #d9480f; /* Gold */
+  --chart-6:     #0b7285; /* Teal */
+}
+
+/* --- Michigan State (Dark) --- */
+body.theme-michigan {
+  --navy:        #061111;
+  --dark-bg:     #0b1c1c;
+  --card-bg:     #112929;
+  --card-border: #1a3d3d;
+  --blue:        #008b8b; /* Great Lakes Teal */
+  --blue-dim:    rgba(0,139,139,0.08);
+  --blue-glow:   rgba(0,139,139,0.25);
+  --green:       #40a070; /* Forest Pine contrast */
+  --green-dim:   rgba(64,160,112,0.10);
+  --gold:        #ffd700;
+  --gold-dim:    rgba(255,215,0,0.10);
+  --red:         #ff6b6b;
+  --red-dim:     rgba(255,107,107,0.10);
+  --purple:      #da70d6;
+  --purple-dim:  rgba(218,112,214,0.10);
+  --text:        #e0f2f1;
+  --text-secondary: #b2dfdb;
+  --text-muted:  #80cbc4;
+  --surface-1:   #0b1c1c;
+  --surface-2:   #112929;
+  --surface-3:   #1a3d3d;
+  --border:      #265c5c;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Michigan Dark) */
+  --chart-1:     #008b8b; /* Teal */
+  --chart-2:     #40a070; /* Green */
+  --chart-3:     #cd5c5c; /* Red */
+  --chart-4:     #ffd700; /* Gold */
+  --chart-5:     #4682b4; /* Blue */
+  --chart-6:     #ba55d3; /* Purple */
+}
+
+/* --- Michigan State (Light) --- */
+body.theme-michigan.light-theme {
+  --navy:        #edf7f7;
+  --dark-bg:     #dbecec;
+  --card-bg:     #ffffff;
+  --card-border: #bce0e0;
+  --blue:        #006666; /* Deep Teal */
+  --blue-dim:    rgba(0,102,102,0.08);
+  --blue-glow:   rgba(0,102,102,0.25);
+  --green:       #206040; /* Deep Pine */
+  --green-dim:   rgba(32,96,64,0.10);
+  --gold:        #b8860b;
+  --gold-dim:    rgba(184,134,11,0.10);
+  --red:         #b22222;
+  --red-dim:     rgba(178,34,34,0.10);
+  --purple:      #8b008b;
+  --purple-dim:  rgba(139,0,139,0.10);
+  --text:        #002b2b;
+  --text-secondary: #004d4d;
+  --text-muted:  #007a7a;
+  --surface-1:   #dbecec;
+  --surface-2:   #ffffff;
+  --surface-3:   #bce0e0;
+  --border:      #80c0c0;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Michigan Light) */
+  --chart-1:     #006666; /* Teal */
+  --chart-2:     #206040; /* Green */
+  --chart-3:     #b22222; /* Red */
+  --chart-4:     #b8860b; /* Gold */
+  --chart-5:     #1c6ea4; /* Blue */
+  --chart-6:     #8b008b; /* Purple */
+}
+
+/* --- Ohio State (Dark) --- */
+body.theme-ohio {
+  --navy:        #140404;
+  --dark-bg:     #220808;
+  --card-bg:     #320c0c;
+  --card-border: #4a1414;
+  --blue:        #d90429; /* Buckeyes Scarlet */
+  --blue-dim:    rgba(217,4,41,0.08);
+  --blue-glow:   rgba(217,4,41,0.25);
+  --green:       #8d99ae; /* Slate Silver contrast */
+  --green-dim:   rgba(141,153,174,0.10);
+  --gold:        #fdb813;
+  --gold-dim:    rgba(253,184,19,0.10);
+  --red:         #ef233c;
+  --red-dim:     rgba(239,35,60,0.10);
+  --purple:      #a239ca;
+  --purple-dim:  rgba(162,57,202,0.10);
+  --text:        #edf2f4;
+  --text-secondary: #8d99ae;
+  --text-muted:  #556070;
+  --surface-1:   #220808;
+  --surface-2:   #320c0c;
+  --surface-3:   #4a1414;
+  --border:      #5e1d1d;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Ohio Dark) */
+  --chart-1:     #d90429; /* Scarlet */
+  --chart-2:     #8d99ae; /* Silver */
+  --chart-3:     #2b2d42; /* Dark Navy */
+  --chart-4:     #ffb703; /* Gold */
+  --chart-5:     #023e8a; /* Blue */
+  --chart-6:     #7209b7; /* Purple */
+}
+
+/* --- Ohio State (Light) --- */
+body.theme-ohio.light-theme {
+  --navy:        #fdf2f2;
+  --dark-bg:     #fbe3e3;
+  --card-bg:     #ffffff;
+  --card-border: #f7cbcb;
+  --blue:        #ba001d; /* Darker Scarlet */
+  --blue-dim:    rgba(186,0,29,0.08);
+  --blue-glow:   rgba(186,0,29,0.25);
+  --green:       #5c6b73; /* Darker Slate */
+  --green-dim:   rgba(92,107,115,0.10);
+  --gold:        #c29200;
+  --gold-dim:    rgba(194,146,0,0.10);
+  --red:         #9e0a2b;
+  --red-dim:     rgba(158,10,43,0.10);
+  --purple:      #701e8a;
+  --purple-dim:  rgba(112,30,138,0.10);
+  --text:        #2b0209;
+  --text-secondary: #5c0817;
+  --text-muted:  #8b3c48;
+  --surface-1:   #fbe3e3;
+  --surface-2:   #ffffff;
+  --surface-3:   #f7cbcb;
+  --border:      #e59797;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Ohio Light) */
+  --chart-1:     #ba001d; /* Scarlet */
+  --chart-2:     #5c6b73; /* Silver */
+  --chart-3:     #1d2d44; /* Dark Slate */
+  --chart-4:     #c29200; /* Gold */
+  --chart-5:     #005f73; /* Teal */
+  --chart-6:     #5f0f40; /* Wine */
+}
+
+/* --- Massachusetts State (Dark) --- */
+body.theme-massachusetts {
+  --navy:        #030a14;
+  --dark-bg:     #051329;
+  --card-bg:     #0a1b38;
+  --card-border: #122c54;
+  --blue:        #1d4ed8; /* Bay Navy */
+  --blue-dim:    rgba(29,78,216,0.08);
+  --blue-glow:   rgba(29,78,216,0.25);
+  --green:       #cc9900; /* Cranberry Gold contrast */
+  --green-dim:   rgba(204,153,0,0.10);
+  --gold:        #eab308;
+  --gold-dim:    rgba(234,179,8,0.10);
+  --red:         #e11d48;
+  --red-dim:     rgba(225,29,72,0.10);
+  --purple:      #9333ea;
+  --purple-dim:  rgba(147,51,234,0.10);
+  --text:        #e0f2fe;
+  --text-secondary: #bae6fd;
+  --text-muted:  #7dd3fc;
+  --surface-1:   #051329;
+  --surface-2:   #0a1b38;
+  --surface-3:   #122c54;
+  --border:      #1a437a;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Mass Dark) */
+  --chart-1:     #1d4ed8; /* Blue */
+  --chart-2:     #cc9900; /* Gold */
+  --chart-3:     #e11d48; /* Cranberry */
+  --chart-4:     #10b981; /* Green */
+  --chart-5:     #a855f7; /* Purple */
+  --chart-6:     #06b6d4; /* Teal */
+}
+
+/* --- Massachusetts State (Light) --- */
+body.theme-massachusetts.light-theme {
+  --navy:        #e0f2fe;
+  --dark-bg:     #bae6fd;
+  --card-bg:     #ffffff;
+  --card-border: #90cdf4;
+  --blue:        #003366; /* Deep Bay Navy */
+  --blue-dim:    rgba(0,51,102,0.08);
+  --blue-glow:   rgba(0,51,102,0.25);
+  --green:       #b47a00; /* Cranberry Gold text contrast */
+  --green-dim:   rgba(180,122,0,0.10);
+  --gold:        #ca8a04;
+  --gold-dim:    rgba(202,138,4,0.10);
+  --red:         #be123c;
+  --red-dim:     rgba(190,18,60,0.10);
+  --purple:      #6b21a8;
+  --purple-dim:  rgba(107,33,168,0.10);
+  --text:        #031024;
+  --text-secondary: #0a2540;
+  --text-muted:  #2563eb;
+  --surface-1:   #bae6fd;
+  --surface-2:   #ffffff;
+  --surface-3:   #90cdf4;
+  --border:      #60a5fa;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Mass Light) */
+  --chart-1:     #003366; /* Navy */
+  --chart-2:     #b47a00; /* Gold */
+  --chart-3:     #be123c; /* Cranberry */
+  --chart-4:     #047857; /* Green */
+  --chart-5:     #6b21a8; /* Purple */
+  --chart-6:     #0e7490; /* Teal */
+}
+
+/* --- Kentucky State (Dark) --- */
+body.theme-kentucky {
+  --navy:        #020b17;
+  --dark-bg:     #04152a;
+  --card-bg:     #082240;
+  --card-border: #0f345c;
+  --blue:        #0056b3; /* Racing Blue */
+  --blue-dim:    rgba(0,86,179,0.08);
+  --blue-glow:   rgba(0,86,179,0.25);
+  --green:       #3bc9db; /* Mint Cyan contrast */
+  --green-dim:   rgba(59,201,219,0.10);
+  --gold:        #fcc419;
+  --gold-dim:    rgba(252,196,25,0.10);
+  --red:         #ff6b6b;
+  --red-dim:     rgba(255,107,107,0.10);
+  --purple:      #cc5de8;
+  --purple-dim:  rgba(204,93,232,0.10);
+  --text:        #e3fafc;
+  --text-secondary: #99e9f2;
+  --text-muted:  #66d9e8;
+  --surface-1:   #04152a;
+  --surface-2:   #082240;
+  --surface-3:   #0f345c;
+  --border:      #134880;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Kentucky Dark) */
+  --chart-1:     #0056b3; /* Blue */
+  --chart-2:     #3bc9db; /* Mint */
+  --chart-3:     #2b8a3e; /* Grass Green */
+  --chart-4:     #fcc419; /* Gold */
+  --chart-5:     #e64980; /* Pink */
+  --chart-6:     #862e9c; /* Purple */
+}
+
+/* --- Kentucky State (Light) --- */
+body.theme-kentucky.light-theme {
+  --navy:        #e6f7ff;
+  --dark-bg:     #bae7ff;
+  --card-bg:     #ffffff;
+  --card-border: #91d5ff;
+  --blue:        #004085; /* Deep Racing Blue */
+  --blue-dim:    rgba(0,64,133,0.08);
+  --blue-glow:   rgba(0,64,133,0.25);
+  --green:       #0b7285; /* Mint Teal */
+  --green-dim:   rgba(11,114,133,0.10);
+  --gold:        #ca9400;
+  --gold-dim:    rgba(202,148,0,0.10);
+  --red:         #c92a2a;
+  --red-dim:     rgba(201,42,42,0.10);
+  --purple:      #862e9c;
+  --purple-dim:  rgba(134,46,156,0.10);
+  --text:        #002347;
+  --text-secondary: #003366;
+  --text-muted:  #007799;
+  --surface-1:   #bae7ff;
+  --surface-2:   #ffffff;
+  --surface-3:   #91d5ff;
+  --border:      #40a9ff;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Kentucky Light) */
+  --chart-1:     #004085; /* Blue */
+  --chart-2:     #0b7285; /* Mint */
+  --chart-3:     #2b8a3e; /* Grass */
+  --chart-4:     #ca9400; /* Gold */
+  --chart-5:     #a61e4d; /* Red/Pink */
+  --chart-6:     #5f3dc4; /* Purple */
+}
+
+/* --- Oregon State (Dark) --- */
+body.theme-oregon {
+  --navy:        #04140e;
+  --dark-bg:     #09261a;
+  --card-bg:     #0e3827;
+  --card-border: #16533a;
+  --blue:        #208858; /* Douglas Fir Green */
+  --blue-dim:    rgba(32,136,88,0.08);
+  --blue-glow:   rgba(32,136,88,0.25);
+  --green:       #38bdf8; /* Pacific Sky Blue contrast */
+  --green-dim:   rgba(56,189,248,0.10);
+  --gold:        #fbbf24;
+  --gold-dim:    rgba(251,191,36,0.10);
+  --red:         #f87171;
+  --red-dim:     rgba(248,113,113,0.10);
+  --purple:      #c084fc;
+  --purple-dim:  rgba(192,132,252,0.10);
+  --text:        #f0fdf4;
+  --text-secondary: #dcfce7;
+  --text-muted:  #86efac;
+  --surface-1:   #09261a;
+  --surface-2:   #0e3827;
+  --surface-3:   #16533a;
+  --border:      #1e7a55;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Oregon Dark) */
+  --chart-1:     #208858; /* Green */
+  --chart-2:     #38bdf8; /* Sky Blue */
+  --chart-3:     #fbbf24; /* Gold */
+  --chart-4:     #ec4899; /* Pink */
+  --chart-5:     #f97316; /* Orange */
+  --chart-6:     #8b5cf6; /* Purple */
+}
+
+/* --- Oregon State (Light) --- */
+body.theme-oregon.light-theme {
+  --navy:        #f0fdf4;
+  --dark-bg:     #dcfce7;
+  --card-bg:     #ffffff;
+  --card-border: #bbf7d0;
+  --blue:        #14532d; /* Deep Fir Green */
+  --blue-dim:    rgba(20,83,45,0.08);
+  --blue-glow:   rgba(20,83,45,0.25);
+  --green:       #0284c7; /* Pacific Sky Blue contrast */
+  --green-dim:   rgba(2,132,199,0.10);
+  --gold:        #d97706;
+  --gold-dim:    rgba(217,119,6,0.10);
+  --red:         #dc2626;
+  --red-dim:     rgba(220,38,38,0.10);
+  --purple:      #7c3aed;
+  --purple-dim:  rgba(124,58,237,0.10);
+  --text:        #052e16;
+  --text-secondary: #14532d;
+  --text-muted:  #16a34a;
+  --surface-1:   #dcfce7;
+  --surface-2:   #ffffff;
+  --surface-3:   #bbf7d0;
+  --border:      #4ade80;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Oregon Light) */
+  --chart-1:     #14532d; /* Green */
+  --chart-2:     #0284c7; /* Sky Blue */
+  --chart-3:     #d97706; /* Gold */
+  --chart-4:     #be185d; /* Pink */
+  --chart-5:     #ea580c; /* Orange */
+  --chart-6:     #6d28d9; /* Purple */
+}
+
+/* --- Colorado State (Dark) --- */
+body.theme-colorado {
+  --navy:        #080f14;
+  --dark-bg:     #0e1a24;
+  --card-bg:     #142534;
+  --card-border: #1e374c;
+  --blue:        #f9a602; /* Aspen Leaf Gold */
+  --blue-dim:    rgba(249,166,2,0.08);
+  --blue-glow:   rgba(249,166,2,0.25);
+  --green:       #4ca3a3; /* Spruce Teal contrast */
+  --green-dim:   rgba(76,163,163,0.10);
+  --gold:        #f59e0b;
+  --gold-dim:    rgba(245,158,11,0.10);
+  --red:         #ef4444;
+  --red-dim:     rgba(239,68,68,0.10);
+  --purple:      #8b5cf6;
+  --purple-dim:  rgba(139,92,246,0.10);
+  --text:        #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted:  #94a3b8;
+  --surface-1:   #0e1a24;
+  --surface-2:   #142534;
+  --surface-3:   #1e374c;
+  --border:      #2a4d6c;
+  --border-dim:  rgba(255,255,255,0.04);
+
+  /* Deep Chart Palette (Colorado Dark) */
+  --chart-1:     #f9a602; /* Gold */
+  --chart-2:     #4ca3a3; /* Spruce */
+  --chart-3:     #ec4899; /* Pink */
+  --chart-4:     #3b82f6; /* Blue */
+  --chart-5:     #10b981; /* Green */
+  --chart-6:     #a855f7; /* Purple */
+}
+
+/* --- Colorado State (Light) --- */
+body.theme-colorado.light-theme {
+  --navy:        #f1f5f9;
+  --dark-bg:     #e2e8f0;
+  --card-bg:     #ffffff;
+  --card-border: #cbd5e1;
+  --blue:        #c27a00; /* Darker Aspen Gold */
+  --blue-dim:    rgba(194,122,0,0.08);
+  --blue-glow:   rgba(194,122,0,0.25);
+  --green:       #0d7474; /* Dark Spruce Teal */
+  --green-dim:   rgba(13,116,116,0.10);
+  --gold:        #ca8a04;
+  --gold-dim:    rgba(202,138,4,0.10);
+  --red:         #dc2626;
+  --red-dim:     rgba(220,38,38,0.10);
+  --purple:      #6d28d9;
+  --purple-dim:  rgba(109,40,217,0.10);
+  --text:        #0f172a;
+  --text-secondary: #334155;
+  --text-muted:  #475569;
+  --surface-1:   #e2e8f0;
+  --surface-2:   #ffffff;
+  --surface-3:   #cbd5e1;
+  --border:      #94a3b8;
+  --border-dim:  rgba(0,0,0,0.04);
+
+  /* Deep Chart Palette (Colorado Light) */
+  --chart-1:     #c27a00; /* Gold */
+  --chart-2:     #0d7474; /* Spruce */
+  --chart-3:     #be185d; /* Pink */
+  --chart-4:     #1d4ed8; /* Blue */
+  --chart-5:     #047857; /* Green */
+  --chart-6:     #6b21a8; /* Purple */
 }
 
 /* ─── Base ─── */

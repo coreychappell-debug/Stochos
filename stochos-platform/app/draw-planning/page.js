@@ -6,6 +6,18 @@ import Link from "next/link";
 import Skeleton from "../components/Skeleton";
 import { Save, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 
+const EXTERNAL_CODE_TO_FORECAST_CATEGORY = {
+  "mega_millions": "Mega Millions",
+  "powerball": "Powerball",
+  "ny_lotto": "Lotto",
+  "numbers": "Numbers",
+  "win_4": "Win 4",
+  "take_5": "Take 5",
+  "pick_10": "Pick 10",
+  "quick_draw": "Quick Draw",
+  "cash4life": "Cash 4 Life"
+};
+
 export default function DrawPlanningPage() {
   const [scenario, setScenario] = useState(null);
   const [games, setGames] = useState([]);
@@ -15,6 +27,140 @@ export default function DrawPlanningPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [fiscalYear, setFiscalYear] = useState(2027);
+  const [activeForecastRowIndex, setActiveForecastRowIndex] = useState(null);
+  const [customForecasts, setCustomForecasts] = useState({});
+
+  // On mount, load cached forecasts, fetch raw timeseries, and calculate fresh forecasts
+  useEffect(() => {
+    // 1. Quick load from localStorage cache first
+    try {
+      const stored = localStorage.getItem("stochos_custom_forecasts");
+      if (stored) {
+        setCustomForecasts(JSON.parse(stored));
+      }
+    } catch (e) {}
+
+    // 2. Perform background calculation to ensure fresh values grouped by month
+    async function calculateFreshForecasts() {
+      try {
+        let customParams = {};
+        try {
+          const storedParams = localStorage.getItem("stochos_forecast_parameters");
+          if (storedParams) customParams = JSON.parse(storedParams);
+        } catch (e) {}
+
+        const res = await fetch("/api/analytics/forecast");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.timeseries)) return;
+
+        const timeseriesData = data.timeseries;
+        const uniqueCats = Array.from(new Set(timeseriesData.map(t => t.category)));
+        const forecasts = {};
+
+        uniqueCats.forEach(cat => {
+          const monthlyGroups = {};
+          timeseriesData.forEach(item => {
+            if (item.category === cat) {
+              const mStr = item.date.slice(0, 7); // Group by YYYY-MM
+              if (!monthlyGroups[mStr]) {
+                monthlyGroups[mStr] = [];
+              }
+              monthlyGroups[mStr].push(item);
+            }
+          });
+
+          const sortedMonths = Object.keys(monthlyGroups).sort();
+          const aggregated = sortedMonths.map(month => {
+            const items = monthlyGroups[month];
+            let gross = 0;
+            items.forEach(it => {
+              gross += parseFloat(it.grossRevenue || 0);
+            });
+            return { date: month + "-01", value: gross };
+          }).filter(d => d.value > 0);
+
+          const n = aggregated.length;
+          if (n === 0) return;
+
+          const values = aggregated.map(d => d.value);
+          const dates = aggregated.map(d => d.date);
+
+          let forecastsList = [];
+          const params = customParams[cat] || { alpha: 0.2, beta: 0.1, gamma: 0.3 };
+          const cAlpha = params.alpha;
+          const cBeta = params.beta;
+          const cGamma = params.gamma;
+
+          if (n >= 24) {
+            const L = 12;
+            let a = new Array(n).fill(0);
+            let b = new Array(n).fill(0);
+            let s = new Array(n + 12).fill(0);
+
+            let sumYear1 = 0;
+            for (let i = 0; i < L; i++) sumYear1 += values[i];
+            const initialLevel = sumYear1 / L;
+            a[L - 1] = initialLevel;
+
+            let sumDiff = 0;
+            for (let i = 0; i < L; i++) {
+              sumDiff += (values[i + L] - values[i]) / L;
+            }
+            const initialTrend = sumDiff / L;
+            b[L - 1] = initialTrend;
+
+            for (let i = 0; i < L; i++) {
+              s[i] = values[i] - initialLevel;
+            }
+
+            for (let t = L; t < n; t++) {
+              a[t] = cAlpha * (values[t] - s[t - L]) + (1 - cAlpha) * (a[t - 1] + b[t - 1]);
+              b[t] = cBeta * (a[t] - a[t - 1]) + (1 - cBeta) * b[t - 1];
+              s[t] = cGamma * (values[t] - a[t]) + (1 - cGamma) * s[t - L];
+            }
+
+            const lastLevel = a[n - 1];
+            const lastTrend = b[n - 1];
+            for (let h = 1; h <= 12; h++) {
+              const seasonalFactor = s[n - L + (h - 1) % L];
+              forecastsList.push(lastLevel + h * lastTrend + seasonalFactor);
+            }
+          } else if (n >= 6) {
+            let a = new Array(n).fill(0);
+            let b = new Array(n).fill(0);
+            a[0] = values[0];
+            b[0] = values[1] - values[0];
+            for (let t = 1; t < n; t++) {
+              a[t] = cAlpha * values[t] + (1 - cAlpha) * (a[t - 1] + b[t - 1]);
+              b[t] = cBeta * (a[t] - a[t - 1]) + (1 - cBeta) * b[t - 1];
+            }
+            const lastLevel = a[n - 1];
+            const lastTrend = b[n - 1];
+            for (let h = 1; h <= 12; h++) {
+              forecastsList.push(lastLevel + h * lastTrend);
+            }
+          } else {
+            const sum = values.reduce((acc, v) => acc + v, 0);
+            const avg = sum / n;
+            for (let h = 1; h <= 12; h++) {
+              forecastsList.push(avg);
+            }
+          }
+
+          const sum12 = forecastsList.reduce((acc, v) => acc + Math.max(0, v), 0);
+          forecasts[cat] = sum12;
+        });
+
+        localStorage.setItem("stochos_custom_forecasts", JSON.stringify(forecasts));
+        setCustomForecasts(forecasts);
+      } catch (err) {
+        console.error("Failed to run fresh forecast calculations:", err);
+      }
+    }
+
+    calculateFreshForecasts();
+  }, []);
 
   // Fetch products and active scenario
   useEffect(() => {
@@ -36,7 +182,11 @@ export default function DrawPlanningPage() {
         if (scenarioRes.ok) {
           const data = await scenarioRes.json();
           setScenario(data);
-          setGames(data.games || []);
+          const gamesWithOriginal = (data.games || []).map(g => ({
+            ...g,
+            originalProjectedSales: g.projectedSales
+          }));
+          setGames(gamesWithOriginal);
         } else {
           setError("Failed to load draw planning scenario.");
         }
@@ -120,9 +270,13 @@ export default function DrawPlanningPage() {
       if (res.ok) {
         setSuccess("Draw planning scenario saved successfully!");
         const data = await res.json();
-        // Refresh games with DB ids
+        // Refresh games with DB ids and backup original sales
         if (data.games) {
-          setGames(data.games);
+          const gamesWithOriginal = data.games.map(g => ({
+            ...g,
+            originalProjectedSales: g.projectedSales
+          }));
+          setGames(gamesWithOriginal);
         }
       } else {
         const errData = await res.json();
@@ -133,6 +287,115 @@ export default function DrawPlanningPage() {
       setError("Network error: failed to save.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Forecasting helpers
+  const getProductObj = (prodId) => {
+    return productsList.find(p => p.id === prodId) || null;
+  };
+
+  const getProductHistoricalAnnualSales = (prodId) => {
+    const p = getProductObj(prodId);
+    return p ? p.historicalAnnualSales || 0 : 0;
+  };
+
+  const getProductTrend = (prodId) => {
+    const p = getProductObj(prodId);
+    return p ? p.trendDirection || "Stable" : "Stable";
+  };
+
+  const applyForecastModel = (index, modelType, customPct = 0) => {
+    const updated = [...games];
+    const game = updated[index];
+    if (!game.productId) return;
+
+    const baseSales = getProductHistoricalAnnualSales(game.productId);
+    const trend = getProductTrend(game.productId);
+
+    let finalSales = baseSales;
+    if (modelType === "baseline") {
+      finalSales = baseSales;
+    } else if (modelType === "trend") {
+      let multiplier = 1.00;
+      if (trend === "Declining") multiplier = 0.95;
+      else if (trend === "Growing") multiplier = 1.05;
+      finalSales = baseSales * multiplier;
+    } else if (modelType === "custom") {
+      finalSales = baseSales * (1 + customPct / 100);
+    } else if (modelType === "predictive") {
+      const p = getProductObj(game.productId);
+      const extCode = p ? p.externalCode : null;
+      const forecastCat = extCode ? EXTERNAL_CODE_TO_FORECAST_CATEGORY[extCode] : null;
+      const customVal = forecastCat ? customForecasts[forecastCat] : null;
+      if (customVal) {
+        finalSales = customVal;
+        if (typeof window !== "undefined" && forecastCat) {
+          localStorage.setItem("stochos_selected_forecast_category", forecastCat);
+        }
+      } else {
+        finalSales = baseSales;
+      }
+    }
+
+    game.projectedSales = parseFloat(finalSales.toFixed(2));
+    setGames(updated);
+    setSuccess(`Applied forecast to ${game.name}. Remember to save your plan!`);
+  };
+
+  const applyGlobalForecast = (modelType) => {
+    const updated = games.map((game) => {
+      // Revert saved does not require game.productId (handles custom games)
+      if (modelType === "revert_saved") {
+        const originalVal = game.originalProjectedSales !== undefined ? game.originalProjectedSales : game.projectedSales;
+        return {
+          ...game,
+          projectedSales: parseFloat(originalVal.toFixed(2))
+        };
+      }
+
+      if (!game.productId) return game;
+
+      const baseSales = getProductHistoricalAnnualSales(game.productId);
+      const trend = getProductTrend(game.productId);
+
+      let finalSales = baseSales;
+      if (modelType === "baseline") {
+        finalSales = baseSales;
+      } else if (modelType === "trend") {
+        let multiplier = 1.00;
+        if (trend === "Declining") multiplier = 0.95;
+        else if (trend === "Growing") multiplier = 1.05;
+        finalSales = baseSales * multiplier;
+      } else if (modelType === "growth_3") {
+        finalSales = baseSales * 1.03;
+      } else if (modelType === "growth_5") {
+        finalSales = baseSales * 1.05;
+      } else if (modelType === "growth_neg_2") {
+        finalSales = baseSales * 0.98;
+      } else if (modelType === "predictive") {
+        const p = getProductObj(game.productId);
+        const extCode = p ? p.externalCode : null;
+        const forecastCat = extCode ? EXTERNAL_CODE_TO_FORECAST_CATEGORY[extCode] : null;
+        const customVal = forecastCat ? customForecasts[forecastCat] : null;
+        if (customVal) {
+          finalSales = customVal;
+        } else {
+          finalSales = baseSales;
+        }
+      }
+
+      return {
+        ...game,
+        projectedSales: parseFloat(finalSales.toFixed(2))
+      };
+    });
+
+    setGames(updated);
+    if (modelType === "revert_saved") {
+      setSuccess("Reverted all games back to their saved scenario values.");
+    } else {
+      setSuccess("Forecast model applied to all linked games! Don't forget to save your plan.");
     }
   };
 
@@ -279,15 +542,45 @@ export default function DrawPlanningPage() {
 
             {/* Main Interactive Table Grid */}
             <div className="card" style={{ background: "var(--card-bg)" }}>
-              <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                 <h3 style={{ margin: 0 }}>Projected Roster</h3>
-                <button 
-                  onClick={handleAddGame}
-                  className="btn"
-                  style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)" }}
-                >
-                  <span>+</span> Add Custom Draw Game
-                </button>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  {games.some(g => g.productId) && (
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          applyGlobalForecast(e.target.value);
+                          e.target.value = "";
+                        }
+                      }}
+                      style={{
+                        fontSize: 13,
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        backgroundColor: "var(--surface-3)",
+                        border: "1px solid var(--border)",
+                        color: "var(--text)",
+                        cursor: "pointer"
+                      }}
+                    >
+                      <option value="">⚡ Bulk Forecast Options</option>
+                      <option value="predictive">Apply Custom Predictive Forecasts</option>
+                      <option value="baseline">Apply Historical Baselines</option>
+                      <option value="trend">Apply Trend-Adjusted Models</option>
+                      <option value="growth_3">Apply flat +3% Growth</option>
+                      <option value="growth_5">Apply flat +5% Growth</option>
+                      <option value="growth_neg_2">Apply flat -2% Adjustment</option>
+                      <option value="revert_saved">↩️ Revert All to Saved Scenario</option>
+                    </select>
+                  )}
+                  <button 
+                    onClick={handleAddGame}
+                    className="btn"
+                    style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)" }}
+                  >
+                    <span>+</span> Add Custom Draw Game
+                  </button>
+                </div>
               </div>
               <div className="card-body" style={{ padding: 0, overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", color: "var(--text)", fontSize: 13 }}>
@@ -343,12 +636,168 @@ export default function DrawPlanningPage() {
                             </td>
                             {/* Projected Sales */}
                             <td style={{ padding: "10px 16px", textAlign: "right" }}>
-                              <input 
-                                type="number"
-                                value={game.projectedSales}
-                                onChange={(e) => handleCellChange(index, "projectedSales", e.target.value)}
-                                style={{ width: 120, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
-                              />
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", position: "relative" }}>
+                                <input 
+                                  type="number"
+                                  value={game.projectedSales}
+                                  onChange={(e) => handleCellChange(index, "projectedSales", e.target.value)}
+                                  style={{ width: 110, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                />
+                                {game.productId && (
+                                  <div style={{ position: "relative" }}>
+                                    <button
+                                      onClick={() => setActiveForecastRowIndex(activeForecastRowIndex === index ? null : index)}
+                                      title="Forecasting Models"
+                                      style={{
+                                        padding: "4px 6px",
+                                        borderRadius: "4px",
+                                        backgroundColor: "var(--surface-2, #3b82f61a)",
+                                        border: "1px solid var(--border)",
+                                        color: "var(--primary)",
+                                        cursor: "pointer",
+                                        fontSize: "11px",
+                                        fontWeight: "bold",
+                                        display: "flex",
+                                        alignItems: "center"
+                                      }}
+                                    >
+                                      ⚡
+                                    </button>
+                                    {activeForecastRowIndex === index && (
+                                      <div style={{
+                                        position: "absolute",
+                                        top: "28px",
+                                        right: 0,
+                                        backgroundColor: "var(--card-bg, #1e293b)",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: "6px",
+                                        padding: "12px",
+                                        zIndex: 2000,
+                                        boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                                        width: "220px",
+                                        textAlign: "left"
+                                      }}>
+                                        <h4 style={{ margin: "0 0 8px 0", fontSize: "11px", fontWeight: "bold", color: "var(--text-secondary)", textTransform: "uppercase" }}>
+                                          Forecasting Options
+                                        </h4>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                          <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "4px", lineHeight: "1.4" }}>
+                                            Historical Baseline: <strong style={{ color: "var(--text)" }}>${(getProductHistoricalAnnualSales(game.productId) / 1000000).toFixed(1)}M</strong>
+                                            <br/>
+                                            Trend: <span style={{ 
+                                              color: getProductTrend(game.productId) === "Declining" ? "#ef4444" : getProductTrend(game.productId) === "Growing" ? "#22c55e" : "#3b82f6",
+                                              fontWeight: "bold"
+                                            }}>{getProductTrend(game.productId)}</span>
+                                          </div>
+                                          {(() => {
+                                            const p = getProductObj(game.productId);
+                                            const extCode = p ? p.externalCode : null;
+                                            const forecastCat = extCode ? EXTERNAL_CODE_TO_FORECAST_CATEGORY[extCode] : null;
+                                            const customVal = forecastCat ? customForecasts[forecastCat] : null;
+                                            if (customVal) {
+                                              return (
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                                  <button
+                                                    onClick={() => {
+                                                      applyForecastModel(index, "predictive");
+                                                      setActiveForecastRowIndex(null);
+                                                    }}
+                                                    style={{ padding: "6px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid var(--primary)", backgroundColor: "var(--blue-dim, rgba(0, 180, 216, 0.08))", color: "var(--primary)", cursor: "pointer", textAlign: "left", fontWeight: "600" }}
+                                                  >
+                                                    🔮 Apply Predictive Forecast (${(customVal / 1000000).toFixed(1)}M)
+                                                  </button>
+                                                  <Link
+                                                    href="/analytics/forecast"
+                                                    onClick={() => {
+                                                      if (typeof window !== "undefined" && forecastCat) {
+                                                        localStorage.setItem("stochos_selected_forecast_category", forecastCat);
+                                                      }
+                                                    }}
+                                                    style={{ 
+                                                      fontSize: "10px", 
+                                                      color: "var(--text-secondary)", 
+                                                      textDecoration: "underline", 
+                                                      textAlign: "center", 
+                                                      marginTop: "2px",
+                                                      cursor: "pointer",
+                                                      fontWeight: "500"
+                                                    }}
+                                                  >
+                                                    📊 Tune in Forecasting Tool
+                                                  </Link>
+                                                </div>
+                                              );
+                                            }
+                                            return null;
+                                          })()}
+                                          <button
+                                            onClick={() => {
+                                              applyForecastModel(index, "baseline");
+                                              setActiveForecastRowIndex(null);
+                                            }}
+                                            style={{ padding: "6px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid var(--border)", backgroundColor: "var(--surface-3)", color: "var(--text)", cursor: "pointer", textAlign: "left" }}
+                                          >
+                                            📋 Apply Baseline Sales
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              applyForecastModel(index, "trend");
+                                              setActiveForecastRowIndex(null);
+                                            }}
+                                            style={{ padding: "6px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid var(--border)", backgroundColor: "var(--surface-3)", color: "var(--text)", cursor: "pointer", textAlign: "left" }}
+                                          >
+                                            📈 Trend-Adjusted (-5% if Dec)
+                                          </button>
+                                          <div style={{ display: "flex", gap: "4px", marginTop: "4px" }}>
+                                            <input 
+                                              type="number"
+                                              placeholder="+3"
+                                              id={`growth-input-${index}`}
+                                              style={{ width: "55px", padding: "4px", fontSize: "11px", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)" }}
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                const val = parseFloat(document.getElementById(`growth-input-${index}`).value || 0);
+                                                applyForecastModel(index, "custom", val);
+                                                setActiveForecastRowIndex(null);
+                                              }}
+                                              style={{ flex: 1, padding: "4px", fontSize: "11px", borderRadius: "4px", border: "none", backgroundColor: "var(--primary)", color: "white", cursor: "pointer" }}
+                                            >
+                                              Apply % Growth
+                                            </button>
+                                          </div>
+                                          {game.originalProjectedSales !== undefined && game.projectedSales !== game.originalProjectedSales && (
+                                            <button
+                                              onClick={() => {
+                                                const updated = [...games];
+                                                updated[index].projectedSales = game.originalProjectedSales;
+                                                setGames(updated);
+                                                setActiveForecastRowIndex(null);
+                                                setSuccess(`Reverted ${game.name} back to saved scenario value.`);
+                                              }}
+                                              style={{ 
+                                                padding: "6px 8px", 
+                                                fontSize: "11px", 
+                                                borderRadius: "4px", 
+                                                border: "1px solid #eab308", 
+                                                backgroundColor: "rgba(234, 179, 8, 0.08)", 
+                                                color: "#eab308", 
+                                                cursor: "pointer", 
+                                                textAlign: "left",
+                                                fontWeight: "600",
+                                                marginTop: "6px",
+                                                width: "100%"
+                                              }}
+                                            >
+                                              ↩️ Revert to Saved (${(game.originalProjectedSales / 1000000).toFixed(1)}M)
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             {/* Prize Payout % */}
                             <td style={{ padding: "10px 16px", textAlign: "right" }}>

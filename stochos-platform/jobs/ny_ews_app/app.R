@@ -250,7 +250,9 @@ server <- function(input, output, session) {
     custom_geom <- drawn_polygon()
     if(!is.null(custom_geom) && nrow(data) > 0) {
       data_proj <- st_transform(data, 32118) # NY Central Projected CRS
-      geom_proj <- st_transform(custom_geom, 32118)
+      # Union all custom shapes to make a single geometry for distance calculations
+      geom_union <- sf::st_union(custom_geom)
+      geom_proj <- st_transform(geom_union, 32118)
       
       distances <- st_distance(data_proj, geom_proj)
       dist_num <- as.numeric(distances)
@@ -351,11 +353,15 @@ server <- function(input, output, session) {
     # Plot Custom Drawn Polygon Buffer
     custom_geom <- drawn_polygon()
     if(!is.null(custom_geom)) {
-       geom_proj <- st_transform(custom_geom, 32118)
+       # Union all custom shapes to draw unified buffers
+       geom_union <- sf::st_union(custom_geom)
+       geom_proj <- st_transform(geom_union, 32118)
        buffer_1mi <- st_transform(st_buffer(geom_proj, dist = 1609.34), 4326)
        map_proxy %>% addPolygons(
-         data = buffer_1mi, color = "#fd7e14", weight = 1, fillOpacity = 0.1,
-         stroke = TRUE, dashArray = "3, 3", group = "Risk Buffers"
+         data = buffer_1mi, color = "#fd7e14", weight = 1.5, fillOpacity = 0.15,
+         stroke = TRUE, dashArray = "4, 4", group = "Risk Buffers",
+         label = "User Drawn 1-Mile Warning Buffer",
+         popup = "<strong>Custom Incident Zone Buffer</strong><br>1-Mile warning boundary surrounding user-drawn polygons."
        )
     }
     
@@ -505,7 +511,17 @@ server <- function(input, output, session) {
       st_crs(geom) <- 4326
     }
     
-    drawn_polygon(geom)
+    # Keep only the geometry column to align schemas for rbind
+    geom_only <- geom[, "geometry"]
+    
+    current_geom <- drawn_polygon()
+    if (is.null(current_geom)) {
+      drawn_polygon(geom_only)
+    } else {
+      current_only <- current_geom[, "geometry"]
+      combined <- rbind(current_only, geom_only)
+      drawn_polygon(combined)
+    }
   })
   
   observeEvent(input$risk_map_draw_deleted_features, {

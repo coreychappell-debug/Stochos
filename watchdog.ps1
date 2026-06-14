@@ -260,9 +260,14 @@ try {
 } catch {
     Log-Message "[WARNING] Next.js health check failed: $_. Attempting to restart..."
 }
+$forceRestartPath = "C:\Users\corey\Downloads\Corey - Code Stuff\R Server Project folder\New York Scripts and Process\stochos-platform\force-restart"
+$forceRestart = Test-Path $forceRestartPath
 
-
-if (-not $nextResponding) {
+if (-not $nextResponding -or $forceRestart) {
+    if ($forceRestart) {
+        Log-Message "  [INFO] Force-restart file detected. Forcing Next.js restart..."
+        Remove-Item $forceRestartPath -Force -ErrorAction SilentlyContinue
+    }
     # 6.1 Clean up any hung Next.js processes on port 3000
     try {
         $connections = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue

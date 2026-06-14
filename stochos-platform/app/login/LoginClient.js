@@ -39,8 +39,8 @@ export default function LoginClient() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <h1>Stochos</h1>
-          <p>Lottery Business Platform</p>
+          <h1>New York Lottery</h1>
+          <p>Stochos Business Platform</p>
         </div>
 
         {error && <div className="login-error">{error}</div>}

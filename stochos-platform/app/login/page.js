@@ -1,7 +1,7 @@
 import LoginWrapper from "./LoginWrapper";
 
 export const metadata = {
-  title: "Sign In | Stochos Platform",
+  title: "Sign In | New York State Lottery",
 };
 
 export default function LoginPage() {

@@ -12,27 +12,40 @@ export default function AnalyticsTabs({ execUrl, ewsUrl }) {
     const currentTheme = isLight ? "light" : "dark";
     setTheme(currentTheme);
 
+    const getActivePalette = () => {
+      const classList = document.body.classList;
+      if (classList.contains("theme-newyork")) return "newyork";
+      if (classList.contains("theme-california")) return "california";
+      if (classList.contains("theme-texas")) return "texas";
+      if (classList.contains("theme-florida")) return "florida";
+      return "classic";
+    };
+
+    const currentPalette = getActivePalette();
+
     // Resolve URL dynamically based on browser hostname
-    const resolveDynamicUrl = (tab, activeTheme) => {
+    const resolveDynamicUrl = (tab, activeTheme, activePalette) => {
       const baseUrl = tab === "exec" ? execUrl : ewsUrl;
       try {
         const urlObj = new URL(baseUrl);
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
+        urlObj.searchParams.set("palette", activePalette);
         return urlObj.toString();
       } catch (e) {
-        return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}theme=${activeTheme}`;
+        return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}theme=${activeTheme}&palette=${activePalette}`;
       }
     };
 
-    setResolvedUrl(resolveDynamicUrl(activeTab, currentTheme));
+    setResolvedUrl(resolveDynamicUrl(activeTab, currentTheme, currentPalette));
 
     // Observe changes to document.body's class list
     const observer = new MutationObserver(() => {
       const isLightNow = document.body.classList.contains("light-theme");
       const nextTheme = isLightNow ? "light" : "dark";
+      const nextPalette = getActivePalette();
       setTheme(nextTheme);
-      setResolvedUrl(resolveDynamicUrl(activeTab, nextTheme));
+      setResolvedUrl(resolveDynamicUrl(activeTab, nextTheme, nextPalette));
     });
 
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });

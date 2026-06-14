@@ -80,7 +80,7 @@ async function getAdoptedBudgetData(jurisdictionId, fy, pkgId) {
     totalDivisionalExpense += sum;
   }
 
-  const activePlan = await prisma.instantTicketPlan.findFirst({
+  let activePlan = await prisma.instantTicketPlan.findFirst({
     where: { jurisdictionId, fiscalYear: fy },
     include: {
       scenarios: {
@@ -89,6 +89,20 @@ async function getAdoptedBudgetData(jurisdictionId, fy, pkgId) {
       }
     }
   });
+
+  // Fallback: If no scenario is named "Base Plan", grab the first available scenario
+  if (activePlan && (!activePlan.scenarios || activePlan.scenarios.length === 0)) {
+    activePlan = await prisma.instantTicketPlan.findFirst({
+      where: { jurisdictionId, fiscalYear: fy },
+      include: {
+        scenarios: {
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+          include: { games: true, marketingItems: true }
+        }
+      }
+    });
+  }
   let totalScratcherSales = 0;
   let totalScratcherPrizeExpense = 0;
   let totalScratcherRetailerComm = 0;

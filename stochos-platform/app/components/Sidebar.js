@@ -60,6 +60,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [theme, setThemeState] = useState("light");
+  const [palette, setPalette] = useState("classic");
   const [features, setFeatures] = useState({});
 
   const fetchFeatures = () => {
@@ -109,25 +110,40 @@ export default function Sidebar() {
     return null;
   };
 
+  const updateBodyClasses = (activeTheme, activePalette) => {
+    document.body.classList.remove(
+      "theme-classic", "theme-newyork", "theme-california", "theme-texas", "theme-florida",
+      "theme-georgia", "theme-michigan", "theme-ohio", "theme-massachusetts", "theme-kentucky",
+      "theme-oregon", "theme-colorado", "light-theme"
+    );
+    if (activePalette !== "classic") {
+      document.body.classList.add(`theme-${activePalette}`);
+    } else {
+      document.body.classList.add("theme-classic");
+    }
+    if (activeTheme === "light") {
+      document.body.classList.add("light-theme");
+    }
+  };
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
+    const savedPalette = localStorage.getItem("theme-palette") || "newyork";
     setThemeState(savedTheme);
-    if (savedTheme === "light") {
-      document.body.classList.add("light-theme");
-    } else {
-      document.body.classList.remove("light-theme");
-    }
+    setPalette(savedPalette);
+    updateBodyClasses(savedTheme, savedPalette);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
+  const selectThemeMode = (newTheme) => {
     setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
-    if (newTheme === "light") {
-      document.body.classList.add("light-theme");
-    } else {
-      document.body.classList.remove("light-theme");
-    }
+    updateBodyClasses(newTheme, palette);
+  };
+
+  const selectPalette = (newPalette) => {
+    setPalette(newPalette);
+    localStorage.setItem("theme-palette", newPalette);
+    updateBodyClasses(theme, newPalette);
   };
 
   const user = session?.user;
@@ -157,8 +173,8 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <h1>Stochos</h1>
-        <p>Lottery Platform</p>
+        <h1>New York Lottery</h1>
+        <p>Stochos Business Platform</p>
       </div>
 
       <nav className="sidebar-nav">
@@ -212,28 +228,87 @@ export default function Sidebar() {
           <BookOpen size={16} /> Help & User Guide
         </Link>
 
-        <button 
-          onClick={toggleTheme}
-          style={{
-            width: "100%",
-            padding: "8px 12px",
-            marginBottom: "12px",
-            backgroundColor: "var(--surface-3)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            color: "var(--text)",
-            cursor: "pointer",
-            fontSize: "12px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            transition: "all var(--transition)"
-          }}
-          className="theme-toggle-btn"
-        >
-          {theme === "dark" ? <><Sun size={16} /> Day Mode</> : <><Moon size={16} /> Night Mode</>}
-        </button>
+        <div style={{ padding: "10px", backgroundColor: "var(--navy)", border: "1px solid var(--border)", borderRadius: "8px", marginBottom: "12px" }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+            <button
+              onClick={() => selectThemeMode("light")}
+              style={{
+                flex: 1,
+                padding: "6px 8px",
+                backgroundColor: theme === "light" ? "var(--blue-dim)" : "var(--surface-3)",
+                border: theme === "light" ? "1px solid var(--blue)" : "1px solid var(--border)",
+                borderRadius: "6px",
+                color: theme === "light" ? "var(--blue)" : "var(--text)",
+                fontSize: "11px",
+                fontWeight: 500,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
+                transition: "all var(--transition)"
+              }}
+              title="Switch to Light Theme"
+            >
+              <Sun size={13} /> Day Mode
+            </button>
+            <button
+              onClick={() => selectThemeMode("dark")}
+              style={{
+                flex: 1,
+                padding: "6px 8px",
+                backgroundColor: theme === "dark" ? "var(--blue-dim)" : "var(--surface-3)",
+                border: theme === "dark" ? "1px solid var(--blue)" : "1px solid var(--border)",
+                borderRadius: "6px",
+                color: theme === "dark" ? "var(--blue)" : "var(--text)",
+                fontSize: "11px",
+                fontWeight: 500,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px",
+                transition: "all var(--transition)"
+              }}
+              title="Switch to Dark Theme"
+            >
+              <Moon size={13} /> Night Mode
+            </button>
+          </div>
+
+          <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)", marginBottom: "6px", fontWeight: 600 }}>
+            Brand Identity
+          </div>
+          <select
+            value={palette}
+            onChange={(e) => selectPalette(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "6px 8px",
+              backgroundColor: "var(--surface-3)",
+              border: "1px solid var(--border)",
+              borderRadius: "6px",
+              color: "var(--text)",
+              fontSize: "12px",
+              outline: "none",
+              cursor: "pointer",
+              transition: "all var(--transition)"
+            }}
+          >
+            <option value="classic">Classic (Default Blue)</option>
+            <option value="newyork">New York (Green & Gold)</option>
+            <option value="california">California (Blue & Poppy)</option>
+            <option value="texas">Texas (Blue & Crimson)</option>
+            <option value="florida">Florida (Teal & Orange)</option>
+            <option value="georgia">Georgia (Peach & Indigo)</option>
+            <option value="michigan">Michigan (Teal & Pine)</option>
+            <option value="ohio">Ohio (Scarlet & Gray)</option>
+            <option value="massachusetts">Massachusetts (Navy & Gold)</option>
+            <option value="kentucky">Kentucky (Bluegrass & Mint)</option>
+            <option value="oregon">Oregon (Fir & Sky Blue)</option>
+            <option value="colorado">Colorado (Aspen Gold & Spruce)</option>
+          </select>
+        </div>
 
         <div className="sidebar-user">
           <div className="sidebar-user-avatar">{initials}</div>

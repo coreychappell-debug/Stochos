@@ -33,18 +33,168 @@ export async function GET(request) {
     }
   });
 
+  if (scenario) {
+    // Check if any active products are missing from the scenario
+    const [products, lifecycles] = await Promise.all([
+      prisma.product.findMany({
+        where: { jurisdictionId, category: "draw_game", status: "active" }
+      }),
+      prisma.martExecProductLifecycle.findMany()
+    ]);
+
+    const existingProductIds = scenario.games.map(g => g.productId).filter(Boolean);
+    const missingProducts = products.filter(p => !existingProductIds.includes(p.id));
+
+    if (missingProducts.length > 0) {
+      const mapping = {
+        mega_millions: ["mega", "megaplier"],
+        powerball: ["powerball", "powerplay"],
+        ny_lotto: ["lotto"],
+        numbers: ["numbers_eve", "numbers_day"],
+        win_4: ["win4_eve", "win4_day"],
+        take_5: ["t5_eve", "t5_day"],
+        pick_10: ["pick10"],
+        quick_draw: ["quick_draw", "qd_extra", "money_dots"],
+        cash4life: ["c4l"]
+      };
+
+      const payoutMapping = {
+        mega_millions: 50.0,
+        powerball: 50.0,
+        ny_lotto: 40.0,
+        numbers: 50.0,
+        win_4: 50.0,
+        take_5: 50.0,
+        pick_10: 50.0,
+        quick_draw: 60.0,
+        cash4life: 50.0
+      };
+
+      for (const p of missingProducts) {
+        let baselineSales = 0;
+        if (p.externalCode) {
+          const codes = mapping[p.externalCode];
+          if (codes) {
+            const matched = lifecycles.filter(l => codes.includes(l.gameCode));
+            if (matched.length > 0) {
+              let totalSales = 0;
+              matched.forEach(m => {
+                const rev = parseFloat(m.grossRevenue || 0);
+                const days = m.activeDays || 365;
+                totalSales += (rev / days) * 365;
+              });
+              baselineSales = parseFloat(totalSales.toFixed(2));
+            }
+          }
+        }
+
+        const prizePayout = p.externalCode ? (payoutMapping[p.externalCode] || 50.0) : 50.0;
+
+        await prisma.drawGameProjectedItem.create({
+          data: {
+            scenarioId: scenario.id,
+            productId: p.id,
+            name: p.name,
+            projectedSales: baselineSales || 1000000.00,
+            prizePayoutPercent: prizePayout,
+            retailerCommPercent: 6.0
+          }
+        });
+      }
+
+      // Re-fetch scenario with all games
+      scenario = await prisma.drawGameScenario.findFirst({
+        where: { id: scenario.id },
+        include: {
+          games: {
+            orderBy: { name: "asc" }
+          }
+        }
+      });
+    }
+  }
+
   if (!scenario) {
+    // 1. Create the new scenario
     scenario = await prisma.drawGameScenario.create({
       data: {
         jurisdictionId,
         fiscalYear: fy,
         name: `FY${fy} Draw Plan`,
         status: "draft"
-      },
-      include: {
-        games: true
       }
     });
+
+    // 2. Fetch products and lifecycles to calculate actual baseline sales
+    const [products, lifecycles] = await Promise.all([
+      prisma.product.findMany({
+        where: { jurisdictionId, category: "draw_game", status: "active" }
+      }),
+      prisma.martExecProductLifecycle.findMany()
+    ]);
+
+    const mapping = {
+      mega_millions: ["mega", "megaplier"],
+      powerball: ["powerball", "powerplay"],
+      ny_lotto: ["lotto"],
+      numbers: ["numbers_eve", "numbers_day"],
+      win_4: ["win4_eve", "win4_day"],
+      take_5: ["t5_eve", "t5_day"],
+      pick_10: ["pick10"],
+      quick_draw: ["quick_draw", "qd_extra", "money_dots"],
+      cash4life: ["c4l"]
+    };
+
+    const payoutMapping = {
+      mega_millions: 50.0,
+      powerball: 50.0,
+      ny_lotto: 40.0,
+      numbers: 50.0,
+      win_4: 50.0,
+      take_5: 50.0,
+      pick_10: 50.0,
+      quick_draw: 60.0,
+      cash4life: 50.0
+    };
+
+    // 3. Seed games for the new scenario
+    const createdGames = [];
+    for (const p of products) {
+      let baselineSales = 0;
+      if (p.externalCode) {
+        const codes = mapping[p.externalCode];
+        if (codes) {
+          const matched = lifecycles.filter(l => codes.includes(l.gameCode));
+          if (matched.length > 0) {
+            let totalSales = 0;
+            matched.forEach(m => {
+              const rev = parseFloat(m.grossRevenue || 0);
+              const days = m.activeDays || 365;
+              totalSales += (rev / days) * 365;
+            });
+            baselineSales = parseFloat(totalSales.toFixed(2));
+          }
+        }
+      }
+
+      const prizePayout = p.externalCode ? (payoutMapping[p.externalCode] || 50.0) : 50.0;
+
+      const gameItem = await prisma.drawGameProjectedItem.create({
+        data: {
+          scenarioId: scenario.id,
+          productId: p.id,
+          name: p.name,
+          projectedSales: baselineSales || 1000000.00,
+          prizePayoutPercent: prizePayout,
+          retailerCommPercent: 6.0
+        }
+      });
+      createdGames.push(gameItem);
+    }
+
+    // Sort seeded games by name to match search criteria ordering
+    createdGames.sort((a, b) => a.name.localeCompare(b.name));
+    scenario.games = createdGames;
   }
 
   // Convert Decimals to Floats/Numbers for frontend serialization

@@ -50,12 +50,44 @@ export default async function DashboardPage() {
     include: { role: true }
   });
 
-  // Fetch summary counts
-  const [contractCount, vendorCount, productCount] = await Promise.all([
+  // Fetch summary counts and New York Lottery data in parallel
+  const [contractCount, vendorCount, productCount, nyOverviewDaily] = await Promise.all([
     prisma.contract.count().catch(() => 0),
     prisma.vendor.count().catch(() => 0),
     prisma.product.count().catch(() => 0),
+    prisma.martExecOverviewDaily.findMany({
+      orderBy: { date: 'asc' }
+    }).catch(() => []),
   ]);
+
+  // Calculate New York State Lottery aggregates
+  let nyTotalGross = 0;
+  let nyTotalNet = 0;
+  let nyActiveRetailers = 0;
+  let nyEstimatedPayout = 0;
+  let nyRetailerCommission = 0;
+
+  if (nyOverviewDaily.length > 0) {
+    let maxRetailers = 0;
+    nyOverviewDaily.forEach(d => {
+      nyTotalGross += Number(d.grossRevenue || 0);
+      nyTotalNet += Number(d.netContribution || 0);
+      nyEstimatedPayout += Number(d.estimatedPayout || 0);
+      nyRetailerCommission += Number(d.retailerCommission || 0);
+      if (Number(d.activeRetailers) > maxRetailers) maxRetailers = Number(d.activeRetailers);
+    });
+    // Use latest row values for active count
+    const latestDaily = nyOverviewDaily[nyOverviewDaily.length - 1];
+    nyActiveRetailers = latestDaily ? Number(latestDaily.activeRetailers) : maxRetailers;
+  }
+
+  function fmt$(val) {
+    if (!val) return "—";
+    const num = parseFloat(val);
+    if (num >= 1_000_000_000) return "$" + (num / 1_000_000_000).toFixed(2) + "B";
+    if (num >= 1_000_000) return "$" + (num / 1_000_000).toFixed(1) + "M";
+    return "$" + num.toLocaleString("en-US");
+  }
 
   const activeContracts = await prisma.contract.count({
     where: { status: "active" },
@@ -250,10 +282,56 @@ export default async function DashboardPage() {
       <main className="main-content">
         <div className="page-header">
           <h2>Welcome back, {userName}</h2>
-          <p>Stochos Lottery Business Platform — Module Dashboard</p>
+          <p>New York State Lottery — Operations & Analytics Dashboard</p>
         </div>
 
         <div className="page-body">
+          {/* NY State Lottery Overview Indicators */}
+          {nyOverviewDaily.length > 0 && (
+            <div className="card" style={{ marginBottom: 24, background: "linear-gradient(135deg, var(--surface-3) 0%, var(--card-bg) 100%)", borderLeft: "4px solid var(--green)" }}>
+              <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "16px" }}>
+                <h3 style={{ color: "var(--green)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <TrendingUp size={18} /> New York State Lottery — Performance Summary
+                </h3>
+                <span className="badge" style={{ backgroundColor: "var(--blue-dim)", color: "var(--blue)", fontSize: "11px", fontWeight: "600" }}>
+                  Active Database: Jan 2024 – Mar 2026
+                </span>
+              </div>
+              <div className="card-body">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                  <div style={{ padding: "12px", borderRadius: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Cumulative Gross Sales</div>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "var(--text)", margin: "4px 0" }}>{fmt$(nyTotalGross)}</div>
+                    <div style={{ fontSize: "11px", color: "var(--green)" }}>Instant & Draw Games</div>
+                  </div>
+                  
+                  <div style={{ padding: "12px", borderRadius: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Net Profit / Education Aid</div>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "var(--gold)", margin: "4px 0" }}>{fmt$(nyTotalNet)}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{(nyTotalGross > 0 ? (nyTotalNet / nyTotalGross * 100).toFixed(1) : 0)}% Contribution Margin</div>
+                  </div>
+                  
+                  <div style={{ padding: "12px", borderRadius: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Prizes Paid (Est.)</div>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "var(--text)", margin: "4px 0" }}>{fmt$(nyEstimatedPayout)}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{(nyTotalGross > 0 ? (nyEstimatedPayout / nyTotalGross * 100).toFixed(1) : 0)}% Return to Players</div>
+                  </div>
+                  
+                  <div style={{ padding: "12px", borderRadius: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Retailer Commissions</div>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "var(--text)", margin: "4px 0" }}>{fmt$(nyRetailerCommission)}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{(nyTotalGross > 0 ? (nyRetailerCommission / nyTotalGross * 100).toFixed(1) : 0)}% Avg Commission Rate</div>
+                  </div>
+                  
+                  <div style={{ padding: "12px", borderRadius: "6px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Active Retailer Network</div>
+                    <div style={{ fontSize: "22px", fontWeight: "700", color: "var(--text)", margin: "4px 0" }}>{nyActiveRetailers.toLocaleString()}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Across New York Counties</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Action Center - Gilded task list */}
           <div className="card" style={{ marginBottom: 24, borderLeft: "4px solid var(--gold)" }}>
             <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

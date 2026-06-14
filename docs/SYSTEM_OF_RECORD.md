@@ -33,6 +33,7 @@
 | Instant ticket game rosters | **PostgreSQL** | `instant_ticket_games`, `instant_ticket_game_features` | Platform API (Prisma) |
 | Instant ticket vendor pricing | **PostgreSQL** | `instant_ticket_vendor_pricing` | Platform API (Prisma) |
 | Instant ticket marketing items | **PostgreSQL** | `instant_ticket_marketing_items` | Platform API (Prisma) |
+| Draw game scenarios | **PostgreSQL** | `draw_game_scenarios`, `draw_game_projected_items` | Platform API (Prisma) |
 | ETL orchestration | **R / Python scripts** | Cron-scheduled ingest jobs | Write to DuckDB |
 | Operational documentation | **`docs/` directory** | Markdown files | Human-readable |
 

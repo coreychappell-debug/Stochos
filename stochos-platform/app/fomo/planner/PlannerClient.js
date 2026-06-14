@@ -166,10 +166,21 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
 
   // Trigger leaflet map redraw on container resize transitions (including pinned guide offset)
   useEffect(() => {
+    let timeoutId;
     const handleMapResize = () => {
       if (mapRef.current) {
-        setTimeout(() => {
-          mapRef.current.invalidateSize({ animate: true });
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (mapRef.current) {
+            try {
+              const container = mapRef.current.getContainer();
+              if (container && document.body.contains(container)) {
+                mapRef.current.invalidateSize({ animate: true });
+              }
+            } catch (e) {
+              // Safe catch if leaflet map was already unmounted/destroyed
+            }
+          }
         }, 300);
       }
     };
@@ -178,6 +189,7 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
     handleMapResize();
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener("layout-resize", handleMapResize);
       window.removeEventListener("resize", handleMapResize);
     };

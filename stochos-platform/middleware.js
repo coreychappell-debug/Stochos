@@ -32,6 +32,7 @@ export async function middleware(request) {
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     pathname === "/unauthorized" ||
+    pathname.endsWith(".geojson") ||
     (request.headers.get("x-simulated-test") === "true" && process.env.NODE_ENV === "development")
   ) {
     return NextResponse.next();
@@ -44,6 +45,9 @@ export async function middleware(request) {
   });
 
   if (!token) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
@@ -57,13 +61,22 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
+  // Get normalized pathname for matching rule prefixes (strip /api)
+  let normalizedPathname = pathname;
+  if (pathname.startsWith("/api/")) {
+    normalizedPathname = pathname.substring(4);
+  }
+
   // Check section access
   for (const [routePrefix, rule] of Object.entries(divisionAccessMap)) {
-    if (pathname === routePrefix || pathname.startsWith(routePrefix + "/")) {
+    if (normalizedPathname === routePrefix || normalizedPathname.startsWith(routePrefix + "/")) {
       const hasDivisionAccess = rule.divisions.includes(userDivision);
       const hasRoleAccess = rule.roles.includes(userRole);
 
       if (!hasDivisionAccess && !hasRoleAccess) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
         return NextResponse.redirect(new URL("/unauthorized", request.url));
       }
     }

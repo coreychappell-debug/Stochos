@@ -3,10 +3,10 @@ export const dynamic = 'force-dynamic';
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AppShell from "../../components/AppShell";
-import ShinyEmbed from "../../components/ShinyEmbed";
+import ForecastClient from "./ForecastClient";
 
 export const metadata = {
-  title: "Forecast & Outlook | Stochos Platform",
+  title: "Forecast & Outlook | New York State Lottery",
 };
 
 export default async function ForecastPage() {
@@ -24,7 +24,7 @@ export default async function ForecastPage() {
         </div>
       </div>
       <div style={{ flex: 1, padding: "0 24px 24px 24px", display: "flex", flexDirection: "column" }}>
-        <ShinyEmbed tabName="forecast_outlook" title="Forecast & Outlook" />
+        <ForecastClient />
       </div>
     </AppShell>
   );

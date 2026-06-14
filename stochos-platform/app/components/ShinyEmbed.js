@@ -15,28 +15,41 @@ export default function ShinyEmbed({ tabName, baseUrlType = "exec", title }) {
     const currentTheme = isLight ? "light" : "dark";
     setTheme(currentTheme);
 
-    const resolveDynamicUrl = (activeTheme) => {
+    const getActivePalette = () => {
+      const classList = document.body.classList;
+      if (classList.contains("theme-newyork")) return "newyork";
+      if (classList.contains("theme-california")) return "california";
+      if (classList.contains("theme-texas")) return "texas";
+      if (classList.contains("theme-florida")) return "florida";
+      return "classic";
+    };
+
+    const currentPalette = getActivePalette();
+
+    const resolveDynamicUrl = (activeTheme, activePalette) => {
       try {
         const urlObj = new URL(base);
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
+        urlObj.searchParams.set("palette", activePalette);
         urlObj.searchParams.set("embed", "1");
         if (tabName) {
           urlObj.searchParams.set("tab", tabName);
         }
         return urlObj.toString();
       } catch (e) {
-        return `${base}${base.includes('?') ? '&' : '?'}theme=${activeTheme}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
+        return `${base}${base.includes('?') ? '&' : '?'}theme=${activeTheme}&palette=${activePalette}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
       }
     };
 
-    setResolvedUrl(resolveDynamicUrl(currentTheme));
+    setResolvedUrl(resolveDynamicUrl(currentTheme, currentPalette));
 
     const observer = new MutationObserver(() => {
       const isLightNow = document.body.classList.contains("light-theme");
       const nextTheme = isLightNow ? "light" : "dark";
+      const nextPalette = getActivePalette();
       setTheme(nextTheme);
-      setResolvedUrl(resolveDynamicUrl(nextTheme));
+      setResolvedUrl(resolveDynamicUrl(nextTheme, nextPalette));
     });
 
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });

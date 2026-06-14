@@ -33,20 +33,18 @@ const ROUTE_FEATURE_MAP = [
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
-  const [features, setFeatures] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("stochos_features");
-        return cached ? JSON.parse(cached) : {};
-      } catch (e) {
-        return {};
-      }
-    }
-    return {};
-  });
-  const [loading, setLoading] = useState(Object.keys(features).length === 0);
+  const [features, setFeatures] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Read from localStorage on mount (client-side only)
+    try {
+      const cached = localStorage.getItem("stochos_features");
+      if (cached) {
+        setFeatures(JSON.parse(cached));
+      }
+    } catch (e) {}
+
     const fetchSettings = () => {
       fetch("/api/admin/settings")
         .then((res) => res.json())

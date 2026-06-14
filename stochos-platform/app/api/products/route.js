@@ -9,15 +9,55 @@ export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const products = await prisma.product.findMany({
-    include: { jurisdiction: { select: { abbreviation: true } } },
-    orderBy: [{ category: "asc" }, { status: "asc" }, { name: "asc" }],
-  });
+  const [products, lifecycles] = await Promise.all([
+    prisma.product.findMany({
+      include: { jurisdiction: { select: { abbreviation: true } } },
+      orderBy: [{ category: "asc" }, { status: "asc" }, { name: "asc" }],
+    }),
+    prisma.martExecProductLifecycle.findMany(),
+  ]);
 
-  const serialized = products.map(p => ({
-    ...p, price: p.price ? parseFloat(p.price) : null,
-    createdAt: p.createdAt.toISOString(),
-  }));
+  const mapping = {
+    mega_millions: ["mega", "megaplier"],
+    powerball: ["powerball", "powerplay"],
+    ny_lotto: ["lotto"],
+    numbers: ["numbers_eve", "numbers_day"],
+    win_4: ["win4_eve", "win4_day"],
+    take_5: ["t5_eve", "t5_day"],
+    pick_10: ["pick10"],
+    quick_draw: ["quick_draw", "qd_extra", "money_dots"],
+    cash4life: ["c4l"]
+  };
+
+  const serialized = products.map(p => {
+    let historicalAnnualSales = null;
+    let trendDirection = null;
+
+    if (p.category === "draw_game" && p.externalCode) {
+      const codes = mapping[p.externalCode];
+      if (codes) {
+        const matched = lifecycles.filter(l => codes.includes(l.gameCode));
+        if (matched.length > 0) {
+          let totalSales = 0;
+          matched.forEach(m => {
+            const rev = parseFloat(m.grossRevenue || 0);
+            const days = m.activeDays || 365;
+            totalSales += (rev / days) * 365;
+          });
+          historicalAnnualSales = totalSales;
+          trendDirection = matched[0].trendDirection || "Stable";
+        }
+      }
+    }
+
+    return {
+      ...p,
+      price: p.price ? parseFloat(p.price) : null,
+      createdAt: p.createdAt.toISOString(),
+      historicalAnnualSales,
+      trendDirection,
+    };
+  });
 
   return NextResponse.json(serialized);
 }

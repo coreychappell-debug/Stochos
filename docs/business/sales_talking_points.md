@@ -38,6 +38,7 @@
 
 ### C. Analytics, Logistics & Risk Intelligence
 *   **Executive Dashboard & Performance Portal:** A unified hub displaying high-level operational KPIs, real-time alerts, and quick navigation across all active business segments.
+*   **Predictive Forecasting & Draw Game Budget Planner:** Integrates automated Holt-Winters forecasting at correct temporal granularities to project 12-month G&A revenue, with dynamic scenario self-healing to automatically synchronize new products (e.g. Cash 4 Life) and roll up projections into audited divisional budgets.
 *   **Spatial Operations, Logistics & Risk (SOLR):** Links GIS geocoding with active weather and seismic alerts to map retail locations, assess risk proximity, and coordinate crisis logistics. Built on standard parameterized spatial queries with automated pipeline telemetry checks to prevent data stagnation or parser failures.
 *   **Custom Research SOWs:** Deep-dive forecasting models (e.g., GAM spline jackpot sensitivity or jackpot fever tracking) and customized econometric reports built on top of the agency's DuckDB warehouse.
 
@@ -64,6 +65,7 @@
 | **Stochos Core Suite (Contracts, Vendors, Products)** | Annual Subscription | Web platform hosting, secure auth/RBAC, contract tracking, vendor registry, and product catalog. |
 | **Governed Financials (GFPA)** | Annual Subscription (Add-on) | Trial Balance visual ETL pipelines, commentary rules engine, metric registry, and XBRL lottery-specific benchmarking. |
 | **Instant Ticket & Budget Planner** | Annual Subscription (Add-on) | The local-first planning PWA, vendor cost matrices, upcharge calculators, and PO export tools. |
+| **Predictive Forecasting & Draw Game Budget Planner** | Annual Subscription (Add-on) | 12-month Holt-Winters projections, active game scenario seeding, automatic catalog alignment, and consolidated master ledger rollups. |
 | **Field Ops (FOMO) & MRM** | Annual Subscription (Add-on) | Field rep routing, retail visit audits, merchandise inventory tracking, and campaign planners. |
 | **Spatial Ops & Logistics (SOLR)** | Annual Subscription (Add-on) | Real-time meteorological/hazard feeds, geolocated risk analysis maps, and terminal logistics monitors. |
 | **Custom Research SOWs** | Fixed-Price / Hourly | Bespoke forecasting, GAM jackpot modeling, demographic analysis, and expert analyst consulting. |

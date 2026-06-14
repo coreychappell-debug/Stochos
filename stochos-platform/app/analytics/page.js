@@ -6,7 +6,7 @@ import AppShell from "../components/AppShell";
 import AnalyticsTabs from "./AnalyticsTabs";
 
 export const metadata = {
-  title: "Analytics Portal | Stochos Platform",
+  title: "Analytics Portal | New York State Lottery",
 };
 
 export default async function AnalyticsPage() {

@@ -360,3 +360,44 @@ WHERE r.external_id = t.external_id;
 ```
 This optimization reduced total sync runtime from minutes to under 1.5 seconds.
 
+---
+
+## 15. Holt-Winters 30x Forecasting Underestimation (Daily-to-Monthly Grouping Mismatch)
+
+**Date discovered:** 2026-06-13  
+**Severity:** High (caused forecasts to show ~$106M instead of ~$2.1B)  
+**Status:** Resolved
+
+### Problem
+
+When applying predictive forecasting for draw games, the cumulative 12-month outlook was underestimating sales by a factor of 30x.
+
+### Root Cause
+
+The database timeseries table `mart_ny_game_timeseries` aggregates lottery sales daily (`YYYY-MM-DD`). However, the Holt-Winters exponential smoothing model assumes monthly data buckets (period $L=12$ months). Running the model directly on daily records made it forecast the next 12 *days* of revenue instead of the next 12 *months*.
+
+### Resolution
+
+Modified the timeseries aggregation client-side in the forecasting engine and the planner pre-calculator loop to group daily records by calendar month (`YYYY-MM`) before running the forecasting model. Mapped dates to `"YYYY-MM-01"` to ensure correct monthly sorting, resulting in correct billions-range annual sales estimates.
+
+---
+
+## 16. Omitted Sales in Consolidated Budget (Scenario Product Alignment)
+
+**Date discovered:** 2026-06-13  
+**Severity:** Medium (caused Cash 4 Life sales to be left out of the budget)  
+**Status:** Resolved
+
+### Problem
+
+Cash 4 Life sales (~$111.4M) were missing from the compiled master budget rollup, even though it was active in the product catalog.
+
+### Root Cause
+
+Cash 4 Life was activated in the product catalog *after* the initial draw scenario had been seeded in the database. Because scenarios were not dynamically kept in sync with the active products list, Cash 4 Life was omitted from the scenario, and consequently, from the budget rollup queries.
+
+### Resolution
+
+Executed a database migration script to align all existing scenarios, and updated the `GET /api/draw-games` endpoint to dynamically verify and insert any missing active products into the scenario on-the-fly, ensuring the compiler always receives the full product line. We also updated the budget rollup and commentary engines to fallback gracefully to the first available scenario if `"Base Plan"` is missing.
+
+

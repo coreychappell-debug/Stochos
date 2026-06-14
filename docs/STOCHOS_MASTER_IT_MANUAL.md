@@ -542,6 +542,17 @@ wsl -d Ubuntu-22.04 -- docker exec <container_name> Rscript -e "install.packages
 
 ---
 
+### 9.7 Draw Games Forecasting & Budget Synchronization
+
+**What it covers:** Predictive forecasting using Holt-Winters exponential smoothing, active game scenario seeding, and budget synchronization rollups.
+
+**How it works:**
+1. **Holt-Winters Forecasting Engine**: To avoid 30x underestimation errors, the timeseries aggregator groups daily sales records from `mart_ny_game_timeseries` into monthly calendar buckets (`YYYY-MM-01`) before running the smoothing model (period \(L=12\) months) in the client.
+2. **Dynamic Scenario Self-Healing**: To prevent catalog drift where new products (e.g., Cash 4 Life) are added but missing from existing scenarios, `GET /api/draw-games` dynamically scans the product catalog and automatically seeds any missing active products when loading a scenario.
+3. **Robust Rollup Fallback**: In `GET /api/reporting/sync-budget` and the commentary generator, if the specific `"Base Plan"` scenario name is missing, the engine automatically falls back to the first available scenario (sorted by `sortOrder`), preventing empty rolls or crashes.
+
+---
+
 ## 10. Version Control and Documentation Backup (Git/GitHub)
 
 ### 10.1 Docs-as-Code Philosophy
