@@ -1,0 +1,34 @@
+# Ingress routing for Stochos Platform & Analytics
+stochosgroup.tail88cba8.ts.net {
+    # 1. Enable automated HTTPS certificates via Tailscale
+    tls {
+        get_certificate tailscale
+    }
+
+    # 2. Next.js platform root (Port 3000)
+    reverse_proxy 127.0.0.1:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+    }
+
+    # 3. Production Shiny Server dashboards (Port 3838)
+    # Accessible via: https://stochosgroup.tail88cba8.ts.net/shiny/
+    reverse_proxy /shiny/* 127.0.0.1:3838 {
+        # Enable sticky sessions for active dashboard metrics
+        lb_policy cookie stochos_session
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up Connection "Upgrade"
+        header_up Upgrade $http_upgrade
+    }
+
+    # 4. Production RStudio Server (Port 8787)
+    # Accessible via: https://stochosgroup.tail88cba8.ts.net/rstudio/
+    route /rstudio* {
+        uri strip_prefix /rstudio
+        reverse_proxy 127.0.0.1:8787 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+}

@@ -40,7 +40,7 @@ Tailscale handles the networking. It assigns Corey's machine a stable, private d
 3. **Log In**: Log in to the same Tailscale account on all three machines (or create a tailnet and invite Tyler and Caitlin to join as members).
 4. **Retrieve Domain Name**:
    * Open the Tailscale client on Corey's machine or check the online admin console.
-   * Note the machine's assigned **MagicDNS domain name** (e.g., `corey-pc.tailnet-name.ts.net`).
+   * Note the machine's assigned **MagicDNS domain name** (e.g., `stochosgroup.tail88cba8.ts.net`).
 5. **Enable HTTPS Certificates**:
    * In the Tailscale Admin Console, go to **Settings** > **HTTPS**.
    * Click **Enable HTTPS**. This allows Corey's machine to automatically request valid, free Let's Encrypt SSL/TLS certificates for its Tailscale domain name.
@@ -57,11 +57,11 @@ Caddy acts as our web gateway. It listens on standard ports (`80` for HTTP and `
 2. **Create Caddyfile**:
    * Create a text file named `Caddyfile` (no extension) in the same directory:
      `C:\Users\corey\Downloads\Corey - Code Stuff\R Server Project folder\New York Scripts and Process\infrastructure\Caddyfile`
-   * Paste the following configuration, replacing `corey-pc.tailnet-name.ts.net` with your actual Tailscale domain name:
+   * Paste the following configuration, replacing `stochosgroup.tail88cba8.ts.net` with your actual Tailscale domain name:
 
 ```caddy
 # Ingress routing for Stochos Platform & Analytics
-corey-pc.tailnet-name.ts.net {
+stochosgroup.tail88cba8.ts.net {
     # 1. Enable automated HTTPS certificates via Tailscale
     tls {
         get_certificate tailscale
@@ -74,7 +74,7 @@ corey-pc.tailnet-name.ts.net {
     }
 
     # 3. Production Shiny Server dashboards (Port 3838)
-    # Accessible via: https://corey-pc.tailnet-name.ts.net/shiny/
+    # Accessible via: https://stochosgroup.tail88cba8.ts.net/shiny/
     reverse_proxy /shiny/* 127.0.0.1:3838 {
         # Enable sticky sessions for active dashboard metrics
         lb_policy cookie stochos_session
@@ -85,7 +85,7 @@ corey-pc.tailnet-name.ts.net {
     }
 
     # 4. Production RStudio Server (Port 8787)
-    # Accessible via: https://corey-pc.tailnet-name.ts.net/rstudio/
+    # Accessible via: https://stochosgroup.tail88cba8.ts.net/rstudio/
     # Note: RStudio requires trailing slash strip and auth path rewrites
     route /rstudio* {
         uri strip_prefix /rstudio
@@ -114,9 +114,9 @@ corey-pc.tailnet-name.ts.net {
 
 Once Tailscale is connected and Caddy is running, Tyler and Caitlin can open their web browsers on their own machines (from anywhere) and visit:
 
-*   **Next.js Platform**: `https://corey-pc.tailnet-name.ts.net`
-*   **Shiny Analytics**: `https://corey-pc.tailnet-name.ts.net/shiny/`
-*   **RStudio Server**: `https://corey-pc.tailnet-name.ts.net/rstudio/`
+*   **Next.js Platform**: `https://stochosgroup.tail88cba8.ts.net`
+*   **Shiny Analytics**: `https://stochosgroup.tail88cba8.ts.net/shiny/`
+*   **RStudio Server**: `https://stochosgroup.tail88cba8.ts.net/rstudio/`
 
 The browser will show a **secure padlock icon (HTTPS)**, and all communications will be encrypted. No ports need to be appended to the URLs.
 
