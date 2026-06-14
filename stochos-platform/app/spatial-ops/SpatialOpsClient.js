@@ -17,14 +17,16 @@ export default function SpatialOpsClient({ baseUrl }) {
     // Resolve URL dynamically based on browser hostname
     const getResolvedUrl = (activeTheme) => {
       try {
+        if (typeof window !== "undefined") {
+          // Use relative path to bypass mixed content (HTTP inside HTTPS) and port restrictions
+          return `/shiny/ews/?theme=${activeTheme}`;
+        }
         const urlObj = new URL(baseUrl);
-        // Replace VM Tailscale IP or hardcoded hostname with the current browser access hostname
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
         return urlObj.toString();
       } catch (e) {
-        // Fallback to baseUrl
-        return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}theme=${activeTheme}`;
+        return `/shiny/ews/?theme=${activeTheme}`;
       }
     };
 

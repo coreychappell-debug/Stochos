@@ -29,6 +29,10 @@ const nextConfig = {
         destination: "http://localhost:3838/:path*",
       },
       {
+        source: "/shiny/:path*",
+        destination: "http://localhost:3838/:path*",
+      },
+      {
         source: "/executive",
         destination: "http://localhost:3838/executive/",
       },

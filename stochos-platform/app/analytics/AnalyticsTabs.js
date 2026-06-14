@@ -25,15 +25,21 @@ export default function AnalyticsTabs({ execUrl, ewsUrl }) {
 
     // Resolve URL dynamically based on browser hostname
     const resolveDynamicUrl = (tab, activeTheme, activePalette) => {
-      const baseUrl = tab === "exec" ? execUrl : ewsUrl;
       try {
+        if (typeof window !== "undefined") {
+          // Use relative path to bypass mixed content (HTTP inside HTTPS) and port restrictions
+          const subPath = tab === "exec" ? "executive" : "ews";
+          return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}`;
+        }
+        const baseUrl = tab === "exec" ? execUrl : ewsUrl;
         const urlObj = new URL(baseUrl);
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
         urlObj.searchParams.set("palette", activePalette);
         return urlObj.toString();
       } catch (e) {
-        return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}theme=${activeTheme}&palette=${activePalette}`;
+        const subPath = tab === "exec" ? "executive" : "ews";
+        return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}`;
       }
     };
 

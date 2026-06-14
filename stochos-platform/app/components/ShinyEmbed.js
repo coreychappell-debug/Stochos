@@ -28,6 +28,10 @@ export default function ShinyEmbed({ tabName, baseUrlType = "exec", title }) {
 
     const resolveDynamicUrl = (activeTheme, activePalette) => {
       try {
+        if (typeof window !== "undefined") {
+          const subPath = baseUrlType === "exec" ? "executive" : "ews";
+          return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
+        }
         const urlObj = new URL(base);
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
@@ -38,7 +42,8 @@ export default function ShinyEmbed({ tabName, baseUrlType = "exec", title }) {
         }
         return urlObj.toString();
       } catch (e) {
-        return `${base}${base.includes('?') ? '&' : '?'}theme=${activeTheme}&palette=${activePalette}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
+        const subPath = baseUrlType === "exec" ? "executive" : "ews";
+        return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
       }
     };
 
