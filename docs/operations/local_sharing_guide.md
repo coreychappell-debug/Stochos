@@ -117,7 +117,9 @@ Once Tailscale is connected and Caddy is running, Tyler and Caitlin can open the
 
 *   **Next.js Platform**: `https://stochosgroup.tail88cba8.ts.net`
 *   **Shiny Analytics**: `https://stochosgroup.tail88cba8.ts.net/shiny/`
-*   **RStudio Server**: `https://stochosgroup.tail88cba8.ts.net/rstudio/`
+*   **RStudio Server (Corey)**: `https://stochosgroup.tail88cba8.ts.net/rstudio/`
+*   **RStudio Server (Tyler)**: `https://stochosgroup.tail88cba8.ts.net/rstudio-tyler/`
+*   **RStudio Server (Caitlin)**: `https://stochosgroup.tail88cba8.ts.net/rstudio-caitlin/`
 
 The browser will show a **secure padlock icon (HTTPS)**, and all communications will be encrypted. No ports need to be appended to the URLs.
 
