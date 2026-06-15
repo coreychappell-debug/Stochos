@@ -66,11 +66,9 @@ export default async function InstantTicketPlanPage({ params }) {
     )
   );
 
-  // Compute stats server-side, pass as plain objects
-  const scenario = plan.scenarios[0];
-  const games = scenario?.games || [];
-  const marketingItems = scenario?.marketingItems || [];
-
+    const scenario = plan.scenarios[0];
+  const games = (scenario?.games || []).filter(g => g.budgetStatus !== 'already_booked');
+  const marketingItems = (scenario?.marketingItems || []).filter(m => m.budgetStatus !== 'already_booked');
   const totalRevenue = games.reduce((s, g) => s + Number(g.units) * g.denomination, 0);
   const totalPrizeExpense = games.reduce((s, g) => s + Number(g.units) * g.denomination * (parseFloat(g.payoutPercent) / 100), 0);
   const weightedPayout = totalRevenue > 0 ? (totalPrizeExpense / totalRevenue) * 100 : 0;

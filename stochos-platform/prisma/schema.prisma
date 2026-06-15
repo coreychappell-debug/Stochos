@@ -510,6 +510,17 @@ model InstantTicketGame {
   receiptDate    DateTime?             @map("receipt_date") @db.Date
   deliveryStatus String                @default("planned") @map("delivery_status") // 'planned', 'ordered', 'in_production', 'shipped', 'received'
   sortOrder      Int                   @default(0) @map("sort_order")
+  isReorder      Boolean               @default(false) @map("is_reorder")
+  licensedBrandId String?              @map("licensed_brand_id")
+  budgetStatus   String                @default("new_request") @map("budget_status")
+  gamingSystemPercent  Decimal?        @map("gaming_system_percent") @db.Decimal(5, 2)
+  retailerBonusPercent Decimal?        @map("retailer_bonus_percent") @db.Decimal(5, 2)
+  fixedOperatingCost   Decimal?        @map("fixed_operating_cost") @db.Decimal(14, 2)
+  retailerCashingPercent Decimal?        @map("retailer_cashing_percent") @db.Decimal(5, 2)
+  cashablePrizePercent   Decimal?        @map("cashable_prize_percent") @db.Decimal(5, 2)
+  jackpotBonusPercent    Decimal?        @map("jackpot_bonus_percent") @db.Decimal(5, 2)
+  jackpotEligiblePercent Decimal?        @map("jackpot_eligible_percent") @db.Decimal(5, 2)
+  jackpotBonusCap        Decimal?        @map("jackpot_bonus_cap") @db.Decimal(14, 2)
   createdAt      DateTime              @default(now()) @map("created_at")
 
   features InstantTicketGameFeature[]
@@ -538,11 +549,11 @@ model InstantTicketMarketingItem {
   cost        Decimal               @db.Decimal(14, 2)
   category    String? // 'pos_display', 'digital_campaign', 'insert', 'signage'
   sortOrder   Int                   @default(0) @map("sort_order")
+  budgetStatus String                @default("new_request") @map("budget_status")
   createdAt   DateTime              @default(now()) @map("created_at")
 
   @@map("instant_ticket_marketing_items")
 }
-
 model InstantTicketVendorPricing {
   id          String   @id @default(uuid())
   vendorId    String   @map("vendor_id")
@@ -551,12 +562,21 @@ model InstantTicketVendorPricing {
   ticketSize  String   @map("ticket_size") // '2.4x4', '4x4', '6x4', '8x4', '12x8', '12x12'
   baseCost    Decimal  @map("base_cost") @db.Decimal(10, 4)
   minQuantity BigInt   @default(0) @map("min_quantity") // volume tier threshold
+  reorderModel String?  @default("none") @map("reorder_model")
+  reorderValue Decimal  @default(0) @map("reorder_value") @db.Decimal(10, 4)
+  gamingSystemPercent  Decimal  @default(2.50) @map("gaming_system_percent") @db.Decimal(5, 2)
+  retailerBonusPercent Decimal  @default(0.50) @map("retailer_bonus_percent") @db.Decimal(5, 2)
+  fixedOperatingCost   Decimal  @default(0.00) @map("fixed_operating_cost") @db.Decimal(14, 2)
+  retailerCashingPercent Decimal  @default(1.00) @map("retailer_cashing_percent") @db.Decimal(5, 2)
+  cashablePrizePercent   Decimal  @default(70.00) @map("cashable_prize_percent") @db.Decimal(5, 2)
+  jackpotBonusPercent    Decimal  @default(0.50) @map("jackpot_bonus_percent") @db.Decimal(5, 2)
+  jackpotEligiblePercent Decimal  @default(10.00) @map("jackpot_eligible_percent") @db.Decimal(5, 2)
+  jackpotBonusCap        Decimal  @default(1000000.00) @map("jackpot_bonus_cap") @db.Decimal(14, 2)
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([vendorId, ticketSize, minQuantity])
   @@map("instant_ticket_vendor_pricing")
 }
-
 model PurchaseOrder {
   id           String    @id @default(uuid())
   contractId   String    @map("contract_id")
@@ -1436,6 +1456,15 @@ model DrawGameProjectedItem {
   projectedSales     Decimal           @map("projected_sales") @db.Decimal(14, 2)
   prizePayoutPercent Decimal           @map("prize_payout_percent") @db.Decimal(5, 2)
   retailerCommPercent Decimal          @default(5.0) @map("retailer_comm_percent") @db.Decimal(5, 2)
+  budgetStatus        String            @default("new_request") @map("budget_status")
+  gamingSystemPercent  Decimal           @default(2.50) @map("gaming_system_percent") @db.Decimal(5, 2)
+  retailerBonusPercent Decimal           @default(0.50) @map("retailer_bonus_percent") @db.Decimal(5, 2)
+  fixedOperatingCost   Decimal           @default(0.00) @map("fixed_operating_cost") @db.Decimal(14, 2)
+  retailerCashingPercent Decimal           @default(1.00) @map("retailer_cashing_percent") @db.Decimal(5, 2)
+  cashablePrizePercent   Decimal           @default(50.00) @map("cashable_prize_percent") @db.Decimal(5, 2)
+  jackpotBonusPercent    Decimal           @default(0.50) @map("jackpot_bonus_percent") @db.Decimal(5, 2)
+  jackpotEligiblePercent Decimal           @default(25.00) @map("jackpot_eligible_percent") @db.Decimal(5, 2)
+  jackpotBonusCap        Decimal           @default(1000000.00) @map("jackpot_bonus_cap") @db.Decimal(14, 2)
   createdAt          DateTime          @default(now()) @map("created_at")
 
   @@map("draw_game_projected_items")

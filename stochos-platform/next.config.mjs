@@ -29,20 +29,20 @@ const nextConfig = {
         destination: "http://localhost:3838/:path*",
       },
       {
+        source: "/shiny/ews",
+        destination: "http://localhost:3838/ews/",
+      },
+      {
+        source: "/shiny/ews/",
+        destination: "http://localhost:3838/ews/",
+      },
+      {
+        source: "/shiny/ews/:path+",
+        destination: "http://localhost:3838/ews/:path+",
+      },
+      {
         source: "/shiny/:path*",
         destination: "http://localhost:3838/:path*",
-      },
-      {
-        source: "/executive",
-        destination: "http://localhost:3838/executive/",
-      },
-      {
-        source: "/executive/",
-        destination: "http://localhost:3838/executive/",
-      },
-      {
-        source: "/executive/:path+",
-        destination: "http://localhost:3838/executive/:path+",
       },
       {
         source: "/spatial-ops",

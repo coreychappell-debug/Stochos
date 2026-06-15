@@ -30,20 +30,21 @@ export default function ShinyEmbed({ tabName, baseUrlType = "exec", title }) {
       try {
         if (typeof window !== "undefined") {
           const subPath = baseUrlType === "exec" ? "executive" : "ews";
-          return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
+          return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}&embed=1&cb=${Date.now()}${tabName ? `&tab=${tabName}` : ''}`;
         }
         const urlObj = new URL(base);
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
         urlObj.searchParams.set("palette", activePalette);
         urlObj.searchParams.set("embed", "1");
+        urlObj.searchParams.set("cb", Date.now().toString());
         if (tabName) {
           urlObj.searchParams.set("tab", tabName);
         }
         return urlObj.toString();
       } catch (e) {
         const subPath = baseUrlType === "exec" ? "executive" : "ews";
-        return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}&embed=1${tabName ? `&tab=${tabName}` : ''}`;
+        return `/shiny/${subPath}/?theme=${activeTheme}&palette=${activePalette}&embed=1&cb=${Date.now()}${tabName ? `&tab=${tabName}` : ''}`;
       }
     };
 

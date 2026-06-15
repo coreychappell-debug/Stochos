@@ -48,6 +48,11 @@ async function testSyncMath() {
     let expectedScratcherRetailerComm = 0;
     let expectedScratcherPrintingCost = 0;
     let expectedScratcherMarketingCost = 0;
+    let expectedScratcherSystemFee = 0;
+    let expectedScratcherRetailerBonus = 0;
+    let expectedScratcherCashingBonus = 0;
+    let expectedScratcherJackpotBonus = 0;
+    let expectedScratcherFixedOperating = 0;
 
     if (activePlan && activePlan.scenarios.length > 0) {
       const scenario = activePlan.scenarios[0];
@@ -68,6 +73,15 @@ async function testSyncMath() {
         const vendorId = game.vendorId;
         const size = game.ticketSize || "4x4";
 
+        let defaultSystem = 2.50;
+        let defaultBonus = 0.50;
+        let defaultFixed = 0.00;
+        let defaultCashing = 1.00;
+        let defaultCashable = 70.00;
+        let defaultJackpot = 0.50;
+        let defaultEligible = 10.00;
+        let defaultJackpotCap = 1000000.00;
+
         if (vendorId) {
           const pricing = await prisma.instantTicketVendorPricing.findFirst({
             where: { vendorId, ticketSize: size }
@@ -80,12 +94,35 @@ async function testSyncMath() {
             } else {
               printCost = (units / 1000) * baseCost;
             }
+            defaultSystem = pricing.gamingSystemPercent !== undefined && pricing.gamingSystemPercent !== null ? parseFloat(pricing.gamingSystemPercent) : 2.50;
+            defaultBonus = pricing.retailerBonusPercent !== undefined && pricing.retailerBonusPercent !== null ? parseFloat(pricing.retailerBonusPercent) : 0.50;
+            defaultFixed = pricing.fixedOperatingCost !== undefined && pricing.fixedOperatingCost !== null ? parseFloat(pricing.fixedOperatingCost) : 0.00;
+            defaultCashing = pricing.retailerCashingPercent !== undefined && pricing.retailerCashingPercent !== null ? parseFloat(pricing.retailerCashingPercent) : 1.00;
+            defaultCashable = pricing.cashablePrizePercent !== undefined && pricing.cashablePrizePercent !== null ? parseFloat(pricing.cashablePrizePercent) : 70.00;
+            defaultJackpot = pricing.jackpotBonusPercent !== undefined && pricing.jackpotBonusPercent !== null ? parseFloat(pricing.jackpotBonusPercent) : 0.50;
+            defaultEligible = pricing.jackpotEligiblePercent !== undefined && pricing.jackpotEligiblePercent !== null ? parseFloat(pricing.jackpotEligiblePercent) : 10.00;
+            defaultJackpotCap = pricing.jackpotBonusCap !== undefined && pricing.jackpotBonusCap !== null ? parseFloat(pricing.jackpotBonusCap) : 1000000.00;
           } else {
             printCost = (units / 1000) * 22.00;
           }
         } else {
           printCost = (units / 1000) * 22.00;
         }
+
+        const systemPercent = game.gamingSystemPercent !== null && game.gamingSystemPercent !== undefined ? parseFloat(game.gamingSystemPercent) : defaultSystem;
+        const bonusPercent = game.retailerBonusPercent !== null && game.retailerBonusPercent !== undefined ? parseFloat(game.retailerBonusPercent) : defaultBonus;
+        const fixedCost = game.fixedOperatingCost !== null && game.fixedOperatingCost !== undefined ? parseFloat(game.fixedOperatingCost) : defaultFixed;
+        const cashingPercent = game.retailerCashingPercent !== null && game.retailerCashingPercent !== undefined ? parseFloat(game.retailerCashingPercent) : defaultCashing;
+        const cashableShare = game.cashablePrizePercent !== null && game.cashablePrizePercent !== undefined ? parseFloat(game.cashablePrizePercent) : defaultCashable;
+        const jackpotPercent = game.jackpotBonusPercent !== null && game.jackpotBonusPercent !== undefined ? parseFloat(game.jackpotBonusPercent) : defaultJackpot;
+        const jackpotEligible = game.jackpotEligiblePercent !== null && game.jackpotEligiblePercent !== undefined ? parseFloat(game.jackpotEligiblePercent) : defaultEligible;
+        const jackpotCap = game.jackpotBonusCap !== null && game.jackpotBonusCap !== undefined ? parseFloat(game.jackpotBonusCap) : defaultJackpotCap;
+
+        expectedScratcherSystemFee += (grossSales * systemPercent) / 100;
+        expectedScratcherRetailerBonus += (grossSales * bonusPercent) / 100;
+        expectedScratcherCashingBonus += prizeExpense * (cashableShare / 100) * (cashingPercent / 100);
+        expectedScratcherJackpotBonus += Math.min(jackpotCap, prizeExpense * (jackpotEligible / 100) * (jackpotPercent / 100));
+        expectedScratcherFixedOperating += fixedCost;
 
         expectedScratcherSales += grossSales;
         expectedScratcherPrizeExpense += prizeExpense;
@@ -114,6 +151,11 @@ async function testSyncMath() {
     let expectedDrawSales = 0;
     let expectedDrawPrizeExpense = 0;
     let expectedDrawRetailerComm = 0;
+    let expectedDrawSystemFee = 0;
+    let expectedDrawRetailerBonus = 0;
+    let expectedDrawCashingBonus = 0;
+    let expectedDrawJackpotBonus = 0;
+    let expectedDrawFixedOperating = 0;
 
     if (drawScenario) {
       for (const game of drawScenario.games) {
@@ -121,9 +163,24 @@ async function testSyncMath() {
         const payout = parseFloat(game.prizePayoutPercent) / 100.0;
         const comm = parseFloat(game.retailerCommPercent) / 100.0;
 
+        const systemPercent = game.gamingSystemPercent !== undefined && game.gamingSystemPercent !== null ? parseFloat(game.gamingSystemPercent) : 2.50;
+        const bonusPercent = game.retailerBonusPercent !== undefined && game.retailerBonusPercent !== null ? parseFloat(game.retailerBonusPercent) : 0.50;
+        const cashingPercent = game.retailerCashingPercent !== undefined && game.retailerCashingPercent !== null ? parseFloat(game.retailerCashingPercent) : 1.00;
+        const cashableShare = game.cashablePrizePercent !== undefined && game.cashablePrizePercent !== null ? parseFloat(game.cashablePrizePercent) : 50.00;
+        const jackpotPercent = game.jackpotBonusPercent !== undefined && game.jackpotBonusPercent !== null ? parseFloat(game.jackpotBonusPercent) : 0.50;
+        const jackpotEligible = game.jackpotEligiblePercent !== undefined && game.jackpotEligiblePercent !== null ? parseFloat(game.jackpotEligiblePercent) : 25.00;
+        const jackpotCap = game.jackpotBonusCap !== undefined && game.jackpotBonusCap !== null ? parseFloat(game.jackpotBonusCap) : 1000000.00;
+        const fixedCost = game.fixedOperatingCost !== undefined && game.fixedOperatingCost !== null ? parseFloat(game.fixedOperatingCost) : 0.00;
+
+        const prizePayoutAmt = sales * payout;
         expectedDrawSales += sales;
-        expectedDrawPrizeExpense += sales * payout;
+        expectedDrawPrizeExpense += prizePayoutAmt;
         expectedDrawRetailerComm += sales * comm;
+        expectedDrawSystemFee += (sales * systemPercent) / 100;
+        expectedDrawRetailerBonus += (sales * bonusPercent) / 100;
+        expectedDrawCashingBonus += prizePayoutAmt * (cashableShare / 100) * (cashingPercent / 100);
+        expectedDrawJackpotBonus += Math.min(jackpotCap, prizePayoutAmt * (jackpotEligible / 100) * (jackpotPercent / 100));
+        expectedDrawFixedOperating += fixedCost;
       }
     }
 
@@ -137,6 +194,8 @@ async function testSyncMath() {
       expectedScratcherPrizeExpense + expectedDrawPrizeExpense +
       expectedScratcherRetailerComm + expectedDrawRetailerComm +
       expectedScratcherPrintingCost + expectedScratcherMarketingCost +
+      expectedScratcherSystemFee + expectedScratcherRetailerBonus + expectedScratcherCashingBonus + expectedScratcherJackpotBonus + expectedScratcherFixedOperating +
+      expectedDrawSystemFee + expectedDrawRetailerBonus + expectedDrawCashingBonus + expectedDrawJackpotBonus + expectedDrawFixedOperating +
       expectedDivSum
     );
     console.log(`\nProjected Net Revenue Contribution: $${expectedNet.toLocaleString()}`);

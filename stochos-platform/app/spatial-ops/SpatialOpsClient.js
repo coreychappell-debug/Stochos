@@ -19,14 +19,15 @@ export default function SpatialOpsClient({ baseUrl }) {
       try {
         if (typeof window !== "undefined") {
           // Use relative path to bypass mixed content (HTTP inside HTTPS) and port restrictions
-          return `/shiny/ews/?theme=${activeTheme}`;
+          return `/shiny/ews/?theme=${activeTheme}&cb=${Date.now()}`;
         }
         const urlObj = new URL(baseUrl);
         urlObj.hostname = window.location.hostname;
         urlObj.searchParams.set("theme", activeTheme);
+        urlObj.searchParams.set("cb", Date.now().toString());
         return urlObj.toString();
       } catch (e) {
-        return `/shiny/ews/?theme=${activeTheme}`;
+        return `/shiny/ews/?theme=${activeTheme}&cb=${Date.now()}`;
       }
     };
 

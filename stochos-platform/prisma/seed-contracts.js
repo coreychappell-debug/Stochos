@@ -48,7 +48,7 @@ async function main() {
   console.log('  ✓ Ensuring operational vendors exist...');
   
   const vendorData = [
-    { name: 'International Game Tech', type: 'printer', notes: 'Ecosystem technology, claims support, and retail terminal networks.' },
+    { name: 'BrightStar', type: 'printer', notes: 'Ecosystem technology, claims support, and retail terminal networks.' },
     { name: 'Scientific Games', type: 'printer', notes: 'Primary print partner for scratch-offs and analytical portfolio planning.' },
     { name: 'Pollard Banknote', type: 'printer', notes: 'Secondary printing agreement for specialty tickets and licensed pull-tabs.' },
     { name: 'McCann Worldgroup', type: 'lead_agency', notes: 'Creative agency of record for multi-channel marketing campaigns.' },

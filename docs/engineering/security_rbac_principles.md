@@ -34,7 +34,7 @@ If a user is authenticated, the middleware evaluates their `role` against the de
 | `/` | Dashboard | All authenticated users |
 | `/help` | User Guide & Help Center | All authenticated users |
 | `/spatial-ops` | SOLR Spatial Maps | `admin`, `analyst`, `manager` |
-| `/analytics` | Performance Dashboards | `admin`, `analyst`, `manager` |
+| `/analytics/*` | Performance Dashboards | `admin`, `analyst`, `manager` |
 | `/reporting/*` | GFPA Financial Suite | `admin`, `procurement_officer`, `analyst` |
 | `/fomo/*` | FOMO Field Ops | `admin`, `sales_rep`, `manager` |
 | `/fleet/*` | Fleet Tracking | `admin`, `sales_rep`, `manager` |

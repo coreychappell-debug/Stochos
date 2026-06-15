@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Map, Lock } from "lucide-react";
 
 export default function VcrmMapClient() {
   const [routes, setRoutes] = useState([]);
@@ -13,6 +14,19 @@ export default function VcrmMapClient() {
     overdue: true,
   });
 
+  // Mobile responsiveness & interaction controls
+  const [isMobile, setIsMobile] = useState(false);
+  const [mapInteractive, setMapInteractive] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const layersRef = useRef({
@@ -20,6 +34,13 @@ export default function VcrmMapClient() {
     retailers: L.featureGroup(),
     warnings: L.featureGroup(),
   });
+
+  // Sync Leaflet size when map becomes interactive or mobile state changes
+  useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.invalidateSize();
+    }
+  }, [mapInteractive, isMobile]);
 
   // Fetch routes data
   useEffect(() => {
@@ -330,18 +351,90 @@ export default function VcrmMapClient() {
       </div>
 
       {/* Map Container */}
-      <div 
-        ref={containerRef}
-        style={{
-          flex: 1,
-          minHeight: "650px",
-          borderRadius: "8px",
-          border: "1px solid var(--border)",
-          backgroundColor: "var(--card-bg)",
-          overflow: "hidden",
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.15)"
-        }}
-      />
+      <div style={{ position: "relative", flex: 1, minHeight: isMobile ? "380px" : "650px" }}>
+        <div 
+          ref={containerRef}
+          style={{
+            height: "100%",
+            minHeight: isMobile ? "380px" : "650px",
+            borderRadius: "8px",
+            border: "1px solid var(--border)",
+            backgroundColor: "var(--card-bg)",
+            overflow: "hidden",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.15)"
+          }}
+        />
+
+        {/* Mobile Gestures Overlay */}
+        {isMobile && !mapInteractive && (
+          <div 
+            onClick={() => setMapInteractive(true)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(2px)",
+              zIndex: 1000,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              cursor: "pointer",
+              borderRadius: "8px"
+            }}
+          >
+            <div style={{
+              backgroundColor: "var(--card-bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "30px",
+              padding: "10px 20px",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              textAlign: "center",
+              maxWidth: "80%"
+            }}>
+              <span style={{ fontSize: "13px", fontWeight: "bold", color: "var(--text)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Map size={16} style={{ color: "var(--primary)" }} /> Tap to Interact with Map
+              </span>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                Swipe here to scroll page
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Floating lock scroll button for mobile */}
+        {isMobile && mapInteractive && (
+          <button
+            onClick={() => setMapInteractive(false)}
+            style={{
+              position: "absolute",
+              top: "80px",
+              left: "10px",
+              zIndex: 1000,
+              padding: "6px 12px",
+              borderRadius: "20px",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--card-bg)",
+              color: "var(--text)",
+              fontSize: "11px",
+              fontWeight: 600,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px"
+            }}
+          >
+            <Lock size={12} /> Lock Scroll
+          </button>
+        )}
+      </div>
       
       {/* CSS Keyframe Animation for Exception pulse effect */}
       <style jsx global>{`

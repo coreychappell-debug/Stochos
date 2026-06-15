@@ -39,11 +39,9 @@ export async function calculateAllocation(planId, basis = "sales") {
   if (!plan) {
     throw new Error("Plan not found");
   }
-
   const scenario = plan.scenarios[0];
-  const games = scenario?.games || [];
-  const marketingItems = scenario?.marketingItems || [];
-
+  const games = (scenario?.games || []).filter(g => g.budgetStatus !== 'already_booked');
+  const marketingItems = (scenario?.marketingItems || []).filter(m => m.budgetStatus !== 'already_booked');
   const sellThrough = parseFloat(plan.sellThroughPct) / 100.0;
   const retailerCommPct = parseFloat(plan.retailerCommPct) / 100.0;
 
@@ -66,22 +64,92 @@ export async function calculateAllocation(planId, basis = "sales") {
     const prizeExpense = grossSales * payout;
     const retailerComm = grossSales * retailerCommPct;
 
-    // Printing cost
-    let printingCost = 0;
+    // Feature surcharges config matching frontend
+    const FEATURE_PRICING = {
+      sg: {
+        "Holographic Foil": 0.45,
+        "Metallic Ink": 0.15,
+        "Extended Play (Crossword/Bingo)": 0.25,
+        "Die-Cut Ticket": 0.60,
+        "Sparkle/Glitter Coating": 0.25,
+        "Oversized Format": 0.35
+      },
+      pb: {
+        "Holographic Foil": 0.40,
+        "Metallic Ink": 0.12,
+        "Extended Play (Crossword/Bingo)": 0.20,
+        "Die-Cut Ticket": 0.55,
+        "Sparkle/Glitter Coating": 0.20,
+        "Oversized Format": 0.30
+      },
+      igt: {
+        "Holographic Foil": 0.42,
+        "Metallic Ink": 0.14,
+        "Extended Play (Crossword/Bingo)": 0.22,
+        "Die-Cut Ticket": 0.58,
+        "Sparkle/Glitter Coating": 0.22,
+        "Oversized Format": 0.32
+      }
+    };
+
+    // Determine vendor key by name matching
+    let vendorKey = "sg";
+    if (game.vendor?.name) {
+      const vName = game.vendor.name.toLowerCase();
+      if (vName.includes("scientific")) vendorKey = "sg";
+      else if (vName.includes("pollard")) vendorKey = "pb";
+      else if (vName.includes("igt") || vName.includes("game tech") || vName.includes("brightstar")) vendorKey = "igt";
+    }
+
+    // Step-tier base cost lookup (minQuantity)
+    let baseCost = 22.00;
+    let costModel = "per_thousand";
     const size = game.ticketSize || "4x4";
-    const pricing = vendorPricing.find(
+    const sizePricings = vendorPricing.filter(
       (p) => p.vendorId === game.vendorId && p.ticketSize === size
     );
-    if (pricing) {
-      const baseCost = parseFloat(pricing.baseCost);
-      if (pricing.costModel === "percent_of_sales") {
-        printingCost = (units * denom) * (baseCost / 100.0);
+
+    if (sizePricings.length > 0) {
+      // Sort tiers descending by minQuantity
+      sizePricings.sort((a, b) => {
+        const qa = a.minQuantity ? BigInt(a.minQuantity) : 0n;
+        const qb = b.minQuantity ? BigInt(b.minQuantity) : 0n;
+        return qa > qb ? -1 : qa < qb ? 1 : 0;
+      });
+      // Find highest tier matched by units
+      const matchingTier = sizePricings.find((p) => {
+        const minQ = p.minQuantity ? BigInt(p.minQuantity) : 0n;
+        return BigInt(units) >= minQ;
+      });
+      if (matchingTier) {
+        baseCost = parseFloat(matchingTier.baseCost);
+        costModel = matchingTier.costModel;
       } else {
-        printingCost = (units / 1000) * baseCost;
+        const lowestTier = sizePricings[sizePricings.length - 1];
+        baseCost = parseFloat(lowestTier.baseCost);
+        costModel = lowestTier.costModel;
       }
-    } else {
-      printingCost = (units / 1000) * 22.00;
     }
+
+    // Calculate features cost
+    let featureCpm = 0;
+    const vendorFeatureRates = FEATURE_PRICING[vendorKey] || {};
+    if (game.features && game.features.length > 0) {
+      for (const f of game.features) {
+        const rate = vendorFeatureRates[f.featureName] || 0;
+        featureCpm += rate;
+      }
+    }
+
+    // Calculate final printing cost
+    let manufacturing = 0;
+    if (costModel === "percent_of_sales") {
+      manufacturing = grossSales * (baseCost / 100.0);
+    } else {
+      manufacturing = (units / 1000) * baseCost;
+    }
+    const featureCost = (units / 1000) * featureCpm;
+    const printingCost = manufacturing + featureCost;
 
     totalInstantSales += grossSales;
     totalInstantUnits += units;
@@ -104,15 +172,15 @@ export async function calculateAllocation(planId, basis = "sales") {
     where: { jurisdictionId: plan.jurisdictionId, fiscalYear: plan.fiscalYear },
     include: { games: true },
   });
-
   let totalDrawSales = 0;
   if (drawScenario) {
-    totalDrawSales = drawScenario.games.reduce(
-      (s, g) => s + parseFloat(g.projectedSales),
-      0
-    );
+    totalDrawSales = drawScenario.games
+      .filter(g => g.budgetStatus !== 'already_booked')
+      .reduce(
+        (s, g) => s + parseFloat(g.projectedSales),
+        0
+      );
   }
-
   const totalLotterySales = totalInstantSales + totalDrawSales;
 
   // 5. Query active central operational contracts

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Link from "next/link";
-import { Building2, MapPin, Home, Plus, Search, AlertTriangle, Zap, Compass, RotateCw, Split, Maximize2, X, Store, Calendar, List } from "lucide-react";
+import { Building2, MapPin, Home, Plus, Search, AlertTriangle, Zap, Compass, RotateCw, Split, Maximize2, X, Store, Calendar, List, Map, Lock } from "lucide-react";
 import HelpTooltip from "../../components/HelpTooltip";
 
 const SERVICE_CENTERS = [
@@ -164,6 +164,20 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
 
   const [mapExpanded, setMapExpanded] = useState(false);
 
+  // Mobile responsiveness & interaction controls
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeMobileView, setActiveMobileView] = useState("controls"); // "controls" | "map"
+  const [mapInteractive, setMapInteractive] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Trigger leaflet map redraw on container resize transitions (including pinned guide offset)
   useEffect(() => {
     let timeoutId;
@@ -193,7 +207,7 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
       window.removeEventListener("layout-resize", handleMapResize);
       window.removeEventListener("resize", handleMapResize);
     };
-  }, [mapExpanded]);
+  }, [mapExpanded, activeMobileView, mapInteractive]);
 
   // Route optimization result state
   const [optimizing, setOptimizing] = useState(false);
@@ -1389,17 +1403,57 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
   }, [startPoint, selectedStores, optimizedRoute, suggestedNearbyStops, recommendedStops]);
 
   return (
-    <div style={{ 
-      display: "grid", 
-      gridTemplateColumns: mapExpanded ? "0.5fr 2fr" : "1.35fr 1.15fr", 
-      gap: 20, 
-      flex: 1, 
-      minHeight: "680px",
-      transition: "grid-template-columns 0.3s ease"
-    }}>
-      
-      {/* LEFT COLUMN: Controls & Selections (Fluid Flexbox Accordion) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "82vh", overflow: "hidden", paddingRight: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+      {isMobile && (
+        <div style={{ display: "flex", width: "100%", borderBottom: "1px solid var(--border)", marginBottom: "8px", borderRadius: "var(--radius-sm)", overflow: "hidden", backgroundColor: "var(--surface-2)", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setActiveMobileView("controls")}
+            style={{
+              flex: 1,
+              padding: "10px",
+              border: "none",
+              backgroundColor: activeMobileView === "controls" ? "var(--primary)" : "transparent",
+              color: activeMobileView === "controls" ? "#ffffff" : "var(--text-secondary)",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: "pointer"
+            }}
+          >
+            📋 Planner Controls ({selectedIds.size} Stops)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMobileView("map")}
+            style={{
+              flex: 1,
+              padding: "10px",
+              border: "none",
+              backgroundColor: activeMobileView === "map" ? "var(--primary)" : "transparent",
+              color: activeMobileView === "map" ? "#ffffff" : "var(--text-secondary)",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: "pointer"
+            }}
+          >
+            🗺️ Route Map
+          </button>
+        </div>
+      )}
+
+      <div style={{ 
+        display: isMobile ? "flex" : "grid", 
+        flexDirection: isMobile ? "column" : undefined,
+        gridTemplateColumns: isMobile ? undefined : (mapExpanded ? "0.5fr 2fr" : "1.35fr 1.15fr"), 
+        gap: isMobile ? 12 : 20, 
+        flex: 1, 
+        minHeight: isMobile ? "auto" : "680px",
+        transition: "grid-template-columns 0.3s ease"
+      }}>
+        
+        {/* LEFT COLUMN: Controls & Selections (Fluid Flexbox Accordion) */}
+        {(!isMobile || activeMobileView === "controls") && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, height: isMobile ? "auto" : "82vh", overflow: isMobile ? "visible" : "hidden", paddingRight: 4 }}>
         
         {/* Settings Panel: Starting Location */}
         <div className="card" style={{ display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", flexShrink: 0 }}>
@@ -2759,42 +2813,123 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
           )}
         </div>
 
-      </div>
+          </div>
+        )}
 
-      {/* RIGHT COLUMN: Map Container */}
-      <div 
-        ref={containerRef} 
-        className="card" 
-        style={{ 
-          height: "82vh", 
-          position: "sticky", 
-          top: 16, 
-          borderRadius: 8, 
-          overflow: "hidden", 
-          zIndex: 0 
-        }} 
-      >
-        {/* Float Map Expansion Control */}
-        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 1000 }}>
-          <button 
-            type="button" 
-            className="btn btn-secondary btn-sm" 
+
+        {/* RIGHT COLUMN: Map Container */}
+        {(!isMobile || activeMobileView === "map") && (
+          <div 
+            ref={containerRef} 
+            className="card" 
             style={{ 
-              boxShadow: "0 2px 5px rgba(0,0,0,0.15)", 
-              backgroundColor: "var(--surface-1)", 
-              fontWeight: 600,
-              fontSize: 11,
-              padding: "6px 10px"
-            }}
-            onClick={() => setMapExpanded(!mapExpanded)}
+              height: isMobile ? "60vh" : "82vh", 
+              position: isMobile ? "relative" : "sticky", 
+              top: isMobile ? 0 : 16, 
+              borderRadius: 8, 
+              overflow: "hidden", 
+              zIndex: 0 
+            }} 
           >
-            {mapExpanded ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Split size={12} /> Split View</span>
-            ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Maximize2 size={12} /> Expand Map</span>
+            {/* Float Map Expansion Control */}
+            {!isMobile && (
+              <div style={{ position: "absolute", top: 10, right: 10, zIndex: 1000 }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm" 
+                  style={{ 
+                    boxShadow: "0 2px 5px rgba(0,0,0,0.15)", 
+                    backgroundColor: "var(--surface-1)", 
+                    fontWeight: 600,
+                    fontSize: 11,
+                    padding: "6px 10px"
+                  }}
+                  onClick={() => setMapExpanded(!mapExpanded)}
+                >
+                  {mapExpanded ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Split size={12} /> Split View</span>
+                  ) : (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Maximize2 size={12} /> Expand Map</span>
+                  )}
+                </button>
+              </div>
             )}
-          </button>
-        </div>
+
+
+            {/* Mobile Gestures Overlay */}
+            {isMobile && !mapInteractive && (
+              <div 
+                onClick={() => setMapInteractive(true)}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(15, 23, 42, 0.45)",
+                  backdropFilter: "blur(2px)",
+                  zIndex: 1000,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  borderRadius: "8px"
+                }}
+              >
+                <div style={{
+                  backgroundColor: "var(--card-bg)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "30px",
+                  padding: "10px 20px",
+                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                  textAlign: "center",
+                  maxWidth: "80%"
+                }}>
+                  <span style={{ fontSize: "13px", fontWeight: "bold", color: "var(--text)", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Map size={16} style={{ color: "var(--primary)" }} /> Tap to Interact with Map
+                  </span>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                    Swipe here to scroll page
+                  </span>
+                </div>
+              </div>
+            )}
+
+
+            {/* Floating lock scroll button for mobile */}
+            {isMobile && mapInteractive && (
+              <button
+                type="button"
+                onClick={() => setMapInteractive(false)}
+                style={{
+                  position: "absolute",
+                  top: "80px",
+                  left: "10px",
+                  zIndex: 1000,
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--card-bg)",
+                  color: "var(--text)",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                <Lock size={12} /> Lock Scroll
+              </button>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* Overlay spinner */}
@@ -2843,7 +2978,6 @@ export default function PlannerClient({ retailers, routes, chains, users = [], c
           </div>
         </div>
       )}
-
     </div>
   );
 }

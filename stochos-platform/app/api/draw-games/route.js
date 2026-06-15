@@ -97,7 +97,15 @@ export async function GET(request) {
             name: p.name,
             projectedSales: baselineSales || 1000000.00,
             prizePayoutPercent: prizePayout,
-            retailerCommPercent: 6.0
+            retailerCommPercent: 6.0,
+            gamingSystemPercent: 2.50,
+            retailerBonusPercent: 0.50,
+            fixedOperatingCost: 0.00,
+            retailerCashingPercent: 1.00,
+            cashablePrizePercent: 50.00,
+            jackpotBonusPercent: 0.50,
+            jackpotEligiblePercent: 25.00,
+            jackpotBonusCap: 1000000.00
           }
         });
       }
@@ -186,7 +194,15 @@ export async function GET(request) {
           name: p.name,
           projectedSales: baselineSales || 1000000.00,
           prizePayoutPercent: prizePayout,
-          retailerCommPercent: 6.0
+          retailerCommPercent: 6.0,
+          gamingSystemPercent: 2.50,
+          retailerBonusPercent: 0.50,
+          fixedOperatingCost: 0.00,
+          retailerCashingPercent: 1.00,
+          cashablePrizePercent: 50.00,
+          jackpotBonusPercent: 0.50,
+          jackpotEligiblePercent: 25.00,
+          jackpotBonusCap: 1000000.00
         }
       });
       createdGames.push(gameItem);
@@ -202,7 +218,15 @@ export async function GET(request) {
     ...g,
     projectedSales: parseFloat(g.projectedSales),
     prizePayoutPercent: parseFloat(g.prizePayoutPercent),
-    retailerCommPercent: parseFloat(g.retailerCommPercent)
+    retailerCommPercent: parseFloat(g.retailerCommPercent),
+    gamingSystemPercent: parseFloat(g.gamingSystemPercent),
+    retailerBonusPercent: parseFloat(g.retailerBonusPercent),
+    fixedOperatingCost: parseFloat(g.fixedOperatingCost),
+    retailerCashingPercent: parseFloat(g.retailerCashingPercent),
+    cashablePrizePercent: parseFloat(g.cashablePrizePercent),
+    jackpotBonusPercent: parseFloat(g.jackpotBonusPercent),
+    jackpotEligiblePercent: parseFloat(g.jackpotEligiblePercent),
+    jackpotBonusCap: parseFloat(g.jackpotBonusCap)
   }));
 
   return NextResponse.json({
@@ -250,7 +274,16 @@ export async function POST(request) {
             name: g.name,
             projectedSales: parseFloat(g.projectedSales || 0),
             prizePayoutPercent: parseFloat(g.prizePayoutPercent || 50),
-            retailerCommPercent: parseFloat(g.retailerCommPercent || 5)
+            retailerCommPercent: parseFloat(g.retailerCommPercent || 5),
+            gamingSystemPercent: parseFloat(g.gamingSystemPercent ?? 2.50),
+            retailerBonusPercent: parseFloat(g.retailerBonusPercent ?? 0.50),
+            fixedOperatingCost: parseFloat(g.fixedOperatingCost ?? 0.00),
+            retailerCashingPercent: parseFloat(g.retailerCashingPercent ?? 1.00),
+            cashablePrizePercent: parseFloat(g.cashablePrizePercent ?? 50.00),
+            jackpotBonusPercent: parseFloat(g.jackpotBonusPercent ?? 0.50),
+            jackpotEligiblePercent: parseFloat(g.jackpotEligiblePercent ?? 25.00),
+            jackpotBonusCap: parseFloat(g.jackpotBonusCap ?? 1000000.00),
+            budgetStatus: g.budgetStatus || "new_request"
           }
         });
         createdItems.push(item);
@@ -262,7 +295,15 @@ export async function POST(request) {
       ...g,
       projectedSales: parseFloat(g.projectedSales),
       prizePayoutPercent: parseFloat(g.prizePayoutPercent),
-      retailerCommPercent: parseFloat(g.retailerCommPercent)
+      retailerCommPercent: parseFloat(g.retailerCommPercent),
+      gamingSystemPercent: parseFloat(g.gamingSystemPercent),
+      retailerBonusPercent: parseFloat(g.retailerBonusPercent),
+      fixedOperatingCost: parseFloat(g.fixedOperatingCost),
+      retailerCashingPercent: parseFloat(g.retailerCashingPercent),
+      cashablePrizePercent: parseFloat(g.cashablePrizePercent),
+      jackpotBonusPercent: parseFloat(g.jackpotBonusPercent),
+      jackpotEligiblePercent: parseFloat(g.jackpotEligiblePercent),
+      jackpotBonusCap: parseFloat(g.jackpotBonusCap)
     }));
 
     return NextResponse.json({ success: true, games: serializedGames });

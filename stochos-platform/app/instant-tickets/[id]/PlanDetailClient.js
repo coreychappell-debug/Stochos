@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, FileText, BarChart4, Settings2, Info } from "lucide-react";
@@ -9,6 +9,15 @@ export default function PlanDetailClient({ plan, stats }) {
   const [saving, setSaving] = useState(false);
   const [allocationBasis, setAllocationBasis] = useState("sales");
   const router = useRouter();
+
+  useEffect(() => {
+    window.__next_refresh = () => {
+      router.refresh();
+    };
+    return () => {
+      delete window.__next_refresh;
+    };
+  }, [router]);
 
   const handleUpdateStatus = async (newStatus) => {
     if (!confirm(`Change plan status to ${newStatus}?`)) return;
@@ -130,7 +139,7 @@ export default function PlanDetailClient({ plan, stats }) {
       {tab === "editor" && (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <iframe
-            src="/planner.html"
+            src={`/planner.html?id=${plan.id}&v=1.0.2`}
             style={{
               width: "100%",
               height: "calc(100vh - 200px)",

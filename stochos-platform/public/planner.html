@@ -8,63 +8,46 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>
-        :root {
-            --bg-main: #111827;
-            --bg-panel: #1f2937;
-            --bg-input: #374151;
-            --border-color: #4b5563;
-            --text-light: #d1d5db;
-            --text-dark: #9ca3af;
-            --accent-color: #3b82f6;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --success-color: #22c55e;
-            --bg-light: #283548;
-            --accent-light: #60a5fa;
+        body {
+            /* Map planner variables to platform tokens dynamically */
+            --bg-main: var(--navy, #111827);
+            --bg-panel: var(--card-bg, #1f2937);
+            --bg-input: var(--surface-3, #374151);
+            --border-color: var(--border, #4b5563);
+            --text-light: var(--text, #d1d5db);
+            --text-dark: var(--text-secondary, #9ca3af);
+            --accent-color: var(--blue, #3b82f6);
+            --danger-color: var(--red, #ef4444);
+            --warning-color: var(--gold, #f59e0b);
+            --success-color: var(--green, #22c55e);
+            --bg-light: var(--surface-3, #283548);
+            --accent-light: var(--blue, #60a5fa);
         }
 
         body.light-theme {
-            --bg-main: #f4f6f9;
-            --bg-panel: #ffffff;
-            --bg-input: #f1f3f4;
-            --border-color: #cbd5e1;
-            --text-light: #1e293b;
-            --text-dark: #64748b;
-            --accent-color: #1a73e8;
-            --danger-color: #b91c1c;
-            --warning-color: #b45309;
-            --success-color: #107c41;
-            --bg-light: #e2e8f0;
-            --accent-light: #1a73e8;
+            --bg-main: var(--navy, #f4f6f9);
+            --bg-panel: var(--card-bg, #ffffff);
+            --bg-input: var(--surface-1, #f1f3f4);
+            --border-color: var(--border, #cbd5e1);
+            --text-light: var(--text, #1e293b);
+            --text-dark: var(--text-muted, #64748b);
+            --accent-color: var(--blue, #1a73e8);
+            --danger-color: var(--red, #b91c1c);
+            --warning-color: var(--gold, #b45309);
+            --success-color: var(--green, #107c41);
+            --bg-light: var(--surface-3, #e2e8f0);
+            --accent-light: var(--blue, #1a73e8);
         }
 
         body.light-theme .icon-btn:hover {
             background-color: rgba(0, 0, 0, 0.05);
         }
 
-        body.light-theme button:hover:not(:disabled),
-        body.light-theme select:hover:not(:disabled) {
-            background-color: #e8eaed;
-            border-color: #dadce0;
-        }
-
-        body.light-theme button:active:not(:disabled),
-        body.light-theme select:active:not(:disabled) {
-            background-color: #cbd5e1;
-        }
-
         body.light-theme .scenario-tab:hover {
             color: var(--accent-color);
         }
 
-        body.light-theme button:disabled {
-            background-color: #f1f3f4;
-            color: #9ca3af;
-            border-color: #e5e7eb;
-            opacity: 0.6;
-        }
-
-        /* Unify all form elements to use the Inter font family */
+        /* Unify all form elements to use the platform font family */
         button, select, input, textarea {
             font-family: inherit;
         }
@@ -77,7 +60,7 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
             background-color: var(--bg-main);
             color: var(--text-light);
         }
@@ -100,7 +83,6 @@
             gap: 0.5rem;
             padding: 0.5rem 0.75rem;
             background-color: var(--bg-panel);
-            /* bg-panel */
             border-radius: 0.5rem;
         }
 
@@ -125,7 +107,6 @@
         }
 
         #main-content {
-            flex-grow: 1;
             display: grid;
             grid-template-columns: 280px 1fr 50vw;
             gap: 12px;
@@ -169,37 +150,204 @@
             margin-bottom: 8px;
         }
 
-        button,
-        select {
-            background-color: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 0.85rem;
+        /* --- Form Elements & Buttons Styling --- */
+        button {
+            font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-md, 8px);
+            padding: 6px 12px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all var(--transition, 150ms ease);
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
             color: var(--text-light);
         }
 
-        button:hover:not(:disabled) {
-            background-color: #4b5563;
+        /* Default/Secondary buttons */
+        button,
+        #load-plan-btn,
+        #undo-btn,
+        #redo-btn,
+        #modal-cancel-btn,
+        #add-vendor-cancel-btn,
+        #confirm-cancel-btn,
+        #add-scenario-btn,
+        #duplicate-scenario-btn,
+        #add-vendor-btn,
+        #manage-features-btn,
+        #clear-log-btn,
+        button[data-action="edit-features"],
+        button[data-action="toggle-left"],
+        button[data-action="toggle-right"],
+        button[data-action="toggle-bottom"] {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
         }
 
-        button:disabled {
-            opacity: 0.5;
+        button:hover:not(:disabled),
+        #load-plan-btn:hover:not(:disabled),
+        #undo-btn:hover:not(:disabled),
+        #redo-btn:hover:not(:disabled),
+        #modal-cancel-btn:hover:not(:disabled),
+        #add-vendor-cancel-btn:hover:not(:disabled),
+        #confirm-cancel-btn:hover:not(:disabled),
+        #add-scenario-btn:hover:not(:disabled),
+        #duplicate-scenario-btn:hover:not(:disabled),
+        #add-vendor-btn:hover:not(:disabled),
+        #manage-features-btn:hover:not(:disabled),
+        #clear-log-btn:hover:not(:disabled),
+        button[data-action="edit-features"]:hover:not(:disabled) {
+            border-color: var(--text-dark);
+            background-color: var(--bg-input);
+            color: var(--text-light);
+        }
+
+        button:disabled,
+        button:disabled:hover {
+            opacity: 0.4;
             cursor: not-allowed;
+            background-color: transparent !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-dark) !important;
+            box-shadow: none !important;
         }
 
+        /* Primary buttons */
+        #save-plan-btn,
+        #modal-save-btn,
+        #add-vendor-save-btn,
+        #add-denom-btn,
+        #add-feature-btn,
+        button[data-action="add-game"],
+        button[data-action="add-ns-item"],
+        #dashboard-done-btn,
+        #modal-done-btn {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #ffffff !important;
+        }
+
+        #save-plan-btn:hover:not(:disabled),
+        #modal-save-btn:hover:not(:disabled),
+        #add-vendor-save-btn:hover:not(:disabled),
+        #add-denom-btn:hover:not(:disabled),
+        #add-feature-btn:hover:not(:disabled),
+        button[data-action="add-game"]:hover:not(:disabled),
+        button[data-action="add-ns-item"]:hover:not(:disabled),
+        #dashboard-done-btn:hover:not(:disabled),
+        #modal-done-btn:hover:not(:disabled) {
+            background-color: var(--accent-light, var(--accent-color));
+            box-shadow: 0 0 12px var(--blue-glow, rgba(0, 180, 216, 0.25));
+            border-color: var(--accent-light, var(--accent-color));
+        }
+
+        /* Warning/Clear buttons - Solid gold background with black text for maximum readability */
+        #clear-scenario-btn {
+            background-color: var(--warning-color) !important;
+            border-color: var(--warning-color) !important;
+            color: #000000 !important;
+        }
+        #clear-scenario-btn:hover:not(:disabled) {
+            background-color: var(--warning-color) !important;
+            opacity: 0.9;
+        }
+
+        /* Text-based Destructive/Delete buttons - Solid red background with white text for maximum readability */
+        #delete-scenario-btn,
+        #confirm-ok-btn,
+        button[data-action="delete-feature"] {
+            background-color: var(--danger-color) !important;
+            border-color: var(--danger-color) !important;
+            color: #ffffff !important;
+        }
+
+        #delete-scenario-btn:hover:not(:disabled),
+        #confirm-ok-btn:hover:not(:disabled),
+        button[data-action="delete-feature"]:hover:not(:disabled) {
+            opacity: 0.9;
+            box-shadow: 0 0 12px rgba(255, 107, 139, 0.4);
+        }
+
+        /* Icon-based delete buttons (trash icons) - High-contrast red icon outline, solid red on hover */
+        button[data-action="delete-game"],
+        button[data-action="delete-ns-item"],
+        button[data-action="delete-tier"] {
+            background-color: transparent !important;
+            border: 1px solid var(--danger-color) !important;
+            color: var(--danger-color) !important;
+            padding: 4px !important;
+            border-radius: var(--radius-sm, 4px) !important;
+        }
+
+        button[data-action="delete-game"]:hover:not(:disabled),
+        button[data-action="delete-ns-item"]:hover:not(:disabled),
+        button[data-action="delete-tier"]:hover:not(:disabled) {
+            background-color: var(--danger-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* Exclude helper/special buttons from generic button borders and backgrounds */
+        button.icon-btn,
+        button.tab-btn,
+        button.scenario-tab,
+        button[data-action="open-date"] {
+            background: none !important;
+            border: none !important;
+            padding: 4px !important;
+            border-radius: var(--radius-sm, 4px) !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+        }
+
+        button.icon-btn:hover,
+        button[data-action="open-date"]:hover {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        
+        body.light-theme button.icon-btn:hover,
+        body.light-theme button[data-action="open-date"]:hover {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* Form Controls (Inputs & Selects) */
         input[type="text"],
         input[type="number"],
-        input[type="date"] {
+        input[type="date"],
+        select {
+            font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
             background-color: var(--bg-input);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: var(--radius-sm, 4px);
             padding: 4px 8px;
-            font-size: 0.85rem;
-            width: auto;
+            font-size: 13px;
             color: var(--text-light);
+            transition: border-color var(--transition, 150ms ease), box-shadow var(--transition, 150ms ease);
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-color, var(--blue));
+            box-shadow: 0 0 0 2px var(--blue-glow, rgba(0, 180, 216, 0.25));
+        }
+
+        /* Large input fields in forms and modals */
+        .modal-content input[type="text"],
+        .modal-content select,
+        .add-feature-form input[type="text"] {
+            border-radius: var(--radius-md, 8px);
+            padding: 8px 12px;
+            font-size: 13px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .icon-btn {
@@ -209,7 +357,7 @@
             font-size: 1.1rem;
             padding: 6px;
             color: var(--text-light);
-            border-radius: 4px;
+            border-radius: var(--radius-sm, 4px);
             transition: background-color 0.2s;
         }
 
@@ -239,6 +387,10 @@
             margin-bottom: 20px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
+            width: fit-content;
+            min-width: 100%;
+            box-sizing: border-box;
+            background-color: var(--bg-panel);
         }
 
         .game-group-header {
@@ -422,6 +574,138 @@
             /* Enforce white text that was rendering black off-screen */
         }
 
+        /* Non-Scratcher Items Table overrides to prevent horizontal overflow and problematic spacing */
+        div[data-is-non-scratcher="true"] .game-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        div[data-is-non-scratcher="true"] .game-table input,
+        div[data-is-non-scratcher="true"] .game-table select {
+            max-width: 100% !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box;
+        }
+
+        div[data-is-non-scratcher="true"] .game-table td > div {
+            display: flex !important;
+            align-items: center;
+            gap: 4px;
+            width: 100% !important;
+            box-sizing: border-box;
+        }
+
+        div[data-is-non-scratcher="true"] .game-table td > div input {
+            flex-grow: 1;
+            width: 0 !important;
+            min-width: 0 !important;
+        }
+
+        /* Column Group Visibility Toggles */
+        body.hide-features .col-features {
+            display: none !important;
+        }
+        body.hide-financials .col-financials {
+            display: none !important;
+        }
+        body.hide-logistics .col-logistics {
+            display: none !important;
+        }
+
+        /* Sticky Planner Header */
+        .sticky-planner-header {
+            position: sticky;
+            top: -16px;
+            left: -16px;
+            margin-top: -16px;
+            margin-left: -16px;
+            margin-right: -16px;
+            padding: 16px 16px 8px 16px;
+            background-color: var(--bg-panel);
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+            width: calc(100% + 32px);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Column Group Collapsed visual handles and borders */
+        body.hide-features .col-features-trigger {
+            border-right: 2px dashed var(--accent-color) !important;
+            background-color: rgba(0, 180, 216, 0.03) !important;
+        }
+        body.hide-financials .col-financials-trigger {
+            border-left: 2px dashed var(--accent-color) !important;
+            background-color: rgba(0, 180, 216, 0.03) !important;
+        }
+        body.hide-logistics .col-logistics-trigger {
+            border-left: 2px dashed var(--accent-color) !important;
+            background-color: rgba(0, 180, 216, 0.03) !important;
+        }
+
+        /* Hover indicator for columns that can expand/collapse */
+        .col-features-trigger,
+        .col-financials-trigger,
+        .col-logistics-trigger {
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .col-features-trigger:hover,
+        .col-financials-trigger:hover,
+        .col-logistics-trigger:hover {
+            background-color: rgba(0, 180, 216, 0.08) !important;
+        }
+
+        /* Modern styled toggle badge inside header */
+        .toggle-badge {
+            background-color: var(--accent-color);
+            color: #ffffff !important;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            transition: all 150ms ease;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+        
+        .toggle-badge:hover {
+            filter: brightness(1.2);
+            transform: translateY(-0.5px);
+        }
+
+        .toggle-badge.badge-collapsed {
+            background-color: var(--bg-light);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color) !important;
+            animation: pulse-glow 2s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 2px rgba(0, 180, 216, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 6px rgba(0, 180, 216, 0.5);
+            }
+        }
+
+        /* Compact presets selector styling */
+        .game-table select.units-preset {
+            width: 32px !important;
+            min-width: 32px !important;
+            padding: 4px !important;
+            text-align: center;
+        }
+
         /* --- PRINT STYLES --- */
         @media print {
             body {
@@ -501,8 +785,8 @@
         <header id="top-bar" role="banner" aria-label="Fiscal Year Controls">
             <div class="header-title">Marketing Contract Manager</div>
             <div class="header-controls" role="group" aria-label="Primary Controls">
-                <button id="undo-btn" aria-label="Undo last action" disabled>Undo</button>
-                <button id="redo-btn" aria-label="Redo last action" disabled>Redo</button>
+                <button id="undo-btn" aria-label="Undo last action" disabled><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Undo</button>
+                <button id="redo-btn" aria-label="Redo last action" disabled><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>Redo</button>
                 <div class="control-group">
                     <label for="vendor-filter">View:</label>
                     <select id="vendor-filter" aria-label="Filter plan by vendor">
@@ -514,16 +798,16 @@
                 </div>
                 <button id="dashboard-btn"
                     style="background-color: var(--accent-color); color: white; border: none; margin-right: 8px;"
-                    title="View Plan Finances">📊 Dashboard</button>
+                    title="View Plan Finances"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="m22 20-4-4-4 4-4-4-4 4-4-4"/><path d="M18 16V9"/><path d="M14 20V5"/><path d="M10 20v-5"/><path d="M6 20v-7"/></svg>Dashboard</button>
                 <input type="file" id="load-plan-input" style="display:none" accept=".json" />
-                <button id="load-plan-btn">Load Plan</button>
-                <button id="save-plan-btn">Save Plan</button>
+                <button id="load-plan-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>Load Plan</button>
+                <button id="save-plan-btn"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Plan</button>
                 <span id="save-status"
-                    style="opacity: 0; transition: opacity 0.3s; font-size: 13px; font-weight: bold; color: var(--success-color); padding: 0 8px; display: inline-flex; align-items: center;">Saved
-                    ✓</span>
+                    style="opacity: 0; transition: opacity 0.3s; font-size: 13px; font-weight: bold; color: var(--success-color); padding: 0 8px; display: inline-flex; align-items: center;">Saved <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="20 6 9 17 4 12"/></svg></span>
                 <div class="dropdown" role="navigation" aria-label="Export">
                     <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Export</button>
                     <div class="dropdown-content" role="menu" aria-label="Export options">
+                        <a href="#" id="export-unified-xlsx" role="menuitem" style="font-weight: bold; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 4px;">✨ Unified Workbook (XLSX)</a>
                         <a href="#" id="export-summary-csv" role="menuitem">Executive Summary (CSV)</a>
                         <a href="#" id="export-summary-xlsx" role="menuitem">Executive Summary (XLSX)</a>
                         <a href="#" id="export-detail-csv" role="menuitem">Detailed Build (CSV)</a>
@@ -554,10 +838,67 @@
 
     <!-- Modals -->
     <div id="feature-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-game-name">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 450px;">
             <h3>Edit Features for <span id="modal-game-name"></span></h3>
             <div id="feature-checklist" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;"></div>
-            <div class="modal-actions">
+            
+            <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">Licensed Brand / Property</h4>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="modal-brand-select" style="flex-grow: 1; padding: 6px;">
+                        <!-- Options injected dynamically -->
+                    </select>
+                </div>
+                <div id="modal-brand-warning" style="margin-top: 6px; font-size: 11px; color: var(--danger-color); font-weight: 600; display: none;"></div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">Budget Status (Submittal)</h4>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="modal-budget-status-select" style="width: 100%; padding: 6px;">
+                        <option value="new_request">New Funding Request</option>
+                        <option value="already_booked">Already Booked / Overhead (Reference Only)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600;">Operating Cost & Incentive Overrides (Optional)</h4>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Gaming System Fee (%):</span>
+                    <input type="number" id="modal-gaming-system-override" step="0.01" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Retailer Bonus (%):</span>
+                    <input type="number" id="modal-retailer-bonus-override" step="0.01" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Retailer Cashing Bonus (% of Prizes):</span>
+                    <input type="number" id="modal-retailer-cashing-override" step="0.01" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Retail-Cashable Share (%):</span>
+                    <input type="number" id="modal-cashable-prize-override" step="0.01" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Jackpot Selling Bonus (% of Jackpot):</span>
+                    <input type="number" id="modal-jackpot-bonus-override" step="0.01" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Jackpot-Eligible Share (%):</span>
+                    <input type="number" id="modal-jackpot-eligible-override" step="0.01" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Jackpot Bonus Cap ($):</span>
+                    <input type="number" id="modal-jackpot-cap-override" step="1000" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; align-items: center;">
+                    <span style="font-size: 12px; color: var(--text-dark);">Fixed Cost ($):</span>
+                    <input type="number" id="modal-fixed-cost-override" step="1" min="0" placeholder="Default" style="padding: 4px; text-align: right; box-sizing: border-box; width: 100%;">
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 16px;">
                 <button id="modal-save-btn">Save</button>
                 <button id="modal-cancel-btn">Cancel</button>
             </div>
@@ -588,7 +929,7 @@
             <div style="margin: 12px 0;">
                 <label for="new-vendor-name-input">Vendor Name:</label>
                 <input type="text" id="new-vendor-name-input" style="width: 100%; margin-top: 4px;"
-                    placeholder="e.g., IGT" />
+                    placeholder="e.g., BrightStar" />
             </div>
             <div class="modal-actions">
                 <button id="add-vendor-save-btn">Save</button>
@@ -603,7 +944,7 @@
             <p id="confirm-message" class="my-4"></p>
             <div class="modal-actions">
                 <button id="confirm-cancel-btn">Cancel</button>
-                <button id="confirm-ok-btn" style="background-color: var(--danger-color);">OK</button>
+                <button id="confirm-ok-btn">OK</button>
             </div>
         </div>
     </div>
@@ -612,8 +953,9 @@
         <div class="modal-content" style="min-width: 600px; max-width: 800px; padding: 32px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h2 style="margin: 0; padding: 0;">Plan Dashboard</h2>
-                <button id="close-dashboard-btn"
-                    style="background: none; border: none; font-size: 1.5rem; color: var(--text-light); cursor: pointer;">×</button>
+                <button id="close-dashboard-btn" aria-label="Close" class="icon-btn" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x" style="display:inline-block;vertical-align:middle;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
@@ -644,6 +986,23 @@
         (function () {
             'use strict';
 
+            function getIcon(name, size = 13) {
+                const icons = {
+                    copy: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" style="display:inline-block;vertical-align:middle;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+                    trash: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2" style="display:inline-block;vertical-align:middle;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
+                    calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar" style="display:inline-block;vertical-align:middle;"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
+                    plus: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus" style="display:inline-block;vertical-align:middle;margin-right:2px;"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>`,
+                    settings: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings" style="display:inline-block;vertical-align:middle;margin-right:2px;"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+                    chevronLeft: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left" style="display:inline-block;vertical-align:middle;"><polyline points="15 18 9 12 15 6"/></svg>`,
+                    chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" style="display:inline-block;vertical-align:middle;"><polyline points="9 18 15 12 9 6"/></svg>`,
+                    chevronUp: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up" style="display:inline-block;vertical-align:middle;"><polyline points="18 15 12 9 6 15"/></svg>`,
+                    chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down" style="display:inline-block;vertical-align:middle;"><polyline points="6 9 12 15 18 9"/></svg>`,
+                    warning: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle" style="display:inline-block;vertical-align:middle;color:var(--warning-color);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>`,
+                    x: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x" style="display:inline-block;vertical-align:middle;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+                };
+                return icons[name] || '';
+            }
+
             // --- CONSTANTS & STATE ---
             const FEATURES_CSV_DATA = `"Generic Feature","SG Brand Name","PB Brand Name","BS Brand Name","SG (Y/N)","PB (Y/N)","BS (Y/N)"
 "Holographic Foil","HoloFoilâ„¢","Scratch FXÂ® Holographic","Holographic Substrate","Y","Y","Y"
@@ -657,12 +1016,21 @@
 "Recycled Substrate","Eco-Stock","Recycled Content Paper","","Y","Y","N"
 "Secure Barcoding","Secure Codeâ„¢","SecureValidateâ„¢","Secure Barcode","Y","Y","Y"`;
 
-            const CONTRACT_UNIT_PRESETS = {
-                1: [12000000, 18000000, 24000000], 2: [12000000, 18000000, 24000000],
-                3: [12000000, 18000000, 24000000], 5: [12000000, 18000000, 24000000],
-                10: [12000000, 18000000], 20: [12000000], 30: [12000000], default: [10000000]
-            };
+            const LICENSED_BRANDS = [
+                { id: 'monopoly', name: 'Monopoly', vendorId: 'sg', feeType: 'percent', feeValue: 1.5 },
+                { id: 'nfl', name: 'NFL', vendorId: 'sg', feeType: 'flat', feeValue: 150000 },
+                { id: 'pacman', name: 'Pac-Man', vendorId: 'sg', feeType: 'percent', feeValue: 1.2 },
+                { id: 'frogger', name: 'Frogger', vendorId: 'pb', feeType: 'perThousand', feeValue: 3.00 },
+                { id: 'tetris', name: 'Tetris', vendorId: 'pb', feeType: 'percent', feeValue: 1.0 },
+                { id: 'wheeloffortune', name: 'Wheel of Fortune', vendorId: 'igt', feeType: 'flat', feeValue: 125000 }
+            ];
 
+            const PACK_SIZES = {
+                1: 300, 2: 100, 3: 100, 5: 100, 10: 60, 20: 30, 30: 30, 50: 20
+            };
+            const POOL_SIZES = {
+                1: 1200000, 2: 1200000, 3: 1200000, 5: 1200000, 10: 1200000, 20: 600000, 30: 600000, 50: 300000
+            };
             const STANDARD_DENOMINATIONS = [1, 2, 3, 5, 10, 20, 25, 30, 50];
 
             const STANDARD_TICKET_SIZES = [
@@ -689,7 +1057,7 @@
                 vendors: [
                     { id: 'sg', name: 'Scientific Games' },
                     { id: 'pb', name: 'Pollard Banknote' },
-                    { id: 'bs', name: 'Brightstar' }
+                    { id: 'igt', name: 'BrightStar' }
                 ],
                 scenarios: [
                     {
@@ -703,8 +1071,8 @@
                             { price: 50, mixPercent: 0, isActive: false, isCollapsed: false }
                         ],
                         games: [
-                            { id: 'g1', gameNumber: '1234', denominationPrice: 5, ticketSize: '6x4', name: 'Lucky 7s #123', vendorId: 'sg', units: 12000000, payoutPercent: 68.5, featureIds: [], poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned' },
-                            { id: 'g2', gameNumber: '5678', denominationPrice: 10, ticketSize: '8x4', name: 'Ultimate Cash #234', vendorId: 'pb', units: 18000000, payoutPercent: 71.0, featureIds: ["Holographic Foil"], poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned' }
+                            { id: 'g1', gameNumber: '1234', denominationPrice: 5, ticketSize: '6x4', name: 'Lucky 7s #123', vendorId: 'sg', units: 12000000, payoutPercent: 68.5, featureIds: [], poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned', isReorder: false, licensedBrandId: '' },
+                            { id: 'g2', gameNumber: '5678', denominationPrice: 10, ticketSize: '8x4', name: 'Ultimate Cash #234', vendorId: 'pb', units: 18000000, payoutPercent: 71.0, featureIds: ["Holographic Foil"], poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned', isReorder: false, licensedBrandId: '' }
                         ],
                         nonScratcherItems: []
                     }
@@ -730,19 +1098,19 @@
                             '12x12': [{ quantity: 5000000, cost: 95.00 }, { quantity: 100000000, cost: 30.00 }]
                         }, features: {}
                     },
-                    bs: {
+                    igt: {
                         costModel: 'perThousand', baseCosts: {
-                            '2.4x4': [{ quantity: 120000, cost: 193.86 }, { quantity: 1000000, cost: 33.78 }, { quantity: 5000000, cost: 11.28 }, { quantity: 10000000, cost: 8.51 }, { quantity: 50000000, cost: 6.33 }, { quantity: 100000000, cost: 6.15 }],
-                            '4x4': [{ quantity: 120000, cost: 194.91 }, { quantity: 1000000, cost: 34.57 }, { quantity: 5000000, cost: 12.06 }, { quantity: 10000000, cost: 9.28 }, { quantity: 50000000, cost: 7.10 }, { quantity: 100000000, cost: 6.91 }],
-                            '6x4': [{ quantity: 120000, cost: 200.83 }, { quantity: 1000000, cost: 35.61 }, { quantity: 5000000, cost: 14.90 }, { quantity: 10000000, cost: 12.10 }, { quantity: 50000000, cost: 9.99 }, { quantity: 100000000, cost: 9.80 }],
-                            '8x4': [{ quantity: 120000, cost: 201.36 }, { quantity: 1000000, cost: 36.43 }, { quantity: 5000000, cost: 15.72 }, { quantity: 10000000, cost: 12.92 }, { quantity: 50000000, cost: 10.82 }, { quantity: 100000000, cost: 10.62 }],
-                            '12x8': [{ quantity: 1000000, cost: 76.81 }, { quantity: 5000000, cost: 47.61 }, { quantity: 10000000, cost: 44.06 }, { quantity: 50000000, cost: 41.52 }, { quantity: 100000000, cost: 41.27 }],
-                            '12x12': [{ quantity: 1000000, cost: 242.45 }, { quantity: 5000000, cost: 194.47 }, { quantity: 10000000, cost: 180.95 }, { quantity: 50000000, cost: 179.28 }, { quantity: 100000000, cost: 179.28 }]
+                            '2.4x4': [{ quantity: 5000000, cost: 18.90 }, { quantity: 100000000, cost: 7.20 }],
+                            '4x4': [{ quantity: 5000000, cost: 25.75 }, { quantity: 100000000, cost: 8.50 }],
+                            '6x4': [{ quantity: 5000000, cost: 37.00 }, { quantity: 100000000, cost: 11.20 }],
+                            '8x4': [{ quantity: 5000000, cost: 47.50 }, { quantity: 100000000, cost: 16.90 }],
+                            '12x8': [{ quantity: 5000000, cost: 68.00 }, { quantity: 100000000, cost: 24.00 }],
+                            '12x12': [{ quantity: 5000000, cost: 98.00 }, { quantity: 100000000, cost: 33.00 }]
                         }, features: {}
                     }
                 },
                 featureMasterList: [], auditLog: [],
-                ui: { activeVendorTab: 'sg', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false }
+                ui: { activeVendorTab: 'sg', activeVendorSection: 'operating', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false, showFeaturesCol: true, showFinancialsCol: true, showLogisticsCol: true }
             };
 
             let history = [];
@@ -751,27 +1119,58 @@
             const DB_NAME = 'PlanDB';
             const STORE_NAME = 'PlanStore';
 
-            function applyTheme() {
-                const urlParams = new URLSearchParams(window.location.search);
-                let theme = urlParams.get('theme');
-                if (!theme) {
-                    try {
-                        if (window.parent && window.parent.document) {
-                            const isParentLight = window.parent.document.body.classList.contains('light-theme');
-                            theme = isParentLight ? 'light' : 'dark';
-                        }
-                    } catch (e) {
-                        // Ignore cross-origin constraints if any
+            function syncStylesWithParent() {
+                try {
+                    if (window.parent && window.parent.document) {
+                        // Copy all parent stylesheet links to iframe head to inherit Next.js global design system
+                        const parentLinks = window.parent.document.querySelectorAll('link[rel="stylesheet"]');
+                        parentLinks.forEach(link => {
+                            if (!document.head.querySelector(`link[href="${link.getAttribute('href')}"]`)) {
+                                const newLink = document.createElement('link');
+                                newLink.rel = 'stylesheet';
+                                newLink.href = link.href;
+                                document.head.appendChild(newLink);
+                            }
+                        });
                     }
+                } catch (e) {
+                    console.warn("Could not copy parent stylesheets:", e);
                 }
-                if (theme === 'light') {
-                    document.body.classList.add('light-theme');
-                } else {
-                    document.body.classList.remove('light-theme');
+            }
+
+            function applyTheme() {
+                let themeClasses = [];
+                try {
+                    if (window.parent && window.parent.document) {
+                        // Read all class names from parent body
+                        themeClasses = Array.from(window.parent.document.body.classList);
+                    }
+                } catch (e) {
+                    // Ignore cross-origin constraints
+                }
+                
+                // Clear existing theme classes from local body
+                const classesToRemove = Array.from(document.body.classList).filter(c => c.startsWith('theme-') || c === 'light-theme');
+                classesToRemove.forEach(c => document.body.classList.remove(c));
+                
+                // Copy parent classes to local body
+                themeClasses.forEach(c => {
+                    document.body.classList.add(c);
+                });
+                
+                // Fallbacks if not embedded or parent classes are empty
+                if (document.body.classList.length === 0) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const theme = urlParams.get('theme') || 'dark';
+                    const palette = urlParams.get('palette') || 'newyork';
+                    
+                    if (theme === 'light') document.body.classList.add('light-theme');
+                    document.body.classList.add('theme-' + palette);
                 }
             }
 
             function setupThemeSync() {
+                syncStylesWithParent();
                 applyTheme();
                 try {
                     if (window.parent && window.parent.document) {
@@ -785,20 +1184,311 @@
                 }
             }
 
+            // --- DATABASE MAPPER UTILITIES ---
+            function mapDbPlanToPlannerState(dbPlan, dbVendorPricing) {
+                const mappedState = {
+                    planId: dbPlan.id,
+                    fiscalYear: dbPlan.fiscalYear,
+                    totalSalesTarget: parseFloat(dbPlan.totalSalesTarget),
+                    retailerCommissionPercent: parseFloat(dbPlan.retailerCommPct),
+                    administrativeExpensePercent: parseFloat(dbPlan.adminExpensePct),
+                    sellThroughPercent: parseFloat(dbPlan.sellThroughPct),
+                    status: dbPlan.status,
+                    notes: dbPlan.notes || '',
+                    auditLog: [],
+                    history: [],
+                    historyIndex: -1,
+                    ui: { activeVendorTab: 'sg', activeVendorSection: 'operating', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false, showFeaturesCol: true, showFinancialsCol: true, showLogisticsCol: true },
+                    vendors: [
+                        { id: 'sg', name: 'Scientific Games' },
+                        { id: 'pb', name: 'Pollard Banknote' },
+                        { id: 'igt', name: 'BrightStar' }
+                    ],
+                    vendorPricing: {}
+                };
+
+                // Initialize vendor pricing skeletons
+                mappedState.vendors.forEach(v => {
+                    mappedState.vendorPricing[v.id] = {
+                        costModel: 'perThousand',
+                        baseCosts: {
+                            '2.4x4': [], '4x4': [], '6x4': [], '8x4': [], '12x8': [], '12x12': []
+                        },
+                        features: {
+                            "Holographic Foil": 0.00,
+                            "Metallic Ink": 0.00,
+                            "Extended Play (Crossword/Bingo)": 0.00,
+                            "Die-Cut Ticket": 0.00,
+                            "Sparkle/Glitter Coating": 0.00,
+                            "Oversized Format": 0.00
+                        },
+                        supportedFeatures: {
+                            "Holographic Foil": true,
+                            "Metallic Ink": true,
+                            "Extended Play (Crossword/Bingo)": true,
+                            "Die-Cut Ticket": true,
+                            "Sparkle/Glitter Coating": true,
+                            "Oversized Format": true
+                        },
+                        gamingSystemPercent: 2.50,
+                        retailerBonusPercent: 0.50,
+                        fixedOperatingCost: 0.00,
+                        retailerCashingPercent: 1.00,
+                        cashablePrizePercent: 70.00,
+                        jackpotBonusPercent: 0.50,
+                        jackpotEligiblePercent: 10.00,
+                        jackpotBonusCap: 1000000.00
+                    };
+                });
+
+                // Map database vendorPricing baseCosts
+                if (dbVendorPricing && Array.isArray(dbVendorPricing)) {
+                    dbVendorPricing.forEach((vp) => {
+                        let vKey = 'sg';
+                        if (vp.vendor?.name) {
+                            const name = vp.vendor.name.toLowerCase();
+                            if (name.includes('scientific')) vKey = 'sg';
+                            else if (name.includes('pollard')) vKey = 'pb';
+                             else if (name.includes('igt') || name.includes('game tech') || name.includes('brightstar')) vKey = 'igt';
+                        }
+
+                        const pricingNode = mappedState.vendorPricing[vKey];
+                        if (pricingNode) {
+                            pricingNode.costModel = vp.costModel === 'percent_of_sales' ? 'percentOfSales' : 'perThousand';
+                            pricingNode.reorderModel = vp.reorderModel || 'none';
+                            pricingNode.reorderValue = parseFloat(vp.reorderValue || 0);
+                            pricingNode.gamingSystemPercent = vp.gamingSystemPercent !== undefined && vp.gamingSystemPercent !== null ? parseFloat(vp.gamingSystemPercent) : 2.50;
+                            pricingNode.retailerBonusPercent = vp.retailerBonusPercent !== undefined && vp.retailerBonusPercent !== null ? parseFloat(vp.retailerBonusPercent) : 0.50;
+                            pricingNode.fixedOperatingCost = vp.fixedOperatingCost !== undefined && vp.fixedOperatingCost !== null ? parseFloat(vp.fixedOperatingCost) : 0.00;
+                            pricingNode.retailerCashingPercent = vp.retailerCashingPercent !== undefined && vp.retailerCashingPercent !== null ? parseFloat(vp.retailerCashingPercent) : 1.00;
+                            pricingNode.cashablePrizePercent = vp.cashablePrizePercent !== undefined && vp.cashablePrizePercent !== null ? parseFloat(vp.cashablePrizePercent) : 70.00;
+                            pricingNode.jackpotBonusPercent = vp.jackpotBonusPercent !== undefined && vp.jackpotBonusPercent !== null ? parseFloat(vp.jackpotBonusPercent) : 0.50;
+                            pricingNode.jackpotEligiblePercent = vp.jackpotEligiblePercent !== undefined && vp.jackpotEligiblePercent !== null ? parseFloat(vp.jackpotEligiblePercent) : 10.00;
+                            pricingNode.jackpotBonusCap = vp.jackpotBonusCap !== undefined && vp.jackpotBonusCap !== null ? parseFloat(vp.jackpotBonusCap) : 1000000.00;
+                            const size = vp.ticketSize || '4x4';
+                            pricingNode.baseCosts[size].push({
+                                quantity: Number(vp.minQuantity),
+                                cost: parseFloat(vp.baseCost)
+                            });
+                        }
+                    });
+                    // Sort tiers ascending
+                    Object.values(mappedState.vendorPricing).forEach(vp => {
+                        Object.keys(vp.baseCosts).forEach(size => {
+                            vp.baseCosts[size].sort((a, b) => a.quantity - b.quantity);
+                        });
+                    });
+                }
+
+                // Hydrate feature surcharges
+                const defaultFeatureRates = {
+                    sg: { "Holographic Foil": 0.45, "Metallic Ink": 0.15, "Extended Play (Crossword/Bingo)": 0.25, "Die-Cut Ticket": 0.60, "Sparkle/Glitter Coating": 0.25, "Oversized Format": 0.35 },
+                    pb: { "Holographic Foil": 0.40, "Metallic Ink": 0.12, "Extended Play (Crossword/Bingo)": 0.20, "Die-Cut Ticket": 0.55, "Sparkle/Glitter Coating": 0.20, "Oversized Format": 0.30 },
+                    igt: { "Holographic Foil": 0.42, "Metallic Ink": 0.14, "Extended Play (Crossword/Bingo)": 0.22, "Die-Cut Ticket": 0.58, "Sparkle/Glitter Coating": 0.22, "Oversized Format": 0.32 }
+                };
+                Object.keys(mappedState.vendorPricing).forEach(vKey => {
+                    mappedState.vendorPricing[vKey].features = defaultFeatureRates[vKey];
+                });
+
+                // Map scenarios
+                if (dbPlan.scenarios && Array.isArray(dbPlan.scenarios)) {
+                    mappedState.scenarios = dbPlan.scenarios.map((sc) => {
+                        const scDenoms = Array.isArray(sc.denominations) ? sc.denominations : JSON.parse(sc.denominations || '[]');
+                        const scGames = (sc.games || []).map((g) => {
+                            let gVendorKey = 'sg';
+                            if (g.vendor?.name) {
+                                const name = g.vendor.name.toLowerCase();
+                                if (name.includes('scientific')) gVendorKey = 'sg';
+                                else if (name.includes('pollard')) gVendorKey = 'pb';
+                                 else if (name.includes('igt') || name.includes('game tech') || name.includes('brightstar')) gVendorKey = 'igt';
+                            }
+                            return {
+                                id: g.id,
+                                gameNumber: g.gameNumber,
+                                denominationPrice: parseInt(g.denomination),
+                                ticketSize: g.ticketSize || '4x4',
+                                name: g.name,
+                                vendorId: gVendorKey,
+                                units: Number(g.units),
+                                payoutPercent: parseFloat(g.payoutPercent),
+                                featureIds: (g.features || []).map(f => f.featureName),
+                                isReorder: g.isReorder || false,
+                                licensedBrandId: g.licensedBrandId || '',
+                                poNumber: g.poNumber || '',
+                                poDate: g.poDate ? g.poDate.substring(0, 10) : '',
+                                receiptDate: g.receiptDate ? g.receiptDate.substring(0, 10) : '',
+                                launchDate: g.launchDate ? g.launchDate.substring(0, 10) : '',
+                                closeDate: g.closeDate ? g.closeDate.substring(0, 10) : '',
+                                endDate: g.endDate ? g.endDate.substring(0, 10) : '',
+                                deliveryStatus: g.deliveryStatus ? (g.deliveryStatus.charAt(0).toUpperCase() + g.deliveryStatus.slice(1).toLowerCase()) : 'Planned',
+                                gamingSystemPercent: g.gamingSystemPercent !== undefined && g.gamingSystemPercent !== null ? parseFloat(g.gamingSystemPercent) : null,
+                                retailerBonusPercent: g.retailerBonusPercent !== undefined && g.retailerBonusPercent !== null ? parseFloat(g.retailerBonusPercent) : null,
+                                fixedOperatingCost: g.fixedOperatingCost !== undefined && g.fixedOperatingCost !== null ? parseFloat(g.fixedOperatingCost) : null,
+                                retailerCashingPercent: g.retailerCashingPercent !== undefined && g.retailerCashingPercent !== null ? parseFloat(g.retailerCashingPercent) : null,
+                                cashablePrizePercent: g.cashablePrizePercent !== undefined && g.cashablePrizePercent !== null ? parseFloat(g.cashablePrizePercent) : null,
+                                jackpotBonusPercent: g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null ? parseFloat(g.jackpotBonusPercent) : null,
+                                jackpotEligiblePercent: g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null ? parseFloat(g.jackpotEligiblePercent) : null,
+                                jackpotBonusCap: g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null ? parseFloat(g.jackpotBonusCap) : null
+                            };
+                        });
+ 
+                        const scMktg = (sc.marketingItems || []).map((m) => {
+                            let mVendorKey = '';
+                            if (m.vendor?.name) {
+                                const name = m.vendor.name.toLowerCase();
+                                if (name.includes('scientific')) mVendorKey = 'sg';
+                                else if (name.includes('pollard')) mVendorKey = 'pb';
+                                 else if (name.includes('igt') || name.includes('game tech') || name.includes('brightstar')) mVendorKey = 'igt';
+                            }
+                            return {
+                                id: m.id,
+                                name: m.name,
+                                vendorId: mVendorKey || '',
+                                associatedHoliday: m.description || '',
+                                cost: parseFloat(m.cost),
+                                poNumber: '', poDate: '', receiptDate: '', status: 'Planned'
+                            };
+                        });
+
+                        return {
+                            id: sc.id,
+                            name: sc.name,
+                            denominations: scDenoms.map(d => ({
+                                price: parseInt(d.price),
+                                mixPercent: parseFloat(d.mixPercent || 0),
+                                isActive: d.isActive === true || d.isActive === 'true',
+                                isCollapsed: false
+                            })),
+                            games: scGames,
+                            nonScratcherItems: scMktg
+                        };
+                    });
+                } else {
+                    mappedState.scenarios = [JSON.parse(JSON.stringify(initialState.scenarios[0]))];
+                }
+
+                return mappedState;
+            }
+
+            function mapPlannerStateToDbPayload(s) {
+                return {
+                    name: s.scenarios?.[0]?.name || 'Base Plan',
+                    fiscalYear: parseInt(s.fiscalYear),
+                    totalSalesTarget: parseFloat(s.totalSalesTarget),
+                    retailerCommPct: parseFloat(s.retailerCommissionPercent),
+                    adminExpensePct: parseFloat(s.administrativeExpensePercent),
+                    sellThroughPct: parseFloat(s.sellThroughPercent),
+                    status: s.status,
+                    notes: s.notes,
+                    scenarios: s.scenarios.map(sc => ({
+                        name: sc.name,
+                        denominations: sc.denominations.map(d => ({
+                            price: parseInt(d.price),
+                            mixPercent: parseFloat(d.mixPercent),
+                            isActive: d.isActive
+                        })),
+                        games: sc.games.map(g => ({
+                            id: (g.id.startsWith('g') || g.id.length < 10) ? undefined : g.id,
+                            gameNumber: g.gameNumber,
+                            name: g.name,
+                            denomination: parseInt(g.denominationPrice),
+                            ticketSize: g.ticketSize,
+                            vendorId: g.vendorId || null,
+                            units: parseInt(g.units),
+                            payoutPercent: parseFloat(g.payoutPercent),
+                            featureIds: g.featureIds || [],
+                            deliveryStatus: g.deliveryStatus || 'planned',
+                            isReorder: g.isReorder || false,
+                            licensedBrandId: g.licensedBrandId || null,
+                            poNumber: g.poNumber || null,
+                            poDate: g.poDate || null,
+                            receiptDate: g.receiptDate || null,
+                            launchDate: g.launchDate ? g.launchDate : null,
+                            closeDate: g.closeDate ? g.closeDate : null,
+                            gamingSystemPercent: (g.gamingSystemPercent !== undefined && g.gamingSystemPercent !== null && g.gamingSystemPercent !== '') ? parseFloat(g.gamingSystemPercent) : null,
+                            retailerBonusPercent: (g.retailerBonusPercent !== undefined && g.retailerBonusPercent !== null && g.retailerBonusPercent !== '') ? parseFloat(g.retailerBonusPercent) : null,
+                            fixedOperatingCost: (g.fixedOperatingCost !== undefined && g.fixedOperatingCost !== null && g.fixedOperatingCost !== '') ? parseFloat(g.fixedOperatingCost) : null,
+                            retailerCashingPercent: (g.retailerCashingPercent !== undefined && g.retailerCashingPercent !== null && g.retailerCashingPercent !== '') ? parseFloat(g.retailerCashingPercent) : null,
+                            cashablePrizePercent: (g.cashablePrizePercent !== undefined && g.cashablePrizePercent !== null && g.cashablePrizePercent !== '') ? parseFloat(g.cashablePrizePercent) : null,
+                            jackpotBonusPercent: (g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null && g.jackpotBonusPercent !== '') ? parseFloat(g.jackpotBonusPercent) : null,
+                            jackpotEligiblePercent: (g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null && g.jackpotEligiblePercent !== '') ? parseFloat(g.jackpotEligiblePercent) : null,
+                            jackpotBonusCap: (g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null && g.jackpotBonusCap !== '') ? parseFloat(g.jackpotBonusCap) : null,
+                        })),
+                        marketingItems: sc.nonScratcherItems.map(m => ({
+                            id: (m.id.startsWith('m') || m.id.length < 10) ? undefined : m.id,
+                            name: m.name,
+                            vendorId: m.vendorId || null,
+                            description: m.associatedHoliday || null,
+                            cost: parseFloat(m.cost || 0),
+                            category: m.category || 'pos_display'
+                        }))
+                    })),
+                    vendorPricing: Object.entries(s.vendorPricing).reduce((acc, [vId, vp]) => {
+                        acc[vId] = {
+                            costModel: vp.costModel === 'percentOfSales' ? 'percent_of_sales' : 'per_thousand',
+                            reorderModel: vp.reorderModel || 'none',
+                            reorderValue: parseFloat(vp.reorderValue || 0),
+                            gamingSystemPercent: parseFloat(vp.gamingSystemPercent ?? 2.50),
+                            retailerBonusPercent: parseFloat(vp.retailerBonusPercent ?? 0.50),
+                            fixedOperatingCost: parseFloat(vp.fixedOperatingCost ?? 0.00),
+                            retailerCashingPercent: parseFloat(vp.retailerCashingPercent ?? 1.00),
+                            cashablePrizePercent: parseFloat(vp.cashablePrizePercent ?? 70.00),
+                            jackpotBonusPercent: parseFloat(vp.jackpotBonusPercent ?? 0.50),
+                            jackpotEligiblePercent: parseFloat(vp.jackpotEligiblePercent ?? 10.00),
+                            jackpotBonusCap: parseFloat(vp.jackpotBonusCap ?? 1000000.00),
+                            baseCosts: Object.entries(vp.baseCosts).reduce((bAcc, [size, tiers]) => {
+                                bAcc[size] = tiers.map(t => ({
+                                    quantity: parseInt(t.quantity),
+                                    cost: parseFloat(t.cost)
+                                }));
+                                return bAcc;
+                            }, {})
+                        };
+                        return acc;
+                    }, {})
+                };
+            }
+
             // --- INIT ---
             document.addEventListener('DOMContentLoaded', boot);
 
             async function boot() {
                 setupThemeSync();
+                let loadedPlan = null;
+                const urlParams = new URLSearchParams(window.location.search);
+                const planId = urlParams.get('id');
+
+                if (planId) {
+                    try {
+                        const res = await fetch(`/api/instant-tickets/plans/${planId}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            loadedPlan = mapDbPlanToPlannerState(data.plan, data.vendorPricing);
+                            console.log('[boot] Plan fetched successfully from database.');
+                        } else {
+                            console.error('[boot] Failed to fetch plan from database:', res.statusText);
+                        }
+                    } catch (err) {
+                        console.error('[boot] Fetch error:', err);
+                    }
+                }
+
                 try {
                     await openDBSafe();
-                    const restored = await restoreFromAutosaveSafe();
-                    if (!restored) {
+                    let restored = false;
+                    if (!loadedPlan) {
+                        restored = await restoreFromAutosaveSafe();
+                    }
+                    if (loadedPlan) {
+                        setState(loadedPlan);
+                        logAudit('Plan loaded from database.');
+                    } else if (!restored) {
                         setState(JSON.parse(JSON.stringify(initialState)));
                     }
                 } catch (e) {
                     console.warn('[init] Non-fatal init error:', e);
-                    setState(JSON.parse(JSON.stringify(initialState)));
+                    if (loadedPlan) setState(loadedPlan);
+                    else setState(JSON.parse(JSON.stringify(initialState)));
                 }
 
                 try {
@@ -836,6 +1526,21 @@
                     handleCenterPanelInput(e);
                 });
                 centerPanel.addEventListener('change', (e) => {
+                    if (e.target.id === 'toggle-col-features') {
+                        state.ui.showFeaturesCol = e.target.checked;
+                        render();
+                        return;
+                    }
+                    if (e.target.id === 'toggle-col-financials') {
+                        state.ui.showFinancialsCol = e.target.checked;
+                        render();
+                        return;
+                    }
+                    if (e.target.id === 'toggle-col-logistics') {
+                        state.ui.showLogisticsCol = e.target.checked;
+                        render();
+                        return;
+                    }
                     const nsRow = e.target.closest('tr[data-ns-item-id]');
                     if (nsRow) {
                         handleNonScratcherChange(e);
@@ -843,13 +1548,32 @@
                     }
                     handleCenterPanelChange(e);
                 });
-                centerPanel.addEventListener('click', handleCenterPanelClick);
+                centerPanel.addEventListener('click', (e) => {
+                    const toggleFinancials = e.target.closest('[data-action="toggle-financials-col"]');
+                    if (toggleFinancials) {
+                        state.ui.showFinancialsCol = !state.ui.showFinancialsCol;
+                        render();
+                        return;
+                    }
+                    const toggleLogistics = e.target.closest('[data-action="toggle-logistics-col"]');
+                    if (toggleLogistics) {
+                        state.ui.showLogisticsCol = !state.ui.showLogisticsCol;
+                        render();
+                        return;
+                    }
+                    const toggleFeatures = e.target.closest('[data-action="toggle-features-col"]');
+                    if (toggleFeatures) {
+                        state.ui.showFeaturesCol = !state.ui.showFeaturesCol;
+                        render();
+                        return;
+                    }
+                    handleCenterPanelClick(e);
+                });
                 centerPanel.addEventListener('keydown', handleKeyboardNav);
-
                 byId('right-panel').addEventListener('click', handleRightPanelClick);
                 byId('right-panel').addEventListener('change', handleRightPanelChange);
-
                 byId('feature-modal').addEventListener('click', handleModalEvents);
+                byId('modal-brand-select').addEventListener('change', updateModalBrandWarning);
                 byId('feature-management-modal').addEventListener('click', handleFeatureManagementModalEvents);
                 byId('add-vendor-modal').addEventListener('click', handleAddVendorModalEvents);
                 byId('confirm-modal').addEventListener('click', (e) => {
@@ -865,8 +1589,8 @@
                 if (scenarioBar) {
                     scenarioBar.addEventListener('click', handleScenarioClick);
                 }
-
                 // Exports
+                byId('export-unified-xlsx').addEventListener('click', e => { e.preventDefault(); exportUnifiedWorkbook(); });
                 byId('export-summary-csv').addEventListener('click', e => { e.preventDefault(); exportReport('summary', 'csv'); });
                 byId('export-summary-xlsx').addEventListener('click', e => { e.preventDefault(); exportReport('summary', 'xlsx'); });
                 byId('export-detail-csv').addEventListener('click', e => { e.preventDefault(); exportReport('detail', 'csv'); });
@@ -951,7 +1675,7 @@
 
                     showConfirm(`Are you sure you want to delete scenario "${current?.name}"?`, () => {
                         commit(s => {
-                            const idx = s.scenarios.findIndex(sc => sc.id === s.activeScenarioId);
+                            const idx = s.scenarios.findIndex(sc => sc.id === state.activeScenarioId);
                             if (idx > -1) {
                                 s.scenarios.splice(idx, 1);
                                 s.activeScenarioId = s.scenarios[0].id;
@@ -976,6 +1700,11 @@
 
             // --- RENDER ---
             function render() {
+                // Apply column visibility classes to body based on state.ui settings
+                document.body.classList.toggle('hide-features', state.ui.showFeaturesCol === false);
+                document.body.classList.toggle('hide-financials', state.ui.showFinancialsCol === false);
+                document.body.classList.toggle('hide-logistics', state.ui.showLogisticsCol === false);
+
                 const vf = byId('vendor-filter');
                 vf.innerHTML = '<option value="all">All Vendors</option>' + state.vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
 
@@ -1015,8 +1744,8 @@
                     <div class="scenario-actions">
                         <button id="add-scenario-btn" title="Create new scenario">New</button>
                         <button id="duplicate-scenario-btn" title="Duplicate current scenario">Duplicate</button>
-                        <button id="clear-scenario-btn" title="Clear all games from current scenario" style="background-color: var(--warning-color); color: #000;">Clear</button>
-                        <button id="delete-scenario-btn" style="background-color: var(--danger-color);" ${state.scenarios.length === 1 ? 'disabled title="Cannot delete last scenario"' : 'title="Delete scenario"'}>Delete</button>
+                        <button id="clear-scenario-btn" title="Clear all games from current scenario">Clear</button>
+                        <button id="delete-scenario-btn" ${state.scenarios.length === 1 ? 'disabled title="Cannot delete last scenario"' : 'title="Delete scenario"'}>Delete</button>
                     </div>
                 `;
 
@@ -1029,7 +1758,7 @@
                 if (state.ui.leftCollapsed) {
                     container.innerHTML = `
                         <div style="display: flex; flex-direction: column; align-items: center; height: 100%; cursor: pointer; padding-top: 8px;" data-action="toggle-left" title="Expand Plan Parameters">
-                            <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; color: var(--text-light);">▶</button>
+                            <button style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-light);">${getIcon('chevronRight', 16)}</button>
                             <div style="writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 1rem; font-weight: 600; color: var(--text-dark);">Plan Parameters</div>
                         </div>
                     `;
@@ -1065,7 +1794,7 @@
 
                 container.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                     <h3 style="border: none; margin: 0; padding: 0;">Plan Parameters</h3>
-                    <button data-action="toggle-left" title="Fold Parameters" style="padding: 2px 6px; font-size: 0.8rem;">◀</button>
+                    <button data-action="toggle-left" title="Fold Parameters" style="padding: 4px 6px; display: inline-flex; align-items: center; justify-content: center;">${getIcon('chevronLeft', 14)}</button>
                 </div>
                 ${globalVarsHtml}
                 <div style="padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.9em; color: var(--text-dark);">Denominations Mix</div>`;
@@ -1135,12 +1864,26 @@
                 const salesGoalPercent = state.totalSalesTarget ? (totalPlannedSales / state.totalSalesTarget * 100).toFixed(2) : 0;
 
                 container.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h2 style="font-size: 1.15rem; margin: 0;">FY${state.fiscalYear} Plan</h2>
-                </div>
-                <div style="padding: 0.5rem; margin-bottom: 0.75rem; text-align: center; background-color: var(--bg-main); border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                    <div style="font-size: 0.9em;"><strong>Total Planned Sales (${vendorView === 'all' ? 'All Vendors' : vendorLabel(vendorView)}):</strong> ${formatCurrency(totalPlannedSales)} of ${formatCurrency(state.totalSalesTarget)} (${salesGoalPercent}%)</div>
-                    <div style="font-size: 0.85em; color: var(--text-dark);"><strong>Expected Contract Cost:</strong> ${formatCurrency(totalPlannedContractCost)}</div>
+                <div class="sticky-planner-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <h2 style="font-size: 1.15rem; margin: 0;">FY${state.fiscalYear} Plan</h2>
+                        <div style="display: flex; gap: 12px; align-items: center; font-size: 0.8rem; background-color: var(--bg-light); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <span style="color: var(--text-dark); font-weight: 600;">Visible Columns:</span>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-light);">
+                                <input type="checkbox" id="toggle-col-features" ${state.ui.showFeaturesCol !== false ? 'checked' : ''} style="width: auto !important; margin: 0;"> Features
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-light);">
+                                <input type="checkbox" id="toggle-col-financials" ${state.ui.showFinancialsCol !== false ? 'checked' : ''} style="width: auto !important; margin: 0;"> Financials
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-light);">
+                                <input type="checkbox" id="toggle-col-logistics" ${state.ui.showLogisticsCol !== false ? 'checked' : ''} style="width: auto !important; margin: 0;"> Logistics/PO
+                            </label>
+                        </div>
+                    </div>
+                    <div style="padding: 0.5rem; text-align: center; background-color: var(--bg-main); border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div style="font-size: 0.9em;"><strong>Total Planned Sales (${vendorView === 'all' ? 'All Vendors' : vendorLabel(vendorView)}):</strong> ${formatCurrency(totalPlannedSales)} of ${formatCurrency(state.totalSalesTarget)} (${salesGoalPercent}%)</div>
+                        <div style="font-size: 0.85em; color: var(--text-dark);"><strong>Expected Contract Cost:</strong> ${formatCurrency(totalPlannedContractCost)}</div>
+                    </div>
                 </div>
             `;
 
@@ -1151,171 +1894,277 @@
 
                     const gamesInGroup = gamesForView.filter(g => g.denominationPrice === denom.price).sort((a, b) => a.name.localeCompare(b.name));
 
-                    const toggleIcon = denom.isCollapsed ? '►' : '▼';
+                    const toggleIcon = denom.isCollapsed 
+                        ? getIcon('chevronRight', 12) 
+                        : getIcon('chevronDown', 12);
                     const tableDisplay = denom.isCollapsed ? 'display:none;' : '';
+ 
+                     group.innerHTML = `
+                     <div class="game-group-header" data-action="toggle-collapse">
+                         <span class="toggle-icon" style="display:inline-flex;align-items:center;justify-content:center;margin-right:4px;">${toggleIcon}</span>
+                         <h3 style="border:none;margin:0;padding:0;font-size:14px;font-weight:600;">$${denom.price} Games</h3>
+                         <button style="margin-left: auto; display: inline-flex; align-items: center;" data-action="add-game">${getIcon('plus', 11)}Add Game</button>
+                     </div>
+                     <div style="${tableDisplay} width: 100%;">
+                     <table class="game-table">
+                          <thead>
+                              <tr>
+                                  <th>Game #</th>
+                                  <th>Game Name</th>
+                                  <th>Vendor</th>
+                                  <th class="col-financials">Cost Model</th>
+                                  <th class="col-financials">Ticket Size</th>
+                                  <th>Units</th>
+                                  <th class="col-features-trigger">
+                                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-features-col" title="Click to toggle Features Column">
+                                          <span>Payout %</span>
+                                          <span class="toggle-badge ${state.ui.showFeaturesCol ? '' : 'badge-collapsed'}">
+                                              ${state.ui.showFeaturesCol ? '◀ Collapse' : '▶ Features'}
+                                          </span>
+                                      </div>
+                                  </th>
+                                  <th class="col-features">Features</th>
+                                  <th class="col-financials">Est. Base Cost</th>
+                                  <th class="col-financials">Contract Cost</th>
+                                  <th class="col-financials">Prize Expense</th>
+                                  <th class="col-financials">Total COGS</th>
+                                  <th class="col-financials-trigger">
+                                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-financials-col" title="Click to toggle Financial Details">
+                                          <span>Gross Margin</span>
+                                          <span class="toggle-badge ${state.ui.showFinancialsCol ? '' : 'badge-collapsed'}">
+                                              ${state.ui.showFinancialsCol ? '◀ Collapse' : '▶ Financials'}
+                                          </span>
+                                      </div>
+                                  </th>
+                                  <th class="col-logistics">PO #</th>
+                                  <th class="col-logistics">PO Date</th>
+                                  <th class="col-logistics">Receipt Date</th>
+                                  <th class="col-logistics-trigger">
+                                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-logistics-col" title="Click to toggle Logistics/PO Columns">
+                                          <span class="toggle-badge ${state.ui.showLogisticsCol ? '' : 'badge-collapsed'}">
+                                              ${state.ui.showLogisticsCol ? 'Collapse ◀' : 'Logistics ▶'}
+                                          </span>
+                                          <span>Status</span>
+                                      </div>
+                                  </th>
+                                  <th>Actions</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              ${gamesInGroup.map(game => renderGameRow(game)).join('')}
+                          </tbody>
+                      </table>
+                      </div>`;
+                      container.appendChild(group);
+                  });
+ 
+                  // --- NON-SCRATCHER ITEMS SECTION ---
+                  if (scenario.nonScratcherItems) {
+                      const nsGroup = document.createElement('div');
+                      nsGroup.className = 'game-group';
+                      nsGroup.style.marginTop = '2rem';
+                      nsGroup.dataset.isNonScratcher = "true";
+ 
+                      const isNsCollapsed = state.ui.nonScratcherCollapsed || false;
+                      const toggleNsIcon = isNsCollapsed ? getIcon('chevronRight', 14) : getIcon('chevronDown', 14);
+                      const tableNsDisplay = isNsCollapsed ? 'display:none;' : '';
 
-                    group.innerHTML = `
-                    <div class="game-group-header" data-action="toggle-collapse">
-                        <span class="toggle-icon">${toggleIcon}</span>
-                        <h3>$${denom.price} Games</h3>
-                        <button style="margin-left: auto;" data-action="add-game">+ Add Game</button>
-                    </div>
-                    <div style="${tableDisplay}">
-                    <table class="game-table">
-                        <thead>
-                            <tr>
-                                <th>Game #</th><th>Game Name</th><th>Vendor</th><th>Cost Model</th>
-                                <th>Ticket Size</th><th>Units</th><th>Payout %</th><th>Features</th>
-                                <th>Est. Base Cost</th><th>Contract Cost</th><th>Prize Expense</th><th>Total COGS</th><th>Gross Margin</th>
-                                <th>PO #</th><th>PO Date</th><th>Receipt Date</th><th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${gamesInGroup.map(game => renderGameRow(game)).join('')}
-                        </tbody>
-                    </table>
-                    </div>`;
-                    container.appendChild(group);
-                });
-
-                // --- NON-SCRATCHER ITEMS SECTION ---
-                if (scenario.nonScratcherItems) {
-                    const nsGroup = document.createElement('div');
-                    nsGroup.className = 'game-group';
-                    nsGroup.style.marginTop = '2rem';
-                    nsGroup.dataset.isNonScratcher = "true";
-
-                    const isNsCollapsed = state.ui.nonScratcherCollapsed || false;
-                    const toggleNsIcon = isNsCollapsed ? '►' : '▼';
-                    const tableNsDisplay = isNsCollapsed ? 'display:none;' : '';
-
-                    nsGroup.innerHTML = `
-                        <div class="game-group-header" data-action="toggle-ns-collapse" style="background-color: var(--bg-light); border-color: var(--border-color);">
-                            <span class="toggle-icon">${toggleNsIcon}</span>
-                            <h3>Non-Scratcher / Marketing Items</h3>
-                            <button style="margin-left: auto; background-color: var(--accent-light); color: #fff;" data-action="add-ns-item">+ Add Item</button>
-                        </div>
-                        <div style="${tableNsDisplay}">
-                        <table class="game-table" style="background-color: var(--bg-panel);">
-                            <thead>
-                                <tr>
-                                    <th style="width: 25%">Item Name</th>
-                                    <th style="width: 20%">Vendor</th>
-                                    <th style="width: 20%">Associated Holiday / Campaign</th>
-                                    <th style="width: 15%">Total Cost</th>
-                                    <th>PO #</th><th>PO Date</th><th>Receipt Date</th><th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${(scenario.nonScratcherItems.length === 0)
-                            ? `<tr><td colspan="9" style="text-align:center; padding: 1rem; color: #718096;">No non-scratcher items planned for this scenario.</td></tr>`
-                            : scenario.nonScratcherItems.map(item => renderNonScratcherRow(item)).join('')}
-                            </tbody>
-                        </table>
-                        </div>`;
+                     nsGroup.innerHTML = `
+                         <div class="game-group-header" data-action="toggle-ns-collapse" style="background-color: var(--bg-light); border-color: var(--border-color);">
+                             <span class="toggle-icon">${toggleNsIcon}</span>
+                             <h3>Non-Scratcher / Marketing Items</h3>
+                             <button style="margin-left: auto;" data-action="add-ns-item">${getIcon('plus', 11)}Add Item</button>
+                         </div>
+                         <div style="${tableNsDisplay} width: 100%;">
+                         <table class="game-table" style="background-color: var(--bg-panel);">
+                             <thead>
+                                 <tr>
+                                     <th style="width: 20%">Item Name</th>
+                                     <th style="width: 15%">Vendor</th>
+                                     <th style="width: 15%">Associated Holiday / Campaign</th>
+                                     <th style="width: 10%">Total Cost</th>
+                                     <th style="width: 8%" class="col-logistics">PO #</th>
+                                     <th style="width: 11%" class="col-logistics">PO Date</th>
+                                     <th style="width: 11%" class="col-logistics">Receipt Date</th>
+                                     <th style="width: 7%" class="col-logistics-trigger">
+                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-logistics-col" title="Click to toggle Logistics/PO Columns">
+                                             <span class="toggle-badge ${state.ui.showLogisticsCol ? '' : 'badge-collapsed'}">
+                                                 ${state.ui.showLogisticsCol ? 'Collapse ◀' : 'Logistics ▶'}
+                                             </span>
+                                             <span>Status</span>
+                                         </div>
+                                     </th>
+                                     <th style="width: 3%">Actions</th>
+                                 </tr>
+                             </thead>
+                             <tbody>
+                                 ${(scenario.nonScratcherItems.length === 0)
+                             ? `<tr><td colspan="9" style="text-align:center; padding: 1rem; color: #718096;">No non-scratcher items planned for this scenario.</td></tr>`
+                             : scenario.nonScratcherItems.map(item => renderNonScratcherRow(item)).join('')}
+                             </tbody>
+                         </table>
+                         </div>`;
                     container.appendChild(nsGroup);
                 }
             }
 
             function renderNonScratcherRow(item) {
+                const activeVendor = state.vendors.find(v => v.id === item.vendorId);
+                const vendorTitle = activeVendor ? activeVendor.name : 'None / Internal';
                 return `
                     <tr data-ns-item-id="${item.id}" style="background-color: rgba(255, 255, 255, 0.02);">
                         <td><input type="text" value="${item.name || ''}" data-ns-prop="name" placeholder="E.g., Pack Inserts"></td>
                         <td>
-                            <select data-ns-prop="vendorId">
-                                <option value="">None / Internal</option>
-                                ${state.vendors.map(v => `<option value="${v.id}" ${item.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
-                            </select>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <select data-ns-prop="vendorId" title="${vendorTitle}">
+                                    <option value="">None</option>
+                                    ${state.vendors.map(v => `<option value="${v.id}" ${item.vendorId === v.id ? 'selected' : ''}>${vendorAbbrev(v.name)}</option>`).join('')}
+                                </select>
+                                <select data-ns-prop="budgetStatus" style="font-size: 10px; padding: 2px; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text);">
+                                    <option value="new_request" ${item.budgetStatus === 'already_booked' ? '' : 'selected'}>New Request</option>
+                                    <option value="already_booked" ${item.budgetStatus === 'already_booked' ? 'selected' : ''}>Overhead</option>
+                                </select>
+                            </div>
                         </td>
                         <td><input type="text" value="${item.associatedHoliday || ''}" data-ns-prop="associatedHoliday" placeholder="E.g., Winter 2027"></td>
                         <td>
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <span style="color: var(--text-dark);">$</span>
-                                <input type="text" class="ns-cost-input" value="${(item.cost || 0).toLocaleString('en-US')}" inputmode="numeric" data-ns-prop="cost" style="width: 100px;">
+                                <input type="text" class="ns-cost-input" value="${(item.cost || 0).toLocaleString('en-US')}" inputmode="numeric" data-ns-prop="cost" style="flex-grow: 1; width: 0;">
                             </div>
                         </td>
-                        <td><input type="text" value="${item.poNumber || ''}" placeholder="PO #" data-ns-prop="poNumber" size="10"></td>
-                        <td>
+                        <td class="col-logistics"><input type="text" value="${item.poNumber || ''}" placeholder="PO #" data-ns-prop="poNumber"></td>
+                        <td class="col-logistics">
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="date" value="${item.poDate || ''}" data-ns-prop="poDate">
-                                <button title="Pick date" data-action="open-date">📅</button>
+                                <button title="Pick date" data-action="open-date" style="padding:4px;">${getIcon('calendar')}</button>
                             </div>
                         </td>
-                        <td>
+                        <td class="col-logistics">
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="date" value="${item.receiptDate || ''}" data-ns-prop="receiptDate">
-                                <button title="Pick date" data-action="open-date">📅</button>
+                                <button title="Pick date" data-action="open-date" style="padding:4px;">${getIcon('calendar')}</button>
                             </div>
                         </td>
-                        <td>
+                        <td class="col-logistics-trigger">
                             <select data-ns-prop="status">
                                 ${['Planned', 'Ordered', 'Delivered', 'Cancelled'].map(s => `<option value="${s}" ${item.status === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </td>
-                        <td><button data-action="delete-ns-item">🗑️</button></td>
+                        <td><button data-action="delete-ns-item" title="Delete Item" style="padding:4px;">${getIcon('trash')}</button></td>
                     </tr>`;
             }
 
-            function renderGameRow(game) {
+             function renderGameRow(game) {
                 const metrics = calculateGameMetrics(game);
-                const presets = CONTRACT_UNIT_PRESETS[game.denominationPrice] || CONTRACT_UNIT_PRESETS.default;
-                const presetOptions = presets.map(n => `<option value="${n}">${n.toLocaleString('en-US')}</option>`).join('');
+                const poolSize = POOL_SIZES[game.denominationPrice] || 1200000;
+                
+                let brandWarningHtml = '';
+                let brandLabel = '';
+                if (game.licensedBrandId) {
+                    const brandObj = LICENSED_BRANDS.find(b => b.id === game.licensedBrandId);
+                    if (brandObj) {
+                        brandLabel = `✨ ${brandObj.name}`;
+                        if (brandObj.vendorId !== game.vendorId) {
+                            const brandVendor = state.vendors.find(v => v.id === brandObj.vendorId);
+                            const brandVendorName = brandVendor ? brandVendor.name : brandObj.vendorId.toUpperCase();
+                            const titleText = `⚠️ Conflict: "${brandObj.name}" is exclusive to ${brandVendorName}.`;
+                            brandWarningHtml = `
+                                <span class="brand-warning" title="${titleText}" style="color: var(--danger-color); font-weight: bold; cursor: help; font-size: 14px; margin-left: 4px; display: inline-flex; align-items: center; vertical-align: middle;">${getIcon('warning', 14)}</span>
+                            `;
+                        }
+                    }
+                }
+                const featuresList = (game.featureIds || []).slice();
+                if (brandLabel) {
+                    featuresList.unshift(brandLabel);
+                }
+                const featuresDisplay = featuresList.length ? featuresList.join(', ') : 'None';
+
+                const poolCounts = [1, 2, 5, 10, 15, 20];
+                const presetOptions = poolCounts.map(count => {
+                    const val = poolSize * count;
+                    return `<option value="${val}">${count} Pool${count > 1 ? 's' : ''} (${(val/1000).toFixed(0)}K)</option>`;
+                }).join('');
+
+                const isMultiple = game.units % poolSize === 0;
+                const warningHtml = isMultiple ? '' : `
+                    <span class="pool-warning" title="Not a multiple of the standard Pool Size (${(poolSize/1000).toFixed(0)}K tickets)" style="color: var(--warning-color); margin-left: 4px; font-weight: bold; cursor: help; font-size: 14px; display: inline-flex; align-items: center; vertical-align: middle;">${getIcon('warning', 14)}</span>
+                `;
+
                 const model = state.vendorPricing[game.vendorId]?.costModel || 'percentOfSales';
                 const modelLabel = model === 'percentOfSales' ? '% of Sales' : 'Per Thousand';
                 const sizeOptions = STANDARD_TICKET_SIZES.map(s => `<option value="${s.id}" ${game.ticketSize === s.id ? 'selected' : ''}>${s.label}</option>`).join('');
+
+                let budgetStatusHtml = '';
+                if (game.budgetStatus === 'already_booked') {
+                    budgetStatusHtml = `<span style="font-size: 9px; color: var(--text-dark); background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 1px 4px; border-radius: 3px; display: block; margin-top: 2px; text-align: center;">Overhead</span>`;
+                }
 
                 return `
                     <tr data-game-id="${game.id}">
                     <td><input type="text" value="${game.gameNumber || ''}" data-prop="gameNumber" maxlength="4" size="4"></td>
                     <td><input type="text" value="${game.name}" data-prop="name"></td>
                     <td>
-                        <select data-prop="vendorId">
-                            ${state.vendors.map(v => `<option value="${v.id}" ${game.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
-                        </select>
-                    </td>
-                    <td>${modelLabel}</td>
-                    <td><select data-prop="ticketSize">${sizeOptions}</select></td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <select class="units-preset">
-                                <option value="">Presets…</option>
-                                ${presetOptions}
-                                <option value="custom">Custom…</option>
-                            </select>
-                            <input type="text" class="units-input" value="${game.units.toLocaleString('en-US')}" inputmode="numeric" data-prop="units">
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <select data-prop="vendorId" title="${state.vendors.find(v => v.id === game.vendorId)?.name || 'None'}" style="flex-grow: 1;">
+                                    ${state.vendors.map(v => `<option value="${v.id}" ${game.vendorId === v.id ? 'selected' : ''}>${vendorAbbrev(v.name)}</option>`).join('')}
+                                </select>
+                                ${brandWarningHtml}
+                            </div>
+                            ${budgetStatusHtml}
                         </div>
                     </td>
-                    <td><input type="number" value="${game.payoutPercent}" step="0.1" min="0" data-prop="payoutPercent"></td>
-                    <td>${(game.featureIds && game.featureIds.length) ? game.featureIds.join(', ') : 'None'} <button style="font-size: 0.75rem;" data-action="edit-features">Edit</button></td>
-                    <td data-metric="baseCostApplied" style="color:var(--text-dark); font-size:0.9em; white-space:nowrap;">$${(metrics.baseCostApplied || 0).toFixed(2)} / M</td>
-                    <td data-metric="contractCost">${formatCurrency(metrics.contractCost)}</td>
-                    <td data-metric="prizeExpense">${formatCurrency(metrics.prizeExpense)}</td>
-                    <td data-metric="cogs">${formatCurrency(metrics.cogs)}</td>
-                    <td data-metric="grossMargin" style="color:${metrics.grossMargin < 0 ? 'var(--danger-color)' : '#22c55e'}">${formatCurrency(metrics.grossMargin)}</td>
-                    <td><input type="text" value="${game.poNumber || ''}" placeholder="PO #" data-prop="poNumber"></td>
+                    <td class="col-financials">${modelLabel}</td>
+                    <td class="col-financials"><select data-prop="ticketSize">${sizeOptions}</select></td>
                     <td>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <select class="units-preset" title="Choose Preset Units">
+                                    <option value="">⚡</option>
+                                    ${presetOptions}
+                                </select>
+                                <input type="text" class="units-input" value="${game.units.toLocaleString('en-US')}" inputmode="numeric" data-prop="units">
+                                ${warningHtml}
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-dark); cursor: pointer; user-select: none;" title="Toggle if this game is a reorder run">
+                                <input type="checkbox" data-prop="isReorder" ${game.isReorder ? 'checked' : ''} style="width: auto !important; margin: 0; cursor: pointer;"> Reorder Game
+                            </label>
+                        </div>
+                    </td>
+                    <td class="col-features-trigger"><input type="number" value="${game.payoutPercent}" step="0.1" min="0" data-prop="payoutPercent"></td>
+                    <td class="col-features">${featuresDisplay} <button style="font-size: 0.75rem;" data-action="edit-features">Edit</button></td>
+                    <td class="col-financials" data-metric="baseCostApplied" style="color:var(--text-dark); font-size:0.9em; white-space:nowrap;">
+                        $${(metrics.baseCostApplied || 0).toFixed(2)} / M
+                        ${game.isReorder ? '<span style="font-size:9px; color:var(--accent-color); font-weight:bold; display:block; margin-top:2px;">(Reorder)</span>' : ''}
+                    </td>
+                    <td class="col-financials" data-metric="contractCost">${formatCurrency(metrics.contractCost)}</td>
+                    <td class="col-financials" data-metric="prizeExpense">${formatCurrency(metrics.prizeExpense)}</td>
+                    <td class="col-financials" data-metric="cogs">${formatCurrency(metrics.cogs)}</td>
+                    <td class="col-financials-trigger" data-metric="grossMargin" style="color:${metrics.grossMargin < 0 ? 'var(--danger-color)' : '#22c55e'}">${formatCurrency(metrics.grossMargin)}</td>
+                    <td class="col-logistics"><input type="text" value="${game.poNumber || ''}" placeholder="PO #" data-prop="poNumber"></td>
+                    <td class="col-logistics">
                         <div style="display:flex;align-items:center;gap:4px;">
                             <input type="date" value="${game.poDate || ''}" data-prop="poDate">
-                            <button title="Pick date" data-action="open-date">📅</button>
+                            <button title="Pick date" data-action="open-date" style="padding:4px;">${getIcon('calendar')}</button>
                         </div>
                     </td>
-                    <td>
+                    <td class="col-logistics">
                         <div style="display:flex;align-items:center;gap:4px;">
                             <input type="date" value="${game.receiptDate || ''}" data-prop="receiptDate">
-                            <button title="Pick date" data-action="open-date">📅</button>
+                            <button title="Pick date" data-action="open-date" style="padding:4px;">${getIcon('calendar')}</button>
                         </div>
                     </td>
-                    <td>
+                    <td class="col-logistics-trigger">
                         <select data-prop="deliveryStatus">
                             ${['Planned', 'Ordered', 'Delivered', 'Cancelled'].map(s => `<option value="${s}" ${game.deliveryStatus === s ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
                     </td>
                     <td>
                         <div style="display:flex;align-items:center;gap:4px;">
-                            <button class="icon-btn" title="Duplicate Game" data-action="duplicate-game">📋</button>
-                            <button class="delete-btn" title="Delete Game" data-action="delete-game">🗑️</button>
+                            <button class="icon-btn" title="Duplicate Game" data-action="duplicate-game" style="padding:4px;">${getIcon('copy')}</button>
+                            <button title="Delete Game" data-action="delete-game" style="padding:4px;">${getIcon('trash')}</button>
                         </div>
                     </td>
                 </tr>`;
@@ -1327,7 +2176,7 @@
                 if (state.ui.rightCollapsed) {
                     container.innerHTML = `
                     <div style="display: flex; flex-direction: column; align-items: center; height: 100%; cursor: pointer; padding-top: 8px;" data-action="toggle-right" title="Expand Vendor Pricing">
-                            <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; color: var(--text-light);">◀</button>
+                            <button style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-light);">${getIcon('chevronLeft', 16)}</button>
                             <div style="writing-mode: vertical-rl; margin-top: 1rem; font-weight: 600; color: var(--text-dark);">Vendor Pricing</div>
                         </div>
                     `;
@@ -1338,9 +2187,9 @@
                 const header = `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                     <h3 style="border: none; margin: 0; padding: 0;">Vendor Pricing</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="add-vendor-btn" style="padding: 4px 8px; font-size: 0.8rem;">Vendor</button>
-                        <button id="manage-features-btn" style="padding: 4px 8px; font-size: 0.8rem;">Features</button>
-                        <button data-action="toggle-right" title="Fold Vendor Pricing" style="padding: 2px 6px; font-size: 0.8rem;">▶</button>
+                        <button id="add-vendor-btn" style="padding: 4px 8px; font-size: 0.8rem; display: inline-flex; align-items: center;">${getIcon('plus', 11)}Vendor</button>
+                        <button id="manage-features-btn" style="padding: 4px 8px; font-size: 0.8rem; display: inline-flex; align-items: center;">${getIcon('settings', 11)}Features</button>
+                        <button data-action="toggle-right" title="Fold Vendor Pricing" style="padding: 4px 6px; display: inline-flex; align-items: center; justify-content: center;">${getIcon('chevronRight', 14)}</button>
                     </div>
                 </div>`;
                 const tabs = `<div style="display: flex; border-bottom: 1px solid var(--border-color);">${vendors.map(v => `<button class="tab-btn" style="padding: 0.5rem 1rem; margin-bottom: -1px; border: 2px solid transparent; ${state.ui.activeVendorTab === v.id ? 'border-bottom-color: var(--accent-color); color: var(--accent-color);' : ''}" data-vendor-id="${v.id}">${v.name}</button>`).join('')}</div>`;
@@ -1356,20 +2205,20 @@
 
                         const tierRows = tiers.map((t, idx) => `
                             <tr style="background: rgba(255,255,255,0.02);">
-                                <td style="padding-left: 0.75rem;">Qty ≥ <input type="text" class="tier-qty-input" value="${t.quantity.toLocaleString('en-US')}" data-vendor="${v.id}" data-size="${size.id}" data-index="${idx}" style="width:130px; display:inline-block; font-size: 0.9em; padding: 4px;"></td>
-                                <td>Cost: ${metricLabel}<input type="number" class="tier-cost-input" value="${t.cost}" step="0.001" data-vendor="${v.id}" data-size="${size.id}" data-index="${idx}" style="width:100px; display:inline-block; font-size: 0.9em; padding: 4px;"></td>
-                                <td style="text-align: right;"><button data-action="delete-tier" data-vendor="${v.id}" data-size="${size.id}" data-index="${idx}" style="font-size: 0.8rem; color: var(--danger-color); padding: 4px 8px;">🗑️</button></td>
+                                <td style="padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.03);">Qty ≥ <input type="text" class="tier-qty-input" value="${t.quantity.toLocaleString('en-US')}" data-vendor="${v.id}" data-size="${size.id}" data-index="${idx}" style="width:115px; display:inline-block; font-size: 0.875rem; padding: 4px 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                                <td style="padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.03);">Cost: ${metricLabel}<input type="number" class="tier-cost-input" value="${t.cost}" step="0.001" data-vendor="${v.id}" data-size="${size.id}" data-index="${idx}" style="width:80px; display:inline-block; font-size: 0.875rem; padding: 4px 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;"></td>
+                                <td style="text-align: right; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.03);"><button data-action="delete-tier" data-vendor="${v.id}" data-size="${size.id}" data-index="${idx}" title="Delete Tier" style="padding: 4px; background: none; border: none; color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">${getIcon('trash')}</button></td>
                             </tr>
                         `).join('');
 
                         return `
                             <tr><td colspan="3" style="padding: 0.75rem 0 0.25rem 0; font-weight: 500; border-bottom: 1px solid var(--border-color);">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span>${size.label} Pricing Tiers</span>
-                                    <button data-action="add-tier" data-vendor="${v.id}" data-size="${size.id}" style="font-size:0.7rem; padding: 2px 6px;">+ Add Tier</button>
+                                    <span style="font-size: 0.875rem;">${size.label} Tiers</span>
+                                    <button data-action="add-tier" data-vendor="${v.id}" data-size="${size.id}" style="font-size: 11px; padding: 4px 8px; display: inline-flex; align-items: center;">${getIcon('plus', 10)}Add Tier</button>
                                 </div>
                             </td></tr>
-                            ${tierRows.length ? tierRows : `<tr><td colspan="3" style="padding-left:1rem; color:var(--text-dark); font-size:0.8em;">No tiers defined.</td></tr>`}
+                            ${tierRows.length ? tierRows : `<tr><td colspan="3" style="padding: 0.5rem 0 0.5rem 0.5rem; color:var(--text-dark); font-size:0.8rem;">No tiers defined.</td></tr>`}
                         `;
                     }).join('');
 
@@ -1384,33 +2233,136 @@
                         }
 
                         const saved = vd.features?.[name] ?? '';
-                        return `<tr>
-                            <td style="padding: 0.25rem 0;" colspan="2">
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
-                                    <input type="checkbox" data-vendor-feature-toggle="${name}" ${isSupported ? 'checked' : ''}>
+                        return `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <td style="padding: 0.5rem 0;" colspan="2">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; color: var(--text-light); font-size: 0.875rem;">
+                                    <input type="checkbox" data-vendor-feature-toggle="${name}" ${isSupported ? 'checked' : ''} style="cursor: pointer;">
                                     ${name}
                                 </label>
                             </td>
-                            <td style="text-align:right;"><input type="number" value="${saved}" placeholder="0.00" step="0.01" min="0" data-feature-name="${name}" ${!isSupported ? 'disabled' : ''} style="width: 80px;${!isSupported ? ' opacity: 0.5;' : ''}"></td>
+                            <td style="text-align:right; padding: 0.5rem 0;"><input type="number" value="${saved}" placeholder="0.00" step="0.01" min="0" data-feature-name="${name}" ${!isSupported ? 'disabled' : ''} style="width: 80px; font-size: 0.875rem; padding: 4px 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px; text-align: right; ${!isSupported ? ' opacity: 0.4;' : ''}"></td>
                         </tr>`;
                     }).join('');
 
+                    const reorderModel = vd.reorderModel || 'none';
+                    const reorderValue = vd.reorderValue || 0;
+                    const activeSection = state.ui.activeVendorSection || 'operating';
+
                     return `
                     <div class="tab-content" style="margin-top: 1rem; ${state.ui.activeVendorTab === v.id ? 'display:block;' : ''}" id="tab-${v.id}">
-                        <h4>Pricing for ${v.name}</h4>
-                        <div style="margin: 0.5rem 0;">
-                            <strong>Cost Model:</strong>
-                            <label style="margin-left: 1rem;"><input type="radio" name="costModel-${v.id}" value="percentOfSales" ${costModel === 'percentOfSales' ? 'checked' : ''}> % of Sales</label>
-                            <label style="margin-left: 0.5rem;"><input type="radio" name="costModel-${v.id}" value="perThousand" ${costModel === 'perThousand' ? 'checked' : ''}> Per Thousand</label>
+                        <h4 style="margin-top:0; margin-bottom: 0.5rem;">Settings for ${v.name}</h4>
+                        <div style="margin: 0.75rem 0; background: var(--bg-dark); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                            <strong style="font-size: 0.875rem;">Cost Model:</strong>
+                            <div style="display: flex; gap: 1rem; font-size: 0.875rem;">
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-light);"><input type="radio" name="costModel-${v.id}" value="percentOfSales" ${costModel === 'percentOfSales' ? 'checked' : ''}> % of Sales</label>
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-light);"><input type="radio" name="costModel-${v.id}" value="perThousand" ${costModel === 'perThousand' ? 'checked' : ''}> Per Thousand</label>
+                            </div>
                         </div>
-                        <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse;">
-                            <tbody>
-                                <tr><td colspan="3" style="font-weight: 600; padding: 0.5rem 0 0.25rem 0; background: var(--bg-light); border-bottom: 1px solid #4b5563;">Linear Interpolation Tiers (${costModel === 'percentOfSales' ? '% of Sales' : 'Per Thousand'})</td></tr>
-                                ${baseCostRows}
-                                <tr><td colspan="3" style="font-weight: 600; padding: 1.5rem 0 0.25rem 0; background: var(--bg-light); border-bottom: 1px solid var(--border-color);">Feature Costs (Per Thousand)</td></tr>
-                                ${featureRows}
-                            </tbody>
-                        </table>
+
+                        <!-- Accordion 1: Linear Interpolation Tiers -->
+                        <div class="accordion-section" style="border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 0.5rem; overflow: hidden; background: var(--bg-dark);">
+                            <div class="accordion-header" data-section="tiers" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: var(--bg-light); cursor: pointer; font-weight: 600; font-size: 0.875rem; border-bottom: 1px solid ${activeSection === 'tiers' ? 'var(--border-color)' : 'transparent'}; user-select: none;">
+                                <span>Linear Interpolation Tiers</span>
+                                <span style="font-size: 10px; color: var(--text-dark); display: inline-flex; align-items: center;">${activeSection === 'tiers' ? getIcon('chevronUp', 14) : getIcon('chevronDown', 14)}</span>
+                            </div>
+                            <div class="accordion-content" style="padding: 0.75rem; display: ${activeSection === 'tiers' ? 'block' : 'none'};">
+                                <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse;">
+                                    <tbody>
+                                        ${baseCostRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 2: Feature Costs -->
+                        <div class="accordion-section" style="border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 0.5rem; overflow: hidden; background: var(--bg-dark);">
+                            <div class="accordion-header" data-section="features" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: var(--bg-light); cursor: pointer; font-weight: 600; font-size: 0.875rem; border-bottom: 1px solid ${activeSection === 'features' ? 'var(--border-color)' : 'transparent'}; user-select: none;">
+                                <span>Feature Costs (Per Thousand)</span>
+                                <span style="font-size: 10px; color: var(--text-dark); display: inline-flex; align-items: center;">${activeSection === 'features' ? getIcon('chevronUp', 14) : getIcon('chevronDown', 14)}</span>
+                            </div>
+                            <div class="accordion-content" style="padding: 0.75rem; display: ${activeSection === 'features' ? 'block' : 'none'};">
+                                <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse;">
+                                    <tbody>
+                                        ${featureRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 3: Reorder Contract Rules -->
+                        <div class="accordion-section" style="border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 0.5rem; overflow: hidden; background: var(--bg-dark);">
+                            <div class="accordion-header" data-section="reorder" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: var(--bg-light); cursor: pointer; font-weight: 600; font-size: 0.875rem; border-bottom: 1px solid ${activeSection === 'reorder' ? 'var(--border-color)' : 'transparent'}; user-select: none;">
+                                <span>Reorder Contract Rules</span>
+                                <span style="font-size: 10px; color: var(--text-dark); display: inline-flex; align-items: center;">${activeSection === 'reorder' ? getIcon('chevronUp', 14) : getIcon('chevronDown', 14)}</span>
+                            </div>
+                            <div class="accordion-content" style="padding: 0.75rem; display: ${activeSection === 'reorder' ? 'block' : 'none'};">
+                                <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="2" style="padding: 0.5rem 0;">
+                                                <div style="font-weight: 500; margin-bottom: 4px; color: var(--text-light); font-size: 0.875rem;">Reorder Pricing Type:</div>
+                                                <select class="reorder-model-select" data-vendor="${v.id}" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.875rem;">
+                                                    <option value="none" ${reorderModel === 'none' ? 'selected' : ''}>Same as Initial Pricing</option>
+                                                    <option value="percent" ${reorderModel === 'percent' ? 'selected' : ''}>Percentage Discount</option>
+                                                    <option value="flatDiscount" ${reorderModel === 'flatDiscount' ? 'selected' : ''}>Per-Thousand Discount</option>
+                                                    <option value="fixedRate" ${reorderModel === 'fixedRate' ? 'selected' : ''}>Fixed Reorder Cost</option>
+                                                </select>
+                                            </td>
+                                            <td style="text-align: right; vertical-align: bottom; padding-bottom: 4px; padding-left: 12px;">
+                                                <div style="font-weight: 500; margin-bottom: 4px; text-align: right; color: var(--text-light); font-size: 0.875rem;">Value:</div>
+                                                <input type="number" class="reorder-value-input" value="${reorderValue}" step="0.01" min="0" data-vendor="${v.id}" style="width: 80px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; font-size: 0.875rem;" ${reorderModel === 'none' ? 'disabled' : ''}>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Accordion 4: Operating Cost Structure -->
+                        <div class="accordion-section" style="border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 0.5rem; overflow: hidden; background: var(--bg-dark);">
+                            <div class="accordion-header" data-section="operating" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: var(--bg-light); cursor: pointer; font-weight: 600; font-size: 0.875rem; border-bottom: 1px solid ${activeSection === 'operating' ? 'var(--border-color)' : 'transparent'}; user-select: none;">
+                                <span>Operating Cost Structure</span>
+                                <span style="font-size: 10px; color: var(--text-dark); display: inline-flex; align-items: center;">${activeSection === 'operating' ? getIcon('chevronUp', 14) : getIcon('chevronDown', 14)}</span>
+                            </div>
+                            <div class="accordion-content" style="padding: 0.75rem; display: ${activeSection === 'operating' ? 'block' : 'none'};">
+                                <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Central Gaming System Fee (%):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="gaming-system-percent-input" value="${vd.gamingSystemPercent ?? 2.50}" step="0.01" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Retailer Performance Bonus (%):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="retailer-bonus-percent-input" value="${vd.retailerBonusPercent ?? 0.50}" step="0.01" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Retailer Cashing Bonus (%):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="retailer-cashing-percent-input" value="${vd.retailerCashingPercent ?? 1.00}" step="0.01" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Retail-Cashable Share (%):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="cashable-prize-percent-input" value="${vd.cashablePrizePercent ?? 70.00}" step="0.01" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Jackpot Selling Bonus (%):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="jackpot-bonus-percent-input" value="${vd.jackpotBonusPercent ?? 0.50}" step="0.01" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Jackpot-Eligible Share (%):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="jackpot-eligible-percent-input" value="${vd.jackpotEligiblePercent ?? 10.00}" step="0.01" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Jackpot Bonus Cap ($):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="jackpot-bonus-cap-input" value="${vd.jackpotBonusCap ?? 1000000.00}" step="1000" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 0.6rem 0; color: var(--text-light); font-weight: 500;">Fixed Operating Cost ($):</td>
+                                            <td style="text-align: right; padding: 0.6rem 0;"><input type="number" class="fixed-operating-cost-input" value="${vd.fixedOperatingCost ?? 0.00}" step="1" min="0" data-vendor="${v.id}" style="width: 85px; text-align: right; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); padding: 6px; border-radius: 4px; outline: none; font-size: 0.875rem;"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>`;
                 }).join('');
                 container.innerHTML = header + tabs + content;
@@ -1423,20 +2375,20 @@
                     container.innerHTML = `
                     <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;" data-action="toggle-bottom" title="Expand Audit Trail">
                             <h4 style="margin: 0; color: var(--text-dark);">Audit Trail</h4>
-                            <button style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; color: var(--text-light);">▲</button>
+                            <button style="padding: 4px;">${getIcon('chevronUp', 16)}</button>
                         </div>
                     `;
                     return;
                 }
-
-                container.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <h4 style="margin: 0;">Audit Trail</h4>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="clear-log-btn" style="padding: 4px 8px; font-size: 0.75rem;">Clear Log</button>
-                        <button data-action="toggle-bottom" title="Fold Audit Trail" style="padding: 2px 6px; font-size: 0.8rem;">▼</button>
-                    </div>
-                </div>
+ 
+                 container.innerHTML = `
+                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                     <h4 style="margin: 0;">Audit Trail</h4>
+                     <div style="display: flex; gap: 8px; align-items: center;">
+                         <button id="clear-log-btn" style="padding: 4px 8px; font-size: 0.75rem;">Clear Log</button>
+                         <button data-action="toggle-bottom" title="Fold Audit Trail" style="padding: 4px;">${getIcon('chevronDown', 16)}</button>
+                     </div>
+                 </div>
                     <div id="log-entries" style="font-size: 0.75rem; color: #9ca3af; display: flex; flex-direction: column; gap: 0.25rem;">
                         ${state.auditLog.slice(0, 5).map(log => `<p>[${log.timestamp}] ${log.message}</p>`).join('')}
                     </div>
@@ -1628,11 +2580,19 @@
                             }
                         }, `Set units preset to ${Number(val).toLocaleString('en-US')}.`);
                     }
+                    e.target.value = ''; // Reset select to first option to stay compact!
                     return;
                 }
 
                 const prop = e.target.dataset.prop;
                 if (!gameId || !prop) return;
+
+                // Update select title if vendor changes
+                if (prop === 'vendorId') {
+                    const sel = e.target;
+                    const fullVendor = state.vendors.find(v => v.id === sel.value);
+                    sel.title = fullVendor ? fullVendor.name : (sel.value === '' ? 'None' : sel.value);
+                }
 
                 let value;
                 if (prop === 'units') {
@@ -1643,6 +2603,8 @@
                 } else if (e.target.type === 'number') {
                     value = parseFloat(e.target.value) || 0;
                     if (value < 0) { value = 0; e.target.value = 0; } // Bounds checking
+                } else if (e.target.type === 'checkbox') {
+                    value = e.target.checked;
                 } else {
                     value = e.target.value;
                 }
@@ -1654,7 +2616,7 @@
                     if (game) game[prop] = value;
                 }, `Updated game ${gameId} property ${prop}.`);
 
-                if (['units', 'vendorId', 'ticketSize'].includes(prop)) {
+                if (['units', 'vendorId', 'ticketSize', 'isReorder'].includes(prop)) {
                     renderCenterPanel();
                 }
             }
@@ -1665,6 +2627,13 @@
                 const itemId = row.dataset.nsItemId;
                 const prop = e.target.dataset.nsProp;
                 if (!itemId || !prop) return;
+
+                // Update select title if vendor changes
+                if (prop === 'vendorId') {
+                    const sel = e.target;
+                    const fullVendor = state.vendors.find(v => v.id === sel.value);
+                    sel.title = fullVendor ? fullVendor.name : (sel.value === '' ? 'None / Internal' : sel.value);
+                }
 
                 let value = e.target.value;
                 if (prop === 'cost') {
@@ -1703,7 +2672,9 @@
                             id: `g${Date.now()}`, gameNumber: '', denominationPrice: price, ticketSize: defaultTicketSize, name: 'New Game',
                             vendorId: defaultVendor,
                             units: defaultUnits, payoutPercent: 68.0, featureIds: [],
-                            poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned'
+                            poNumber: '', poDate: '', receiptDate: '', deliveryStatus: 'Planned',
+                            isReorder: false,
+                            licensedBrandId: ''
                         });
                         const denom = sc.denominations.find(d => d.price === price);
                         if (denom) denom.isCollapsed = false;
@@ -1790,8 +2761,20 @@
             }
 
             function handleRightPanelClick(e) {
-                const target = e.target.closest('[data-vendor-id], #manage-features-btn, #add-vendor-btn, [data-action="toggle-right"], [data-action="add-tier"], [data-action="delete-tier"]');
+                const target = e.target.closest('[data-vendor-id], #manage-features-btn, #add-vendor-btn, [data-action="toggle-right"], [data-action="add-tier"], [data-action="delete-tier"], [data-section]');
                 if (!target) return;
+
+                if (target.dataset.section) {
+                    const sectionName = target.dataset.section;
+                    commit(s => {
+                        if (s.ui.activeVendorSection === sectionName) {
+                            s.ui.activeVendorSection = null;
+                        } else {
+                            s.ui.activeVendorSection = sectionName;
+                        }
+                    }, `Switched active pricing section to ${sectionName}.`);
+                    return;
+                }
 
                 if (target.dataset.action === 'add-tier') {
                     const { vendor, size } = target.dataset;
@@ -1887,6 +2870,67 @@
                             });
                         }
                     }, `${isSupported ? 'Enabled' : 'Disabled'} feature '${featureName}' for ${vendorLabel(vendorId)}.`);
+                } else if (e.target.classList.contains('reorder-model-select')) {
+                    const model = e.target.value;
+                    commit(s => {
+                        s.vendorPricing[vendorId].reorderModel = model;
+                    }, `Updated ${vendorId} reorder contract model to ${model}.`);
+                    renderRightPanel();
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('reorder-value-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].reorderValue = val;
+                    }, `Updated ${vendorId} reorder parameter value to ${val}.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('gaming-system-percent-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].gamingSystemPercent = val;
+                    }, `Updated ${vendorId} central gaming system fee percentage to ${val}%.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('retailer-bonus-percent-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].retailerBonusPercent = val;
+                    }, `Updated ${vendorId} retailer performance bonus percentage to ${val}%.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('fixed-operating-cost-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].fixedOperatingCost = val;
+                    }, `Updated ${vendorId} fixed operating cost per game to $${val}.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('retailer-cashing-percent-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].retailerCashingPercent = val;
+                    }, `Updated ${vendorId} retailer cashing bonus percentage to ${val}%.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('cashable-prize-percent-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].cashablePrizePercent = val;
+                    }, `Updated ${vendorId} retail-cashable prize share percentage to ${val}%.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('jackpot-bonus-percent-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].jackpotBonusPercent = val;
+                    }, `Updated ${vendorId} jackpot selling bonus percentage to ${val}%.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('jackpot-eligible-percent-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].jackpotEligiblePercent = val;
+                    }, `Updated ${vendorId} jackpot-eligible prize share percentage to ${val}%.`);
+                    renderCenterPanel();
+                } else if (e.target.classList.contains('jackpot-bonus-cap-input')) {
+                    const val = parseFloat(e.target.value) || 0;
+                    commit(s => {
+                        s.vendorPricing[vendorId].jackpotBonusCap = val;
+                    }, `Updated ${vendorId} jackpot bonus cap to $${val}.`);
+                    renderCenterPanel();
                 } else {
                     const { featureName } = e.target.dataset || {};
                     const cost = parseFloat(e.target.value) || 0;
@@ -1949,9 +2993,86 @@
                         const checked = game.featureIds?.includes(name) ? 'checked' : '';
                         return `<label><input type="checkbox" name="${name}" ${checked}> ${name}</label>`;
                     }).join('');
+                }                // Populate Licensed Brand Select
+                const brandSelect = byId('modal-brand-select');
+                brandSelect.innerHTML = '<option value="">-- None --</option>' + LICENSED_BRANDS.map(b => {
+                    const brandVendor = state.vendors.find(v => v.id === b.vendorId);
+                    const brandVendorName = brandVendor ? vendorAbbrev(brandVendor.name) : b.vendorId.toUpperCase();
+                    return `<option value="${b.id}">${b.name} (Exclusive to ${brandVendorName})</option>`;
+                }).join('');
+                brandSelect.value = game.licensedBrandId || '';
+                updateModalBrandWarning();
+
+                // Populate Budget Status
+                const budgetStatusSelect = byId('modal-budget-status-select');
+                if (budgetStatusSelect) {
+                    budgetStatusSelect.value = game.budgetStatus || 'new_request';
+                }
+
+                // Populate Operating Cost Overrides
+                const systemOverrideInput = byId('modal-gaming-system-override');
+                const bonusOverrideInput = byId('modal-retailer-bonus-override');
+                const fixedOverrideInput = byId('modal-fixed-cost-override');
+                const cashingOverrideInput = byId('modal-retailer-cashing-override');
+                const cashableOverrideInput = byId('modal-cashable-prize-override');
+                const jackpotOverrideInput = byId('modal-jackpot-bonus-override');
+                const eligibleOverrideInput = byId('modal-jackpot-eligible-override');
+                const capOverrideInput = byId('modal-jackpot-cap-override');
+
+                if (systemOverrideInput && bonusOverrideInput && fixedOverrideInput && cashingOverrideInput && cashableOverrideInput && jackpotOverrideInput && eligibleOverrideInput && capOverrideInput) {
+                    systemOverrideInput.value = (game.gamingSystemPercent !== undefined && game.gamingSystemPercent !== null) ? game.gamingSystemPercent : '';
+                    bonusOverrideInput.value = (game.retailerBonusPercent !== undefined && game.retailerBonusPercent !== null) ? game.retailerBonusPercent : '';
+                    fixedOverrideInput.value = (game.fixedOperatingCost !== undefined && game.fixedOperatingCost !== null) ? game.fixedOperatingCost : '';
+                    cashingOverrideInput.value = (game.retailerCashingPercent !== undefined && game.retailerCashingPercent !== null) ? game.retailerCashingPercent : '';
+                    cashableOverrideInput.value = (game.cashablePrizePercent !== undefined && game.cashablePrizePercent !== null) ? game.cashablePrizePercent : '';
+                    jackpotOverrideInput.value = (game.jackpotBonusPercent !== undefined && game.jackpotBonusPercent !== null) ? game.jackpotBonusPercent : '';
+                    eligibleOverrideInput.value = (game.jackpotEligiblePercent !== undefined && game.jackpotEligiblePercent !== null) ? game.jackpotEligiblePercent : '';
+                    capOverrideInput.value = (game.jackpotBonusCap !== undefined && game.jackpotBonusCap !== null) ? game.jackpotBonusCap : '';
+
+                    systemOverrideInput.placeholder = `Default (${(vd.gamingSystemPercent ?? 2.50)}%)`;
+                    bonusOverrideInput.placeholder = `Default (${(vd.retailerBonusPercent ?? 0.50)}%)`;
+                    fixedOverrideInput.placeholder = `Default ($${(vd.fixedOperatingCost ?? 0.00)})`;
+                    cashingOverrideInput.placeholder = `Default (${(vd.retailerCashingPercent ?? 1.00)}%)`;
+                    cashableOverrideInput.placeholder = `Default (${(vd.cashablePrizePercent ?? 70.00)}%)`;
+                    jackpotOverrideInput.placeholder = `Default (${(vd.jackpotBonusPercent ?? 0.50)}%)`;
+                    eligibleOverrideInput.placeholder = `Default (${(vd.jackpotEligiblePercent ?? 10.00)}%)`;
+                    capOverrideInput.placeholder = `Default ($${(vd.jackpotBonusCap ?? 1000000.00).toLocaleString()})`;
                 }
 
                 byId('feature-modal').style.display = 'flex';
+            }
+
+            function updateModalBrandWarning() {
+                const brandId = byId('modal-brand-select').value;
+                const gameId = state.ui.editingFeaturesForGameId;
+                if (!gameId) return;
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+                const game = scenario.games.find(g => g.id === gameId);
+                if (!game) return;
+
+                const warningBox = byId('modal-brand-warning');
+                if (!brandId) {
+                    warningBox.style.display = 'none';
+                    return;
+                }
+
+                const brand = LICENSED_BRANDS.find(b => b.id === brandId);
+                if (!brand) {
+                    warningBox.style.display = 'none';
+                    return;
+                }
+
+                if (brand.vendorId !== game.vendorId) {
+                    const exclusiveVendor = state.vendors.find(v => v.id === brand.vendorId);
+                    const currentVendor = state.vendors.find(v => v.id === game.vendorId);
+                    const exclusiveName = exclusiveVendor ? exclusiveVendor.name : brand.vendorId;
+                    const currentName = currentVendor ? currentVendor.name : game.vendorId;
+                    warningBox.textContent = `⚠️ Conflict: "${brand.name}" is exclusive to ${exclusiveName}. Current vendor is ${currentName}.`;
+                    warningBox.style.display = 'block';
+                } else {
+                    warningBox.style.display = 'none';
+                }
             }
 
             function openFeatureManagementModal() {
@@ -1961,7 +3082,7 @@
                         const name = f['Generic Feature'];
                         return `<div data-name="${name}" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color);padding:6px 0;">
                         <span>${name}</span>
-                        <button data-action="delete-feature" data-name="${name}" style="background:var(--danger-color);">Delete</button>
+                        <button data-action="delete-feature" data-name="${name}">Delete</button>
                     </div>`;
                     }).join('');
                 };
@@ -1970,7 +3091,6 @@
             }
 
             function handleModalEvents(e) {
-                // Close if clicking outside content or Cancel
                 if (e.target.id === 'modal-cancel-btn' || !e.target.closest('.modal-content')) {
                     byId('feature-modal').style.display = 'none';
                     state.ui.editingFeaturesForGameId = null;
@@ -1980,13 +3100,45 @@
                     const gameId = state.ui.editingFeaturesForGameId;
                     const checks = Array.from(byId('feature-checklist').querySelectorAll('input[type="checkbox"]'));
                     const selected = checks.filter(c => c.checked).map(c => c.name);
+                    const brandSelectValue = byId('modal-brand-select').value;
+                    const budgetStatusValue = byId('modal-budget-status-select').value;
+                    const sysValStr = byId('modal-gaming-system-override').value;
+                    const bonusValStr = byId('modal-retailer-bonus-override').value;
+                    const fixedValStr = byId('modal-fixed-cost-override').value;
+                    const cashingValStr = byId('modal-retailer-cashing-override').value;
+                    const cashableValStr = byId('modal-cashable-prize-override').value;
+                    const jackpotValStr = byId('modal-jackpot-bonus-override').value;
+                    const eligibleValStr = byId('modal-jackpot-eligible-override').value;
+                    const capValStr = byId('modal-jackpot-cap-override').value;
+
+                    const gamingSystemPercent = sysValStr !== '' ? parseFloat(sysValStr) : null;
+                    const retailerBonusPercent = bonusValStr !== '' ? parseFloat(bonusValStr) : null;
+                    const fixedOperatingCost = fixedValStr !== '' ? parseFloat(fixedValStr) : null;
+                    const retailerCashingPercent = cashingValStr !== '' ? parseFloat(cashingValStr) : null;
+                    const cashablePrizePercent = cashableValStr !== '' ? parseFloat(cashableValStr) : null;
+                    const jackpotBonusPercent = jackpotValStr !== '' ? parseFloat(jackpotValStr) : null;
+                    const jackpotEligiblePercent = eligibleValStr !== '' ? parseFloat(eligibleValStr) : null;
+                    const jackpotBonusCap = capValStr !== '' ? parseFloat(capValStr) : null;
+
                     commit(s => {
                         const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
                         if (sc) {
                             const g = sc.games.find(x => x.id === gameId);
-                            if (g) g.featureIds = selected;
+                            if (g) {
+                                g.featureIds = selected;
+                                g.licensedBrandId = brandSelectValue || '';
+                                g.budgetStatus = budgetStatusValue || 'new_request';
+                                g.gamingSystemPercent = gamingSystemPercent;
+                                g.retailerBonusPercent = retailerBonusPercent;
+                                g.fixedOperatingCost = fixedOperatingCost;
+                                g.retailerCashingPercent = retailerCashingPercent;
+                                g.cashablePrizePercent = cashablePrizePercent;
+                                g.jackpotBonusPercent = jackpotBonusPercent;
+                                g.jackpotEligiblePercent = jackpotEligiblePercent;
+                                g.jackpotBonusCap = jackpotBonusCap;
+                            }
                         }
-                    }, 'Updated game features.');
+                    }, 'Updated game features, brand, and cost overrides.');
                     byId('feature-modal').style.display = 'none';
                     state.ui.editingFeaturesForGameId = null;
                 }
@@ -2066,14 +3218,26 @@
                     if (typeof stateData.ui.leftCollapsed === 'undefined') stateData.ui.leftCollapsed = false;
                     if (typeof stateData.ui.rightCollapsed === 'undefined') stateData.ui.rightCollapsed = false;
                     if (typeof stateData.ui.bottomCollapsed === 'undefined') stateData.ui.bottomCollapsed = false;
+                    if (typeof stateData.ui.activeVendorSection === 'undefined') stateData.ui.activeVendorSection = 'operating';
                 }
-
                 if (stateData && !stateData.vendors) {
                     stateData.vendors = [
                         { id: 'sg', name: 'Scientific Games' },
                         { id: 'pb', name: 'Pollard Banknote' },
-                        { id: 'bs', name: 'Brightstar' }
+                        { id: 'igt', name: 'BrightStar' }
                     ];
+                } else if (stateData && stateData.vendors) {
+                    // Force update 'bs' or other variants to 'igt' for consistency
+                    stateData.vendors.forEach(v => {
+                        if (v.id === 'bs' || v.id === 'brightstar') {
+                            v.id = 'igt';
+                            v.name = 'BrightStar';
+                        }
+                    });
+                    if (stateData.vendorPricing && stateData.vendorPricing.bs) {
+                        stateData.vendorPricing.igt = stateData.vendorPricing.bs;
+                        delete stateData.vendorPricing.bs;
+                    }
                 }
 
                 if (stateData && !stateData.scenarios) {
@@ -2108,8 +3272,6 @@
                     });
                 }
 
-                // Migrate vendor base costs: convert legacy baseCostValue (a single flat number)
-                // to the canonical shape: { [ticketSizeId]: [{quantity, cost}] }
                 if (stateData.vendorPricing) {
                     for (const vId in stateData.vendorPricing) {
                         const vendor = stateData.vendorPricing[vId];
@@ -2126,8 +3288,7 @@
                 return stateData;
             }
 
-            function setState(newState) { state = migrateStateToScenarios(newState); }
-
+            function setState(newState) { state = upgradePlanSchema(migrateStateToScenarios(newState)); }
             function commit(mutationFn, auditMsg) {
                 // Truncate any redo future, then push the pre-change snapshot.
                 history = history.slice(0, historyIndex + 1);
@@ -2355,45 +3516,110 @@
             }
 
             // --- EXPORTS ---
-            function exportReport(kind, format) {
-                if (!window.XLSX) {
-                    return showError('Export library not loaded. Please check your connection and try again.');
+            function numCell(val, fmt) {
+                if (val === '-' || val === 'N/A' || val === '' || val === undefined || val === null) {
+                    return { v: val || '', t: 's' };
                 }
-                const scenario = getActiveScenario();
-                if (!scenario) return;
+                const num = parseFloat(val);
+                if (isNaN(num)) return { v: val, t: 's' };
+                return { v: num, t: 'n', z: fmt };
+            }
 
-                if (kind === 'summary') {
-                    const rows = [['Denomination', '$ Mix %', 'Revenue Target', 'Games', 'Contract Cost', 'Prize Expense', 'Total COGS', 'Gross Margin']];
-                    scenario.denominations.filter(d => d.isActive).forEach(d => {
-                        const games = scenario.games.filter(g => g.denominationPrice === d.price);
-                        const revenueTarget = state.totalSalesTarget * (d.mixPercent / 100);
-                        let contract = 0, prize = 0, cogs = 0, margin = 0;
-                        games.forEach(g => {
-                            const m = calculateGameMetrics(g);
-                            contract += m.contractCost; prize += m.prizeExpense; cogs += m.cogs; margin += m.grossMargin;
-                        });
-                        rows.push([`$${d.price}`, d.mixPercent, revenueTarget, games.length, contract, prize, cogs, margin]);
+            function currencyCell(val, dec = false) {
+                return numCell(val, dec ? '$#,##0.00' : '$#,##0');
+            }
+
+            function percentCell(val) {
+                if (val === '-' || val === 'N/A' || val === '' || val === undefined || val === null) {
+                    return { v: val || '', t: 's' };
+                }
+                const num = parseFloat(val);
+                if (isNaN(num)) return { v: val, t: 's' };
+                return { v: num / 100.0, t: 'n', z: '0.0%' };
+            }
+
+            function qtyCell(val) {
+                return numCell(val, '#,##0');
+            }
+
+            function adjustColumnWidths(ws, rows) {
+                if (!rows || rows.length === 0) return;
+                const colWidths = [];
+                for (let c = 0; c < rows[0].length; c++) {
+                    colWidths[c] = 10;
+                }
+                rows.forEach(row => {
+                    row.forEach((cell, c) => {
+                        let valStr = '';
+                        if (cell && typeof cell === 'object') {
+                            if (cell.z === '$#,##0' || cell.z === '$#,##0.00') {
+                                valStr = '$' + Math.round(Number(cell.v || 0)).toLocaleString();
+                            } else if (cell.z === '0.0%') {
+                                valStr = (Number(cell.v || 0) * 100).toFixed(1) + '%';
+                            } else {
+                                valStr = String(cell.v !== undefined ? cell.v : '');
+                            }
+                        } else {
+                            valStr = String(cell !== undefined ? cell : '');
+                        }
+                        const len = valStr.length;
+                        if (len > colWidths[c]) {
+                            colWidths[c] = len;
+                        }
                     });
+                });
+                ws['!cols'] = colWidths.map(w => ({ wch: w + 2 }));
+            }
 
-                    // Add Non-Scratchers to the summary
-                    if (scenario.nonScratcherItems && scenario.nonScratcherItems.length > 0) {
-                        let nsCost = scenario.nonScratcherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
-                        rows.push(['Non-Scratchers', '-', '-', scenario.nonScratcherItems.length, nsCost, 0, nsCost, -nsCost]);
-                    }
+            function buildSummaryRows(scenario) {
+                const rows = [['Denomination', '$ Mix %', 'Revenue Target', 'Games Count', 'Contract Cost', 'Prize Expense', 'Total COGS', 'Gross Margin']];
+                scenario.denominations.filter(d => d.isActive).forEach(d => {
+                    const games = scenario.games.filter(g => g.denominationPrice === d.price);
+                    const revenueTarget = state.totalSalesTarget * (d.mixPercent / 100.0);
+                    let contract = 0, prize = 0, cogs = 0, margin = 0;
+                    games.forEach(g => {
+                        const m = calculateGameMetrics(g);
+                        contract += m.contractCost; prize += m.prizeExpense; cogs += m.cogs; margin += m.grossMargin;
+                    });
+                    rows.push([
+                        `$${d.price}`,
+                        percentCell(d.mixPercent),
+                        currencyCell(revenueTarget),
+                        qtyCell(games.length),
+                        currencyCell(contract),
+                        currencyCell(prize),
+                        currencyCell(cogs),
+                        currencyCell(margin)
+                    ]);
+                });
 
-                    return downloadRows(rows, `FY${state.fiscalYear}_Executive_Summary`, format);
+                if (scenario.nonScratcherItems && scenario.nonScratcherItems.length > 0) {
+                    let nsCost = scenario.nonScratcherItems.reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+                    rows.push([
+                        'Non-Scratchers',
+                        '-',
+                        '-',
+                        qtyCell(scenario.nonScratcherItems.length),
+                        currencyCell(nsCost),
+                        currencyCell(0),
+                        currencyCell(nsCost),
+                        currencyCell(-nsCost)
+                    ]);
                 }
+                return rows;
+            }
 
-                const rows = [['Game #', 'Game Name', '$', 'Vendor', 'Ticket Size', 'Units', 'Payout %', 'Features', 'Cost Model', 'Est. Base Cost', 'Contract Cost', 'Prize Expense', 'COGS', 'Gross Margin', 'PO #', 'PO Date', 'Receipt Date', 'Status']];
+            function buildDetailedRows(scenario) {
+                const rows = [['Game #', 'Game Name', '$ Denom', 'Vendor', 'Ticket Size', 'Units', 'Payout %', 'Features', 'Cost Model', 'Est. Base Cost', 'Contract Cost', 'Prize Expense', 'COGS', 'Gross Margin', 'PO #', 'PO Date', 'Receipt Date', 'Status']];
                 scenario.games.forEach(g => {
                     const m = calculateGameMetrics(g);
                     const v = state.vendorPricing[g.vendorId] || {};
-                    const model = v.costModel || 'percentOfSales';
+                    const model = v.costModel === 'perThousand' ? 'Per Thousand' : '% of Sales';
                     const features = (g.featureIds || []).join('; ');
                     rows.push([
-                        g.gameNumber || '', g.name, g.denominationPrice, vendorLabel(g.vendorId) || '',
-                        g.ticketSize || '4x4', g.units, g.payoutPercent, features, model, m.baseCostApplied || 0,
-                        m.contractCost, m.prizeExpense, m.cogs, m.grossMargin,
+                        g.gameNumber || '', g.name, currencyCell(g.denominationPrice), vendorLabel(g.vendorId) || '',
+                        g.ticketSize || '4x4', qtyCell(g.units), percentCell(g.payoutPercent), features, model, currencyCell(m.baseCostApplied || 0, true),
+                        currencyCell(m.contractCost), currencyCell(m.prizeExpense), currencyCell(m.cogs), currencyCell(m.grossMargin),
                         g.poNumber || '', g.poDate || '', g.receiptDate || '', g.deliveryStatus || ''
                     ]);
                 });
@@ -2403,28 +3629,20 @@
                         const cost = parseFloat(item.cost) || 0;
                         rows.push([
                             'NS', item.name || 'Non-Scratcher Item', 'N/A', vendorLabel(item.vendorId) || 'None/Internal',
-                            'N/A', 0, 'N/A', item.associatedHoliday || '', 'Fixed Cost',
-                            0, cost, 0, cost, -cost,
+                            'N/A', qtyCell(0), 'N/A', item.associatedHoliday || '', 'Fixed Cost',
+                            currencyCell(0, true), currencyCell(cost), currencyCell(0), currencyCell(cost), currencyCell(-cost),
                             item.poNumber || '', item.poDate || '', item.receiptDate || '', item.status || ''
                         ]);
                     });
                 }
-
-                downloadRows(rows, `FY${state.fiscalYear}_Detailed_Build`, format);
+                return rows;
             }
 
-            function exportPOReport(format) {
-                if (!window.XLSX) {
-                    return showError('Export library not loaded. Please check your connection and try again.');
-                }
-                const scenario = getActiveScenario();
-                if (!scenario) return;
-
+            function buildPORows(scenario) {
                 const rows = [['Vendor', 'Game / Item Name', 'Denomination ($)', 'Units', 'PO #', 'PO Date', 'Receipt Date', 'Status']];
-
                 scenario.games.forEach(g => {
                     rows.push([
-                        vendorLabel(g.vendorId) || '', g.name, g.denominationPrice, g.units,
+                        vendorLabel(g.vendorId) || '', g.name, currencyCell(g.denominationPrice), qtyCell(g.units),
                         g.poNumber || '', g.poDate || '', g.receiptDate || '', g.deliveryStatus || ''
                     ]);
                 });
@@ -2437,45 +3655,141 @@
                         ]);
                     });
                 }
+                return rows;
+            }
 
-                downloadRows(rows, `FY${state.fiscalYear}_Procurement_PO_Report`, format);
+            function buildVendorRows() {
+                const rows = [['Vendor', 'Category', 'Item / Feature', 'Quantity Tier', 'Cost', 'Cost Model']];
+                state.vendors.forEach(v => {
+                    const vd = state.vendorPricing[v.id] || {};
+                    const model = vd.costModel === 'percentOfSales' ? '% of Sales' : 'Per Thousand';
+
+                    STANDARD_TICKET_SIZES.forEach(size => {
+                        const tiers = vd.baseCosts?.[size.id] || [];
+                        if (tiers.length === 0) {
+                            rows.push([v.name, 'Base Cost', size.label, 'flat', currencyCell(0, true), model]);
+                        } else {
+                            tiers.forEach(t => {
+                                rows.push([v.name, 'Base Cost', size.label, qtyCell(t.quantity), currencyCell(t.cost, true), model]);
+                            });
+                        }
+                    });
+
+                    if (vd.features) {
+                        for (const [feat, cost] of Object.entries(vd.features)) {
+                            rows.push([v.name, 'Feature Cost', feat, 'N/A', currencyCell(cost, true), 'Per Thousand']);
+                        }
+                    }
+                });
+                return rows;
+            }
+
+            function exportReport(kind, format) {
+                if (!window.XLSX) {
+                    return showError('Export library not loaded. Please check your connection and try again.');
+                }
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+
+                if (kind === 'summary') {
+                    const rows = buildSummaryRows(scenario);
+                    return downloadRows(rows, `FY${state.fiscalYear}_Executive_Summary`, format);
+                } else {
+                    const rows = buildDetailedRows(scenario);
+                    return downloadRows(rows, `FY${state.fiscalYear}_Detailed_Build`, format);
+                }
+            }
+
+            function exportPOReport(format) {
+                if (!window.XLSX) {
+                    return showError('Export library not loaded. Please check your connection and try again.');
+                }
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+                const rows = buildPORows(scenario);
+                return downloadRows(rows, `FY${state.fiscalYear}_Procurement_PO_Report`, format);
             }
 
             function exportVendorMatrix(format) {
                 if (!window.XLSX) {
                     return showError('Export library not loaded. Please check your connection and try again.');
                 }
-                const rows = [['Vendor', 'Category', 'Item / Feature', 'Quantity Tier', 'Cost', 'Cost Model']];
+                const rows = buildVendorRows();
+                return downloadRows(rows, `FY${state.fiscalYear}_Vendor_Pricing_Matrix`, format);
+            }
 
-                state.vendors.forEach(v => {
-                    const vd = state.vendorPricing[v.id] || {};
-                    const model = vd.costModel === 'percentOfSales' ? '% of Sales' : 'Per Thousand';
+            async function exportUnifiedWorkbook() {
+                if (!window.XLSX) {
+                    return showError('Export library not loaded. Please check your connection and try again.');
+                }
+                const scenario = getActiveScenario();
+                if (!scenario) return;
 
-                    // Base Costs
-                    STANDARD_TICKET_SIZES.forEach(size => {
-                        const tiers = vd.baseCosts?.[size.id] || [];
-                        if (tiers.length === 0) {
-                            rows.push([v.name, 'Base Cost', size.label, 'flat', 0, model]);
+                const wb = XLSX.utils.book_new();
+
+                const summaryRows = buildSummaryRows(scenario);
+                const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+                adjustColumnWidths(wsSummary, summaryRows);
+                XLSX.utils.book_append_sheet(wb, wsSummary, 'Executive Summary');
+
+                const detailRows = buildDetailedRows(scenario);
+                const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+                adjustColumnWidths(wsDetail, detailRows);
+                XLSX.utils.book_append_sheet(wb, wsDetail, 'Detailed Build');
+
+                const poRows = buildPORows(scenario);
+                const wsPO = XLSX.utils.aoa_to_sheet(poRows);
+                adjustColumnWidths(wsPO, poRows);
+                XLSX.utils.book_append_sheet(wb, wsPO, 'Procurement & PO');
+
+                const vendorRows = buildVendorRows();
+                const wsVendor = XLSX.utils.aoa_to_sheet(vendorRows);
+                adjustColumnWidths(wsVendor, vendorRows);
+                XLSX.utils.book_append_sheet(wb, wsVendor, 'Vendor Pricing Matrix');
+
+                const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const suggestedName = `FY${state.fiscalYear}_Unified_Instant_Ticket_Plan.xlsx`;
+
+                if (window.showSaveFilePicker) {
+                    try {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: suggestedName,
+                            types: [{
+                                description: 'Excel Spreadsheet',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                            }]
+                        });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        logAudit(`Exported ${suggestedName} successfully.`);
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('File saving failed', err);
+                            showError('Error saving file. Falling back to default download.');
                         } else {
-                            tiers.forEach(t => {
-                                rows.push([v.name, 'Base Cost', size.label, t.quantity, t.cost, model]);
-                            });
-                        }
-                    });
-
-                    // Feature Costs
-                    if (vd.features) {
-                        for (const [feat, cost] of Object.entries(vd.features)) {
-                            rows.push([v.name, 'Feature Cost', feat, 'N/A', cost, 'Per Thousand']);
+                            return;
                         }
                     }
-                });
+                }
 
-                downloadRows(rows, `FY${state.fiscalYear}_Vendor_Pricing_Matrix`, format);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = suggestedName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                logAudit(`Exported ${suggestedName} successfully.`);
             }
 
             async function downloadRows(rows, baseName, format) {
                 const ws = XLSX.utils.aoa_to_sheet(rows);
+                adjustColumnWidths(ws, rows);
+
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Report');
 
@@ -2510,12 +3824,11 @@
                             console.error('File saving failed', err);
                             showError('Error saving file. Falling back to default download.');
                         } else {
-                            return; // User cancelled
+                            return;
                         }
                     }
                 }
 
-                // Fallback
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -2534,6 +3847,7 @@
             function initializeVendorPricing() { state.vendors.forEach(v => { state.vendorPricing[v.id] ||= {}; state.vendorPricing[v.id].features ||= {}; state.vendorPricing[v.id].costModel ||= 'percentOfSales'; state.vendorPricing[v.id].supportedFeatures ||= {}; }); }
             function formatCurrency(v) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0); }
             function vendorLabel(id) { const v = state.vendors?.find(x => x.id === id); return v ? v.name : id; }
+            function vendorAbbrev(name) { if (!name) return 'None'; if (name.includes('Scientific Games')) return 'SG'; if (name.includes('Pollard')) return 'Pollard'; if (name.includes('IGT') || name.includes('BrightStar') || name.includes('International Game Tech')) return 'BS'; return name; }
             function loadFeatures() { state.featureMasterList = parseCSV(FEATURES_CSV_DATA); }
             function parseCSV(text) {
                 const lines = text.trim().split('\n');
@@ -2544,6 +3858,84 @@
                 });
             }
             async function savePlan() {
+                if (state.planId) {
+                    const indicator = byId('save-status');
+                    if (indicator) {
+                        indicator.textContent = 'Saving to Database...';
+                        indicator.style.opacity = '1';
+                    }
+
+                    try {
+                        const dbPayload = mapPlannerStateToDbPayload(state);
+                        const res = await fetch(`/api/instant-tickets/plans/${state.planId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(dbPayload)
+                        });
+
+                        if (res.ok) {
+                            const updatedPlan = await res.json();
+                            logAudit('Plan saved successfully to database.');
+                            
+                            // Re-bind the new plan state IDs
+                            const scenario = state.scenarios[0];
+                            const updatedSc = updatedPlan.scenarios?.[0];
+                            if (scenario && updatedSc) {
+                                scenario.id = updatedSc.id;
+                                // Re-map games IDs so we don't duplicate them on subsequent saves
+                                if (updatedSc.games) {
+                                    scenario.games.forEach((g, idx) => {
+                                        const dbG = updatedSc.games.find(dg => dg.gameNumber === g.gameNumber);
+                                        if (dbG) g.id = dbG.id;
+                                    });
+                                }
+                                // Re-map marketing items IDs
+                                if (updatedSc.marketingItems) {
+                                    scenario.nonScratcherItems.forEach((m, idx) => {
+                                        const dbM = updatedSc.marketingItems.find(dm => dm.name === m.name);
+                                        if (dbM) m.id = dbM.id;
+                                    });
+                                }
+                            }
+
+                            if (indicator) {
+                                indicator.textContent = 'Saved to DB';
+                                indicator.style.color = '#22c55e';
+                                setTimeout(() => {
+                                    indicator.style.opacity = '0';
+                                    indicator.style.color = 'var(--success-color)';
+                                    indicator.textContent = 'Saved';
+                                }, 2500);
+                            }
+                            
+                            // Notify parent window to refresh calculations
+                            if (window.parent && window.parent.location) {
+                                try {
+                                    // Trigger Next.js router refresh if possible, or fallback to window reload
+                                    if (window.parent.__next_refresh) {
+                                        window.parent.__next_refresh();
+                                    } else {
+                                        window.parent.location.reload();
+                                    }
+                                } catch (err) {
+                                    console.warn('Could not refresh parent window directly, trying location reload:', err);
+                                    window.parent.location.reload();
+                                }
+                            }
+                            return;
+                        } else {
+                            const errData = await res.json();
+                            throw new Error(errData.error || 'Server rejected write');
+                        }
+                    } catch (err) {
+                        console.error('[save] Database save failed:', err);
+                        alert('Database save failed: ' + err.message + '\n\nFalling back to local JSON download.');
+                        if (indicator) {
+                            indicator.style.opacity = '0';
+                        }
+                    }
+                }
+
                 const json = JSON.stringify(state, null, 2);
                 const blob = new Blob([json], { type: 'application/json' });
                 const suggestedName = `FY${state.fiscalYear}_Plan.json`;
@@ -2618,6 +4010,7 @@
                         // Older games might not have featureIds
                         sc.games.forEach(g => {
                             g.featureIds = g.featureIds || [];
+                            g.licensedBrandId = g.licensedBrandId || '';
                         });
                     });
                 }
@@ -2629,6 +4022,8 @@
                         vp.features = vp.features || {};
                         vp.supportedFeatures = vp.supportedFeatures || {};
                         vp.costModel = vp.costModel || 'percentOfSales';
+                        vp.reorderModel = vp.reorderModel || 'none';
+                        vp.reorderValue = vp.reorderValue || 0;
 
                         // Migrate legacy 'baseCostValue' single float to canonical tier-array shape
                         if (!vp.baseCosts && vp.baseCostValue !== undefined) {
@@ -2666,7 +4061,7 @@
                 } else if (!plan.vendorPricing && plan.vendors) {
                     plan.vendorPricing = {};
                     plan.vendors.forEach(v => {
-                        plan.vendorPricing[v.id] = { costModel: 'percentOfSales', baseCosts: {}, features: {}, supportedFeatures: {} };
+                        plan.vendorPricing[v.id] = { costModel: 'percentOfSales', baseCosts: {}, features: {}, supportedFeatures: {}, reorderModel: 'none', reorderValue: 0 };
                     });
                 }
 
@@ -2690,29 +4085,31 @@
 
                 let baseCostValue = 0;
 
-                if (tiers.length === 0) {
-                    baseCostValue = 0;
-                } else if (tiers.length === 1) {
-                    baseCostValue = tiers[0].cost;
-                } else {
-                    // Linear Interpolation
-                    const qty = game.units;
-                    if (qty <= tiers[0].quantity) {
-                        baseCostValue = tiers[0].cost;
-                    } else if (qty >= tiers[tiers.length - 1].quantity) {
-                        baseCostValue = tiers[tiers.length - 1].cost;
+                if (tiers.length > 0) {
+                    // Sort copy descending by quantity
+                    const sortedTiers = [...tiers].sort((a, b) => b.quantity - a.quantity);
+                    // Find first tier matched by units
+                    const matchingTier = sortedTiers.find(t => game.units >= t.quantity);
+                    if (matchingTier) {
+                        baseCostValue = matchingTier.cost;
                     } else {
-                        for (let i = 0; i < tiers.length - 1; i++) {
-                            const t1 = tiers[i];
-                            const t2 = tiers[i + 1];
-                            if (qty >= t1.quantity && qty <= t2.quantity) {
-                                const rangeQty = t2.quantity - t1.quantity;
-                                const qtyFraction = (qty - t1.quantity) / rangeQty;
-                                const costDiff = t2.cost - t1.cost; // Note: cost usually goes down as qty goes up, so costDiff is usually negative
-                                baseCostValue = t1.cost + (qtyFraction * costDiff);
-                                break;
-                            }
-                        }
+                        // Fallback to the lowest tier
+                        baseCostValue = sortedTiers[sortedTiers.length - 1].cost;
+                    }
+                } else {
+                    baseCostValue = 22.00;
+                }
+
+                // Apply reorder contract rules
+                if (game.isReorder) {
+                    const reorderModel = vendor.reorderModel || 'none';
+                    const reorderValue = parseFloat(vendor.reorderValue) || 0;
+                    if (reorderModel === 'percent') {
+                        baseCostValue = baseCostValue * (1 - reorderValue / 100);
+                    } else if (reorderModel === 'flatDiscount') {
+                        baseCostValue = Math.max(0, baseCostValue - reorderValue);
+                    } else if (reorderModel === 'fixedRate') {
+                        baseCostValue = reorderValue;
                     }
                 }
 
@@ -2729,16 +4126,72 @@
                     return sum + (game.units / 1000) * (vendor.features[name] || 0);
                 }, 0);
 
-                const contractCost = manufacturing + featureCost;
+                let licenseCost = 0;
+                if (game.licensedBrandId) {
+                    const brandObj = LICENSED_BRANDS.find(b => b.id === game.licensedBrandId);
+                    if (brandObj) {
+                        if (brandObj.feeType === 'percent') {
+                            licenseCost = revenue * (brandObj.feeValue / 100);
+                        } else if (brandObj.feeType === 'flat') {
+                            licenseCost = brandObj.feeValue;
+                        } else if (brandObj.feeType === 'perThousand') {
+                            licenseCost = (game.units / 1000) * brandObj.feeValue;
+                        }
+                    }
+                }
+
+                const contractCost = manufacturing + featureCost + licenseCost;
+
                 const prizeExpense = revenue * (game.payoutPercent / 100);
 
                 // Add Retailer Commission and Admin Expense to COGS
                 const retailerCommission = revenue * ((state.retailerCommissionPercent ?? 0) / 100);
                 const adminExpense = revenue * ((state.administrativeExpensePercent ?? 0) / 100);
-                const cogs = contractCost + prizeExpense + retailerCommission + adminExpense;
+
+                // Extended operational costs
+                const systemPercent = (game.gamingSystemPercent !== undefined && game.gamingSystemPercent !== null) 
+                    ? parseFloat(game.gamingSystemPercent) 
+                    : (vendor.gamingSystemPercent !== undefined ? parseFloat(vendor.gamingSystemPercent) : 2.50);
+
+                const bonusPercent = (game.retailerBonusPercent !== undefined && game.retailerBonusPercent !== null) 
+                    ? parseFloat(game.retailerBonusPercent) 
+                    : (vendor.retailerBonusPercent !== undefined ? parseFloat(vendor.retailerBonusPercent) : 0.50);
+
+                const cashingPercent = (game.retailerCashingPercent !== undefined && game.retailerCashingPercent !== null) 
+                    ? parseFloat(game.retailerCashingPercent) 
+                    : (vendor.retailerCashingPercent !== undefined ? parseFloat(vendor.retailerCashingPercent) : 1.00);
+
+                const cashableShare = (game.cashablePrizePercent !== undefined && game.cashablePrizePercent !== null) 
+                    ? parseFloat(game.cashablePrizePercent) 
+                    : (vendor.cashablePrizePercent !== undefined ? parseFloat(vendor.cashablePrizePercent) : 70.00);
+
+                const jackpotPercent = (game.jackpotBonusPercent !== undefined && game.jackpotBonusPercent !== null) 
+                    ? parseFloat(game.jackpotBonusPercent) 
+                    : (vendor.jackpotBonusPercent !== undefined ? parseFloat(vendor.jackpotBonusPercent) : 0.50);
+
+                const jackpotEligible = (game.jackpotEligiblePercent !== undefined && game.jackpotEligiblePercent !== null) 
+                    ? parseFloat(game.jackpotEligiblePercent) 
+                    : (vendor.jackpotEligiblePercent !== undefined ? parseFloat(vendor.jackpotEligiblePercent) : 10.00);
+
+                const jackpotCap = (game.jackpotBonusCap !== undefined && game.jackpotBonusCap !== null) 
+                    ? parseFloat(game.jackpotBonusCap) 
+                    : (vendor.jackpotBonusCap !== undefined ? parseFloat(vendor.jackpotBonusCap) : 1000000.00);
+
+                const fixedCost = (game.fixedOperatingCost !== undefined && game.fixedOperatingCost !== null) 
+                    ? parseFloat(game.fixedOperatingCost) 
+                    : (vendor.fixedOperatingCost !== undefined ? parseFloat(vendor.fixedOperatingCost) : 0.00);
+
+                const systemFeeAmt = (revenue * systemPercent) / 100;
+                const retailerBonusAmt = (revenue * bonusPercent) / 100;
+                const cashingBonusAmt = prizeExpense * (cashableShare / 100) * (cashingPercent / 100);
+                const jackpotBonusAmt = Math.min(jackpotCap, prizeExpense * (jackpotEligible / 100) * (jackpotPercent / 100));
+
+                const totalOpCost = systemFeeAmt + retailerBonusAmt + cashingBonusAmt + jackpotBonusAmt + fixedCost;
+
+                const cogs = contractCost + prizeExpense + retailerCommission + adminExpense + totalOpCost;
                 const grossMargin = revenue - cogs;
 
-                return { revenue, contractCost, prizeExpense, cogs, grossMargin, baseCostApplied: baseCostValue };
+                return { revenue, contractCost, prizeExpense, cogs, grossMargin, baseCostApplied: baseCostValue, systemFeeAmt, retailerBonusAmt, cashingBonusAmt, jackpotBonusAmt, fixedCost };
             }
 
         })();

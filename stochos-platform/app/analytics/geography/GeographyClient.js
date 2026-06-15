@@ -25,7 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  RotateCcw
+  RotateCcw,
+  Lock
 } from "lucide-react";
 
 // Categorical DMA colors
@@ -143,6 +144,26 @@ export default function GeographyClient() {
   const [map, setMap] = useState(null);
   const containerRef = useRef(null);
   const geojsonLayerRef = useRef(null);
+
+  // Mobile responsiveness & interaction controls
+  const [isMobile, setIsMobile] = useState(false);
+  const [mapInteractive, setMapInteractive] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Sync Leaflet size when map becomes interactive or mobile state changes
+  useEffect(() => {
+    if (map) {
+      map.invalidateSize();
+    }
+  }, [map, mapInteractive, isMobile]);
 
   useEffect(() => {
     setMounted(true);
@@ -1215,41 +1236,111 @@ export default function GeographyClient() {
             </select>
           </div>
         </div>
-        <div className="card-body" style={{ padding: 0, position: "relative", minHeight: "500px" }}>
-          {mapError && (
-            <div style={{
+      <div className="card-body" style={{ padding: 0, position: "relative", minHeight: isMobile ? "350px" : "500px" }}>
+        {mapError && (
+          <div style={{
+            position: "absolute",
+            top: "16px",
+            left: "16px",
+            right: "16px",
+            backgroundColor: "rgba(239, 68, 68, 0.15)",
+            border: "1px solid rgb(239, 68, 68)",
+            color: "rgb(239, 68, 68)",
+            padding: "12px 16px",
+            borderRadius: "var(--radius-sm)",
+            zIndex: 2000,
+            fontSize: "13px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <span><strong>Map Diagnostics Alert:</strong> {mapError}</span>
+            <button 
+              onClick={() => setMapError(null)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "inherit",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px"
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div ref={containerRef} style={{ height: isMobile ? "350px" : "500px", width: "100%" }} />
+
+        {/* Mobile Gestures Overlay */}
+        {isMobile && !mapInteractive && (
+          <div 
+            onClick={() => setMapInteractive(true)}
+            style={{
               position: "absolute",
-              top: "16px",
-              left: "16px",
-              right: "16px",
-              backgroundColor: "rgba(239, 68, 68, 0.15)",
-              border: "1px solid rgb(239, 68, 68)",
-              color: "rgb(239, 68, 68)",
-              padding: "12px 16px",
-              borderRadius: "var(--radius-sm)",
-              zIndex: 2000,
-              fontSize: "13px",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(2px)",
+              zIndex: 1000,
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
+              justifyContent: "center",
+              alignItems: "center",
+              cursor: "pointer",
+              borderRadius: "inherit"
+            }}
+          >
+            <div style={{
+              backgroundColor: "var(--card-bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "30px",
+              padding: "10px 20px",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              textAlign: "center",
+              maxWidth: "80%"
             }}>
-              <span><strong>Map Diagnostics Alert:</strong> {mapError}</span>
-              <button 
-                onClick={() => setMapError(null)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "14px"
-                }}
-              >
-                ✕
-              </button>
+              <span style={{ fontSize: "13px", fontWeight: "bold", color: "var(--text)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Map size={16} style={{ color: "var(--primary)" }} /> Tap to Interact with Map
+              </span>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                Swipe here to scroll page
+              </span>
             </div>
-          )}
-          <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
+          </div>
+        )}
+
+        {/* Floating lock scroll button for mobile */}
+        {isMobile && mapInteractive && (
+          <button
+            onClick={() => setMapInteractive(false)}
+            style={{
+              position: "absolute",
+              top: "80px",
+              left: "10px",
+              zIndex: 1000,
+              padding: "6px 12px",
+              borderRadius: "20px",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--card-bg)",
+              color: "var(--text)",
+              fontSize: "11px",
+              fontWeight: 600,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px"
+            }}
+          >
+            <Lock size={12} /> Lock Scroll
+          </button>
+        )}
           {/* Floating Clear Selection Button directly on map */}
           {selectedCounties.length > 0 && (
             <button

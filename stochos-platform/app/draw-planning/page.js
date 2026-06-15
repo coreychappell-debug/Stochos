@@ -29,6 +29,7 @@ export default function DrawPlanningPage() {
   const [fiscalYear, setFiscalYear] = useState(2027);
   const [activeForecastRowIndex, setActiveForecastRowIndex] = useState(null);
   const [customForecasts, setCustomForecasts] = useState({});
+  const [showOpExpenses, setShowOpExpenses] = useState(false);
 
   // On mount, load cached forecasts, fetch raw timeseries, and calculate fresh forecasts
   useEffect(() => {
@@ -206,14 +207,15 @@ export default function DrawPlanningPage() {
     const updated = [...games];
     if (field === "projectedSales") {
       updated[index][field] = parseFloat(value || 0);
-    } else if (field === "prizePayoutPercent" || field === "retailerCommPercent") {
+    } else if (field === "prizePayoutPercent" || field === "retailerCommPercent" || field === "gamingSystemPercent" || field === "retailerBonusPercent" || field === "retailerCashingPercent" || field === "cashablePrizePercent" || field === "jackpotBonusPercent" || field === "jackpotEligiblePercent" || field === "jackpotBonusCap") {
+      updated[index][field] = parseFloat(value || 0);
+    } else if (field === "fixedOperatingCost") {
       updated[index][field] = parseFloat(value || 0);
     } else {
       updated[index][field] = value;
     }
     setGames(updated);
   };
-
   // Add Custom Game
   const handleAddGame = () => {
     const newGame = {
@@ -222,11 +224,19 @@ export default function DrawPlanningPage() {
       name: "New Custom Game",
       projectedSales: 10000000.00,
       prizePayoutPercent: 50.0,
-      retailerCommPercent: 6.0
+      retailerCommPercent: 6.0,
+      gamingSystemPercent: 2.50,
+      retailerBonusPercent: 0.50,
+      fixedOperatingCost: 0.00,
+      retailerCashingPercent: 1.00,
+      cashablePrizePercent: 50.00,
+      jackpotBonusPercent: 0.50,
+      jackpotEligiblePercent: 25.00,
+      jackpotBonusCap: 1000000.00,
+      budgetStatus: "new_request"
     };
     setGames([...games, newGame]);
   };
-
   // Link to Product catalog selection
   const handleProductSelect = (index, prodId) => {
     const selected = productsList.find(p => p.id === prodId);
@@ -262,7 +272,16 @@ export default function DrawPlanningPage() {
             name: g.name,
             projectedSales: g.projectedSales,
             prizePayoutPercent: g.prizePayoutPercent,
-            retailerCommPercent: g.retailerCommPercent
+            retailerCommPercent: g.retailerCommPercent,
+            gamingSystemPercent: g.gamingSystemPercent !== undefined && g.gamingSystemPercent !== null ? parseFloat(g.gamingSystemPercent) : 2.50,
+            retailerBonusPercent: g.retailerBonusPercent !== undefined && g.retailerBonusPercent !== null ? parseFloat(g.retailerBonusPercent) : 0.50,
+            fixedOperatingCost: g.fixedOperatingCost !== undefined && g.fixedOperatingCost !== null ? parseFloat(g.fixedOperatingCost) : 0.00,
+            retailerCashingPercent: g.retailerCashingPercent !== undefined && g.retailerCashingPercent !== null ? parseFloat(g.retailerCashingPercent) : 1.00,
+            cashablePrizePercent: g.cashablePrizePercent !== undefined && g.cashablePrizePercent !== null ? parseFloat(g.cashablePrizePercent) : 50.00,
+            jackpotBonusPercent: g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null ? parseFloat(g.jackpotBonusPercent) : 0.50,
+            jackpotEligiblePercent: g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null ? parseFloat(g.jackpotEligiblePercent) : 25.00,
+            jackpotBonusCap: g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null ? parseFloat(g.jackpotBonusCap) : 1000000.00,
+            budgetStatus: g.budgetStatus || "new_request"
           }))
         })
       });
@@ -403,8 +422,27 @@ export default function DrawPlanningPage() {
   const totalSales = games.reduce((acc, g) => acc + (g.projectedSales || 0), 0);
   const totalPrizeExpense = games.reduce((acc, g) => acc + ((g.projectedSales || 0) * (g.prizePayoutPercent || 0) / 100), 0);
   const totalRetailerComm = games.reduce((acc, g) => acc + ((g.projectedSales || 0) * (g.retailerCommPercent || 0) / 100), 0);
+  const totalSystemFee = games.reduce((acc, g) => acc + ((g.projectedSales || 0) * (g.gamingSystemPercent !== undefined && g.gamingSystemPercent !== null ? g.gamingSystemPercent : 2.50) / 100), 0);
+  const totalRetailerBonus = games.reduce((acc, g) => acc + ((g.projectedSales || 0) * (g.retailerBonusPercent !== undefined && g.retailerBonusPercent !== null ? g.retailerBonusPercent : 0.50) / 100), 0);
+  const totalFixedCosts = games.reduce((acc, g) => acc + parseFloat(g.fixedOperatingCost || 0), 0);
+
+  const totalCashingBonus = games.reduce((acc, g) => {
+    const prizePayoutVal = (g.projectedSales || 0) * (g.prizePayoutPercent || 0) / 100;
+    const cashingPercent = g.retailerCashingPercent !== undefined && g.retailerCashingPercent !== null ? g.retailerCashingPercent : 1.00;
+    const cashableShare = g.cashablePrizePercent !== undefined && g.cashablePrizePercent !== null ? g.cashablePrizePercent : 50.00;
+    return acc + (prizePayoutVal * (cashableShare / 100) * (cashingPercent / 100));
+  }, 0);
+
+  const totalJackpotBonus = games.reduce((acc, g) => {
+    const prizePayoutVal = (g.projectedSales || 0) * (g.prizePayoutPercent || 0) / 100;
+    const jackpotPercent = g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null ? g.jackpotBonusPercent : 0.50;
+    const jackpotEligible = g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null ? g.jackpotEligiblePercent : 25.00;
+    const jackpotCap = g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null ? g.jackpotBonusCap : 1000000.00;
+    return acc + Math.min(jackpotCap, prizePayoutVal * (jackpotEligible / 100) * (jackpotPercent / 100));
+  }, 0);
+
   const blendedPayout = totalSales > 0 ? (totalPrizeExpense / totalSales) * 100 : 0;
-  const netContribution = totalSales - (totalPrizeExpense + totalRetailerComm);
+  const netContribution = totalSales - (totalPrizeExpense + totalRetailerComm + totalSystemFee + totalRetailerBonus + totalCashingBonus + totalJackpotBonus + totalFixedCosts);
 
   return (
     <div className="app-layout">
@@ -573,6 +611,21 @@ export default function DrawPlanningPage() {
                       <option value="revert_saved">↩️ Revert All to Saved Scenario</option>
                     </select>
                   )}
+                  <button
+                    onClick={() => setShowOpExpenses(!showOpExpenses)}
+                    className="btn"
+                    style={{
+                      fontSize: 13,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      backgroundColor: showOpExpenses ? "var(--blue)" : "var(--surface-3)",
+                      color: showOpExpenses ? "white" : "var(--text)",
+                      border: "1px solid var(--border)"
+                    }}
+                  >
+                    {showOpExpenses ? "Hide Operational Expenses" : "Show Operational Expenses"}
+                  </button>
                   <button 
                     onClick={handleAddGame}
                     className="btn"
@@ -592,6 +645,56 @@ export default function DrawPlanningPage() {
                       <th style={{ textAlign: "right", padding: "12px 16px" }}>Prize Payout %</th>
                       <th style={{ textAlign: "right", padding: "12px 16px" }}>Projected Prize Expense ($)</th>
                       <th style={{ textAlign: "right", padding: "12px 16px" }}>Retailer Comm %</th>
+                      {showOpExpenses && (
+                        <>
+                          <th style={{ textAlign: "right", padding: "12px 16px", whiteSpace: "nowrap" }}>
+                            System Fee %
+                            <button 
+                              onClick={() => setShowOpExpenses(false)} 
+                              title="Hide Operational Expenses" 
+                              style={{ 
+                                background: "rgba(239, 68, 68, 0.15)", 
+                                border: "1px solid rgba(239, 68, 68, 0.3)", 
+                                color: "#ef4444", 
+                                borderRadius: "4px", 
+                                padding: "2px 6px", 
+                                fontSize: "10px", 
+                                marginLeft: "8px", 
+                                cursor: "pointer",
+                                fontWeight: "normal"
+                              }}
+                            >
+                              Hide ✕
+                            </button>
+                          </th>
+                          <th style={{ textAlign: "right", padding: "12px 16px" }}>Retailer Bonus %</th>
+                          <th style={{ textAlign: "right", padding: "12px 16px" }}>Cashing Bonus %</th>
+                          <th style={{ textAlign: "right", padding: "12px 16px" }}>Cashable Share %</th>
+                          <th style={{ textAlign: "right", padding: "12px 16px" }}>Jackpot Bonus %</th>
+                          <th style={{ textAlign: "right", padding: "12px 16px" }}>Jackpot-Eligible Share %</th>
+                          <th style={{ textAlign: "right", padding: "12px 16px" }}>Jackpot Cap ($)</th>
+                          <th style={{ textAlign: "right", padding: "12px 16px", whiteSpace: "nowrap" }}>
+                            Fixed Costs ($)
+                            <button 
+                              onClick={() => setShowOpExpenses(false)} 
+                              title="Hide Operational Expenses" 
+                              style={{ 
+                                background: "rgba(239, 68, 68, 0.15)", 
+                                border: "1px solid rgba(239, 68, 68, 0.3)", 
+                                color: "#ef4444", 
+                                borderRadius: "4px", 
+                                padding: "2px 6px", 
+                                fontSize: "10px", 
+                                marginLeft: "8px", 
+                                cursor: "pointer",
+                                fontWeight: "normal"
+                              }}
+                            >
+                              Hide ✕
+                            </button>
+                          </th>
+                        </>
+                      )}
                       <th style={{ textAlign: "right", padding: "12px 16px" }}>Net Revenue Contribution ($)</th>
                       <th style={{ textAlign: "center", padding: "12px 16px", width: 60 }}>Actions</th>
                     </tr>
@@ -599,7 +702,7 @@ export default function DrawPlanningPage() {
                   <tbody>
                     {games.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "var(--text-secondary)" }}>
+                        <td colSpan={showOpExpenses ? 16 : 8} style={{ textAlign: "center", padding: "32px", color: "var(--text-secondary)" }}>
                           No draw games added yet. Click &quot;Add Custom Draw Game&quot; to begin.
                         </td>
                       </tr>
@@ -607,22 +710,45 @@ export default function DrawPlanningPage() {
                       games.map((game, index) => {
                         const payoutAmt = (game.projectedSales * game.prizePayoutPercent) / 100;
                         const commAmt = (game.projectedSales * game.retailerCommPercent) / 100;
-                        const netAmt = game.projectedSales - (payoutAmt + commAmt);
+                        const systemPercent = game.gamingSystemPercent !== undefined && game.gamingSystemPercent !== null ? game.gamingSystemPercent : 2.50;
+                        const retailerBonusPercent = game.retailerBonusPercent !== undefined && game.retailerBonusPercent !== null ? game.retailerBonusPercent : 0.50;
+                        const cashingPercent = game.retailerCashingPercent !== undefined && game.retailerCashingPercent !== null ? game.retailerCashingPercent : 1.00;
+                        const cashableShare = game.cashablePrizePercent !== undefined && game.cashablePrizePercent !== null ? game.cashablePrizePercent : 50.00;
+                        const jackpotPercent = game.jackpotBonusPercent !== undefined && game.jackpotBonusPercent !== null ? game.jackpotBonusPercent : 0.50;
+                        const jackpotEligible = game.jackpotEligiblePercent !== undefined && game.jackpotEligiblePercent !== null ? game.jackpotEligiblePercent : 25.00;
+                        const jackpotCap = game.jackpotBonusCap !== undefined && game.jackpotBonusCap !== null ? game.jackpotBonusCap : 1000000.00;
+                        const fixedCost = game.fixedOperatingCost !== undefined && game.fixedOperatingCost !== null ? game.fixedOperatingCost : 0.00;
+
+                        const systemFeeAmt = (game.projectedSales * systemPercent) / 100;
+                        const retailerBonusAmt = (game.projectedSales * retailerBonusPercent) / 100;
+                        const cashingBonusAmt = payoutAmt * (cashableShare / 100) * (cashingPercent / 100);
+                        const jackpotBonusAmt = Math.min(jackpotCap, payoutAmt * (jackpotEligible / 100) * (jackpotPercent / 100));
+
+                        const netAmt = game.projectedSales - (payoutAmt + commAmt + systemFeeAmt + retailerBonusAmt + cashingBonusAmt + jackpotBonusAmt + parseFloat(fixedCost));
 
                         return (
                           <tr key={game.id} style={{ borderBottom: "1px solid var(--border)", verticalAlign: "middle" }}>
-                            {/* Product Link Select */}
                             <td style={{ padding: "10px 16px", minWidth: 160 }}>
-                              <select
-                                value={game.productId || ""}
-                                onChange={(e) => handleProductSelect(index, e.target.value)}
-                                style={{ width: "100%", padding: "6px", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
-                              >
-                                <option value="">-- Custom (Unlinked) --</option>
-                                {productsList.map(p => (
-                                  <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                              </select>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <select
+                                  value={game.productId || ""}
+                                  onChange={(e) => handleProductSelect(index, e.target.value)}
+                                  style={{ width: "100%", padding: "6px", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                >
+                                  <option value="">-- Custom (Unlinked) --</option>
+                                  {productsList.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={game.budgetStatus || "new_request"}
+                                  onChange={(e) => handleCellChange(index, "budgetStatus", e.target.value)}
+                                  style={{ width: "100%", padding: "4px 6px", borderRadius: "4px", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 11 }}
+                                >
+                                  <option value="new_request">New Revenue Estimate</option>
+                                  <option value="already_booked">Baseline Revenue / Already Booked</option>
+                                </select>
+                              </div>
                             </td>
                             {/* Name Input */}
                             <td style={{ padding: "10px 16px" }}>
@@ -653,7 +779,7 @@ export default function DrawPlanningPage() {
                                         borderRadius: "4px",
                                         backgroundColor: "var(--surface-2, #3b82f61a)",
                                         border: "1px solid var(--border)",
-                                        color: "var(--primary)",
+                                        color: "var(--blue)",
                                         cursor: "pointer",
                                         fontSize: "11px",
                                         fontWeight: "bold",
@@ -702,7 +828,7 @@ export default function DrawPlanningPage() {
                                                       applyForecastModel(index, "predictive");
                                                       setActiveForecastRowIndex(null);
                                                     }}
-                                                    style={{ padding: "6px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid var(--primary)", backgroundColor: "var(--blue-dim, rgba(0, 180, 216, 0.08))", color: "var(--primary)", cursor: "pointer", textAlign: "left", fontWeight: "600" }}
+                                                    style={{ padding: "6px 8px", fontSize: "11px", borderRadius: "4px", border: "1px solid var(--blue)", backgroundColor: "var(--blue-dim, rgba(0, 180, 216, 0.08))", color: "var(--blue)", cursor: "pointer", textAlign: "left", fontWeight: "600" }}
                                                   >
                                                     🔮 Apply Predictive Forecast (${(customVal / 1000000).toFixed(1)}M)
                                                   </button>
@@ -761,7 +887,7 @@ export default function DrawPlanningPage() {
                                                 applyForecastModel(index, "custom", val);
                                                 setActiveForecastRowIndex(null);
                                               }}
-                                              style={{ flex: 1, padding: "4px", fontSize: "11px", borderRadius: "4px", border: "none", backgroundColor: "var(--primary)", color: "white", cursor: "pointer" }}
+                                              style={{ flex: 1, padding: "4px", fontSize: "11px", borderRadius: "4px", border: "none", backgroundColor: "var(--blue)", color: "white", cursor: "pointer" }}
                                             >
                                               Apply % Growth
                                             </button>
@@ -823,6 +949,90 @@ export default function DrawPlanningPage() {
                                 style={{ width: 70, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
                               />
                             </td>
+                            {showOpExpenses && (
+                              <>
+                                {/* System Fee % */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="0.05"
+                                    value={game.gamingSystemPercent ?? 2.50}
+                                    onChange={(e) => handleCellChange(index, "gamingSystemPercent", e.target.value)}
+                                    style={{ width: 65, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Retailer Bonus % */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="0.05"
+                                    value={game.retailerBonusPercent ?? 0.50}
+                                    onChange={(e) => handleCellChange(index, "retailerBonusPercent", e.target.value)}
+                                    style={{ width: 65, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Cashing Bonus % */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="0.05"
+                                    value={game.retailerCashingPercent ?? 1.00}
+                                    onChange={(e) => handleCellChange(index, "retailerCashingPercent", e.target.value)}
+                                    style={{ width: 65, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Cashable Share % */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="1"
+                                    value={game.cashablePrizePercent ?? 50.00}
+                                    onChange={(e) => handleCellChange(index, "cashablePrizePercent", e.target.value)}
+                                    style={{ width: 65, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Jackpot Bonus % */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="0.05"
+                                    value={game.jackpotBonusPercent ?? 0.50}
+                                    onChange={(e) => handleCellChange(index, "jackpotBonusPercent", e.target.value)}
+                                    style={{ width: 65, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Jackpot-Eligible Share % */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="1"
+                                    value={game.jackpotEligiblePercent ?? 25.00}
+                                    onChange={(e) => handleCellChange(index, "jackpotEligiblePercent", e.target.value)}
+                                    style={{ width: 65, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Jackpot Cap ($) */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="1000"
+                                    value={game.jackpotBonusCap ?? 1000000.00}
+                                    onChange={(e) => handleCellChange(index, "jackpotBonusCap", e.target.value)}
+                                    style={{ width: 95, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                                {/* Fixed Cost */}
+                                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                                  <input 
+                                    type="number"
+                                    step="1000"
+                                    value={game.fixedOperatingCost ?? 0.00}
+                                    onChange={(e) => handleCellChange(index, "fixedOperatingCost", e.target.value)}
+                                    style={{ width: 90, padding: "6px", textAlign: "right", borderRadius: "4px", backgroundColor: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13 }}
+                                  />
+                                </td>
+                              </>
+                            )}
                             {/* Net revenue contribution */}
                             <td style={{ padding: "10px 16px", textAlign: "right", fontFamily: "var(--font-mono)", color: "var(--green)", fontWeight: 700 }}>
                               ${netAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

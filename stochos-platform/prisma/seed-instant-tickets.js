@@ -15,7 +15,7 @@ async function main() {
   for (const v of vendors) {
     if (v.name.includes('Scientific')) vendorMap.sg = v;
     else if (v.name.includes('Pollard')) vendorMap.pb = v;
-    else if (v.name.includes('Game Tech') || v.name.includes('IGT')) vendorMap.igt = v;
+    else if (v.name.includes('Game Tech') || v.name.includes('IGT') || v.name.includes('BrightStar')) vendorMap.igt = v;
   }
   if (!vendorMap.sg || !vendorMap.pb || !vendorMap.igt) throw new Error('Missing printer vendors');
   console.log('  ✓ Found vendors');
@@ -26,15 +26,27 @@ async function main() {
   await prisma.product.deleteMany({ where: { jurisdictionId: ny.id, category: 'instant', externalSource: 'instant_ticket_planner' } });
   console.log('  ✓ Cleaned previous data');
 
-  // Vendor pricing
+  // Vendor pricing - Seed tiered rates
   const sizes = ['2.4x4', '4x4', '6x4', '8x4', '12x8', '12x12'];
   const sgR = { '2.4x4': 1.35, '4x4': 1.45, '6x4': 1.55, '8x4': 1.65, '12x8': 1.85, '12x12': 2.10 };
   const pbR = { '2.4x4': 17.50, '4x4': 19.25, '6x4': 22.80, '8x4': 26.50, '12x8': 34.75, '12x12': 42.00 };
   const igR = { '2.4x4': 18.90, '4x4': 20.75, '6x4': 24.50, '8x4': 28.25, '12x8': 37.00, '12x12': 45.50 };
+
   for (const s of sizes) {
-    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.sg.id, costModel: 'percent_of_sales', ticketSize: s, baseCost: sgR[s], minQuantity: 0 } });
-    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.pb.id, costModel: 'per_thousand', ticketSize: s, baseCost: pbR[s], minQuantity: 0 } });
-    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.igt.id, costModel: 'per_thousand', ticketSize: s, baseCost: igR[s], minQuantity: 0 } });
+    // Scientific Games - Percent of Sales
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.sg.id, costModel: 'percent_of_sales', ticketSize: s, baseCost: sgR[s], minQuantity: 0n } });
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.sg.id, costModel: 'percent_of_sales', ticketSize: s, baseCost: Math.max(0.5, sgR[s] - 0.10), minQuantity: 10000000n } });
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.sg.id, costModel: 'percent_of_sales', ticketSize: s, baseCost: Math.max(0.4, sgR[s] - 0.20), minQuantity: 25000000n } });
+
+    // Pollard Banknote - Per Thousand (CPM)
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.pb.id, costModel: 'per_thousand', ticketSize: s, baseCost: pbR[s] + 3.00, minQuantity: 0n } });
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.pb.id, costModel: 'per_thousand', ticketSize: s, baseCost: pbR[s], minQuantity: 5000000n } });
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.pb.id, costModel: 'per_thousand', ticketSize: s, baseCost: Math.max(5.00, pbR[s] - 2.00), minQuantity: 15000000n } });
+
+    // IGT - Per Thousand (CPM)
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.igt.id, costModel: 'per_thousand', ticketSize: s, baseCost: igR[s] + 3.50, minQuantity: 0n } });
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.igt.id, costModel: 'per_thousand', ticketSize: s, baseCost: igR[s], minQuantity: 5000000n } });
+    await prisma.instantTicketVendorPricing.create({ data: { vendorId: vendorMap.igt.id, costModel: 'per_thousand', ticketSize: s, baseCost: Math.max(5.00, igR[s] - 2.50), minQuantity: 15000000n } });
   }
   console.log('  ✓ Vendor pricing created');
 

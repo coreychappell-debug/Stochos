@@ -109,7 +109,7 @@ async function main() {
   console.log('  ✓ Seeded draw game projections in base plan');
 
   // Query Contracts to associate them with the budget line items
-  const igt = await prisma.contract.findFirst({ where: { title: { contains: 'IGT' } } });
+  const igt = await prisma.contract.findFirst({ where: { title: { OR: [ { contains: 'IGT' }, { contains: 'BrightStar' }, { contains: 'C150005' } ] } } });
   const mc = await prisma.contract.findFirst({ where: { title: { contains: 'McCann' } } });
   const verizon = await prisma.contract.findFirst({ where: { title: { contains: 'Verizon' } } });
   const havas = await prisma.contract.findFirst({ where: { title: { contains: 'Havas' } } });
