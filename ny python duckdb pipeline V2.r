@@ -38,6 +38,7 @@ NY_ROOT = Path("/srv/stochos/data/raw/new_york/nylottery_data")
 SALES_CSV = NY_ROOT / "xyvi-fbb9_lottery-daily-retailer-sales-by-game-beginning-2024" / "data.csv"
 RETAILERS_CSV = NY_ROOT / "2vvn-pdyi_nys-lottery-retailers" / "data.csv"
 DB_PATH = Path("/srv/stochos/data/duckdb/stochos_lottery.duckdb")
+DB_PATH_TEMP = Path("/srv/stochos/data/duckdb/stochos_lottery_temp.duckdb")
 
 RETAILER_COMMISSION_RATE = 0.06
 TODAY = datetime.now().strftime("%Y-%m-%d")
@@ -184,6 +185,30 @@ def build_dimensions(con: duckdb.DuckDBPyConnection) -> None:
                 con.execute(stmt)
     else:
         print("[WARNING] lmr_districts.sql seed file not found. Schema update skipped.")
+
+    # 1.5. Ensure tmp_ny_retailer_county_lookup is populated from live_db if it exists, or create it empty
+    has_lookup = False
+    if DB_PATH.exists():
+        print(f"Attaching live database {DB_PATH} to copy historical county lookup...")
+        try:
+            con.execute(f"ATTACH '{DB_PATH}' AS live_db (READ_ONLY)")
+            # Check if table exists in live_db
+            tables = con.execute("SELECT table_name FROM information_schema.tables WHERE table_catalog = 'live_db' AND table_schema = 'main' AND table_name = 'tmp_ny_retailer_county_lookup'").fetchall()
+            if tables:
+                print("Found tmp_ny_retailer_county_lookup in live database. Copying...")
+                con.execute("CREATE TABLE tmp_ny_retailer_county_lookup AS SELECT * FROM live_db.tmp_ny_retailer_county_lookup")
+                has_lookup = True
+            con.execute("DETACH live_db")
+        except Exception as e:
+            print(f"[WARNING] Failed to copy tmp_ny_retailer_county_lookup from live database: {e}")
+            try:
+                con.execute("DETACH live_db")
+            except Exception:
+                pass
+
+    if not has_lookup:
+        print("Creating empty tmp_ny_retailer_county_lookup table...")
+        con.execute("CREATE TABLE tmp_ny_retailer_county_lookup (retailer_id VARCHAR, county VARCHAR)")
 
     # 2. Build ny_retailer_dim using historical lookup and automated spatial joins
     print("Building ny_retailer_dim with spatial boundaries & regions...")
@@ -813,7 +838,13 @@ def print_checks(con: duckdb.DuckDBPyConnection) -> None:
 # -----------------------------------------------------------------------------
 
 def main() -> int:
-    con = duckdb.connect(str(DB_PATH))
+    # 1. Clean up any leftover temp database from a previous crash
+    if DB_PATH_TEMP.exists():
+        DB_PATH_TEMP.unlink()
+
+    # 2. Connect to the staging database
+    print(f"Connecting to staging database: {DB_PATH_TEMP}...")
+    con = duckdb.connect(str(DB_PATH_TEMP))
     try:
         print(f"Normalizing {STATE_CODE} warehouse and canonical layer (v11)...")
         create_raw_tables(con)
@@ -824,8 +855,12 @@ def main() -> int:
         build_canonical_tables(con)
         print_checks(con)
         
-        # Close connection to release file lock before triggering child sync process
+        # Close connection to release file lock before swapping
         con.close()
+
+        # 3. Swap staging database to live database atomically
+        print(f"Swapping staging database atomically to live: {DB_PATH}...")
+        DB_PATH_TEMP.replace(DB_PATH)
         
         # Trigger Postgres Sync script
         print("Triggering PostgreSQL sync...")
