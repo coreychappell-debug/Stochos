@@ -1,6 +1,6 @@
 # Stochos Lottery Business Platform
 
-**Version:** 0.2.0 (Phase 2 — Contract & Territory Optimization)  
+**Version:** 0.3.0 (Phase 3 — Instant Ticket Planning & Planogram Compliance Engine)  
 **Runtime:** Next.js 16.2.6 · Node.js 24 LTS · PostgreSQL 16 · Prisma 7  
 **Environment:** WSL2 (Ubuntu 22.04) + Docker · Windows host development  
 
@@ -14,7 +14,8 @@ A modular, lottery-agnostic business platform providing:
 - Contract lifecycle management (CLM) with vendor, product, and compliance tracking
 - Executive dashboard with KPI summaries and module navigation
 - **Field Route Optimization & CRM Trip Planner (FOMO)**: Dynamic territory visit planner supporting custom geocoding (Nominatim), automated TSP route sequencing (Held-Karp / 2-opt), real road-distance path mapping (OSRM with a local Haversine fallback), concurrency queueing/throttling, and universal Google Maps navigation export.
-- Extensible architecture for future marketing, analytics, and instant ticket modules
+- **Instant Ticket Planning & Planogram Compliance Engine**: Comprehensive portfolio planner featuring interactive "What-If" sandbox modeling sliders, dynamic sales durations with safety validation clamping, launch month quarterly Gantt timeline views, prior-year carryover inventory managers, and 24/30/40/48-bin retail dispenser compliance grid visualizations (with support for double-facing/double-binning and custom ticket art uploads).
+- Extensible architecture for future marketing and analytics modules
 
 **This platform runs alongside the existing RStudio/Shiny/DuckDB analytics stack.** It does not modify, depend on, or interfere with existing services.
 

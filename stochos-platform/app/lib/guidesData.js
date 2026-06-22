@@ -169,17 +169,51 @@ export const guides = [
     id: "tickets",
     category: "tickets",
     title: "Instant Ticket Planning & Game Lifecycle",
-    summary: "Manage game planning spreadsheets, vendor pricing brackets, and ticket print orders.",
+    summary: "Manage game planning spreadsheets, cost allocations, Gantt timelines, and sandbox modelers.",
     content: {
-      overview: "The Instant Ticket planning system oversees scratch-off game design, pricing sheets, prize structures, production schedules, and print order fulfillment. It coordinates printing with suppliers and monitors ticket deliveries.",
+      overview: "The Instant Ticket planning system oversees scratch-off game design, prize structures, production schedules, and central cost allocations. The platform integrates a real-time 'What-If' Sandbox Modeler, interactive timeline groupings, and print-optimized reporting outputs to streamline statutory compliance and vendor negotiations.",
       steps: [
-        "Game Sheet Management: Outline new scratch-off games, setting details like ticket price, ticket size, game style, and total print run.",
-        "Prize Matrix Design: Set up the prize payout structure. Define tier values, odds, count of winning tickets, and total prize fund liability.",
-        "Vendor Pricing Brackets: Compare printing costs across vendors. Define sliding-scale volume pricing (price per thousand tickets based on print run sizes).",
-        "Print Orders: Track order fulfillment. Monitor target print dates, shipping details, and invoice approvals."
+        "Interactive What-If Modeler: Scroll to the top of the Summary tab to locate the Sandbox card. Adjust the sliders for Sell-Through Rate (50-100%), Retailer Commission (1-15%), Print Run Scaling (0.50x-1.50x), and Unsold Returns Offset (-15% to +15%) to run real-time client-side costing simulations.",
+        "Save & Reset Sandbox: If sandbox parameters deviate from database values, the interface displays action triggers. Click 'Reset to Base Plan' to restore the sliders, or 'Save to Database' to write the modified base sell-through and commission rates directly to the database.",
+        "Timeline Grouping (Gantt): Switch between Price Tier and Launch Month layouts in the Gantt card header. Launch Month grouping stacks all games launching in a given month, with month header panels color-coded by fiscal quarter (Q1: Blue, Q2: Orange, Q3: Green, Q4: Purple).",
+        "Workspace Collapse Controls: Click any section header (Gantt Timeline, Central Overhead, or individual Roster denominations) to fold the cards away and reduce vertical scroll space.",
+        "CSV Roster Export: Click 'Export Roster (CSV)' in the Game Roster panel to export a spreadsheet. Note that if the sandbox is active, the export dynamically includes the sandboxed units, returns, and sales.",
+        "Print Report: Click 'Print Report' to open the browser print dialog. The platform's print stylesheet hides sidebar menus, filters, and action buttons while maximizing card widths for clean paper outputs.",
+        "Retail Planogram Compliance: Switch to the 'Retail Planogram' tab to configure dispenser layout templates. Select a target month and choose one of the four standard dispenser configurations (24, 30, 40, or 48 bins) to automatically map active scratcher games based on their dynamic sales lifespan (calculated between launch and close dates). Set game lifespans (3-24 months) inside the scheduler cards.",
+        "Prior-Year Carryover Inventory: Manage legacy games from prior fiscal years inside the purple Carryover panel at the bottom of the planogram view. Carryover items persist in localStorage, and toggling them 'Active' merges them into the current month's active dispenser pool to help meet dispenser target slots.",
+        "Double-Facing (Double-Binning): To maximize retail display density when you have fewer active games than the target bins for a given price point, use the '+ Double-Face' dropdown selector to assign the same game to multiple bins. The compliance score and visualization grid will automatically update, displaying double-faced games with a distinct blue striped border.",
+        "Pack Splitting Policy: Note that physically splitting ticket packs across multiple slots or registers is strictly prohibited by security and audit rules. Instead of physical division, use Double-Facing (bin duplication) to keep inventory tracking and security reconciliations atomic per dispenser unit.",
+        "Roster Lifespan Columns & CSV: Review launch dates and estimated durations directly in the Game Roster table on the Summary tab. Click 'Export Roster (CSV)' to download a spreadsheet complete with 'Close Date' and 'Est. Duration (Months)' fields for future product design and planning reference."
       ],
-      examples: "Example Use Case: A product planner designs a $5 game with a 10 million ticket print run. They use the prize matrix tool to calculate a 67% prize payout liability. They cross-reference vendor pricing brackets to select the supplier with the lowest rate for that volume.",
-      tips: "Troubleshooting: If the prize payout percentage exceeds state legislative limits, the system will highlight the liability field in red. Adjust the tier counts or winning odds in the prize matrix to lower the payout percentage."
+      examples: "Example Use Case: A procurement manager wants to model the margin impact of a 10% increase in retailer commission offset by scaling the print run down to 0.90x. They drag the commission slider to 7% and the print run scaling slider to 0.90x. The Fully Loaded Net Margin KPI card immediately updates. Seeing that the margin remains healthy, they click 'Export Roster (CSV)' to share the projected statistics with executive officers.",
+      tips: "Best Practice: Always review the 'Fully Loaded Net Margin' card after adjusting sandbox sliders. Since central overhead contracts are dynamically redistributed based on either sales or volume, adjustments to one game's print run scale will affect the overhead burden of all other games in the plan.",
+      comparison: [
+        {
+          capability: "Financial Modeling",
+          standard: "Static Spreadsheets: Requires manual, offline cell formulas to recalculate commissions, return rate write-offs, and print run scale shifts.",
+          stochos: "What-If Sandbox Modeler: Live client-side range sliders that dynamically adjust gross sales, print run economics, and fully loaded margins in real-time."
+        },
+        {
+          capability: "Timeline & Scheduling",
+          standard: "Static Calendars: Disconnected from active retail inventories, making launch date overlaps and lifecycle duration shifts tedious to coordinate.",
+          stochos: "Dynamic Gantt Scheduler: Proportional lifecycle width scaling, clean fiscal year boundaries, and quarterly color-coding stacked by release month."
+        },
+        {
+          capability: "Retail Display Compliance",
+          standard: "Manual Audits: Checking dispenser counts on clipboard sheets without knowing if store tiers have enough active inventory to satisfy target mixes.",
+          stochos: "Interactive Planogram Grid: Renders standard 24/30/40/48-bin dispenser layouts, color-coding slots by age (fresh, established, double-faced, gap) and calculating compliance."
+        },
+        {
+          capability: "Slot Gaps & Pack-Splitting",
+          standard: "Physical Pack Splitting: Splitting ticket packs across registers or slots to fill empty bins, violating lottery safety and inventory controls.",
+          stochos: "Double-Facing & Carryovers: Dropdown selectors to clone active games into empty bins, plus persistent carryover managers to resolve display gaps safely."
+        },
+        {
+          capability: "Team Collaboration",
+          standard: "Versioned Excel Files: Sharing spreadsheets via email, leading to data drift, outdated contract numbers, and lack of audit trails.",
+          stochos: "Connected DB & Audits: Updates write to a shared PostgreSQL database, refreshing the plan details instantly across all client tabs in real-time."
+        }
+      ]
     }
   },
   {

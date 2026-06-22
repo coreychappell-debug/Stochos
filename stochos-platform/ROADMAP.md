@@ -74,23 +74,27 @@ This document outlines key technical items, feature improvements, and completed 
 
 ---
 
-## 5. Upcoming Feature Roadmap & Backlog
+## 5. Scratchers Planning & Planogram Compliance Engine [COMPLETED]
+- **Objective:** Build an interactive planning suite with sandbox financial modeling, dynamic lifecycle tracking, and dispenser compliance visualization.
+- **Implementation:**
+  - **"What-If" Sandbox Modeler**: Client-side simulator capturing sell-through, commission rates, print runs, and return rate shifts in real-time.
+  - **Dynamic Lifespans & Overlap**: Replaced static limits with calendar-date launch and close date computations, adding safety validations to block historical closing.
+  - **Visual planograms**: Rendered 24/30/40/48-bin dispenser templates, color-coding slots by age (fresh, established, double-faced, gaps) and calculating compliance.
+  - **Prior-Year Carryovers**: Integrated persistent legacy inventories in `localStorage` to pool active field games and double-face them to fill target dispenser slots.
+  - **Theme Image Uploads**: Asynchronous ticket asset uploading (`/api/instant-tickets/upload-image`) rendering thumbnails in the planogram.
 
-### 5.1 GFPA & Budgeting Statutory Reporting
+---
+
+## 6. Upcoming Feature Roadmap & Backlog
+
+### 6.1 GFPA & Budgeting Statutory Reporting
 - **Objective:** Expand the GFPA reporting module into a comprehensive, audit-ready public filing package.
 - **Key Enhancements:**
   - **Footnote Disclosures**: Integrate a customizable notes grid (Significant Accounting Policies, cash pooling, capital asset depreciation) into both HTML previews and PDF compilations.
   - **ACFR Package Compilation**: Expand the PDF compiler to generate a cover sheet, introductory transmittal section, and statistical tables forming a complete Annual Comprehensive Financial Report.
   - **Budget vs. Actual Reconciliation**: Calculate and compare actual Trial Balance ledger figures against approved divisional budgets, generating dollar and percentage variance schedules.
 
-### 5.2 Scratchers Planning Tool (Instant Tickets)
-- **Objective:** Make the planning tool highly engaging, visually clear, and constrained by vendor capabilities.
-- **Key Enhancements:**
-  - **Interactive Onboarding Wizard**: Add a step-by-step guided tour highlighting target mixes, game rosters, and vendor pricing tables to quickly onboard new users.
-  - **Visual Data Visualization**: Embed real-time SVG/Canvas chart rollups showing denomination mix percentages and vendor volume share.
-  - **Contractor Capability Auditing**: Flag warnings when game sizes or total volume exceed defined vendor contract printing bounds.
-
-### 5.3 Robust Marketing MRM
+### 6.2 Robust Marketing MRM
 - **Objective:** Enrich the marketing tool with Gantt charts, cost rollups, and design workflows.
 - **Key Enhancements:**
   - **Campaign Gantt Calendar**: Render timeline calendars showing campaigns, durations, and overlapping launch waves.
@@ -99,7 +103,7 @@ This document outlines key technical items, feature improvements, and completed 
 
 ---
 
-## 6. Next-Generation UX/UI Enhancements
+## 7. Next-Generation UX/UI Enhancements
 
 ### 6.1 Operational "Actionability" (Drill-to-Action)
 - **Objective:** Bridge the gap between static charts and active operational workflows.
