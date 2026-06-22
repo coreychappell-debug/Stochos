@@ -41,6 +41,14 @@ GEODATA_LOG_PATHS = [
     "/srv/stochos/logs/geodata_audit.log"
 ]
 
+EWS_LOG_PATHS = [
+    "/srv/stochos/logs/ny_ews_automate.log"
+]
+
+MARTS_SYNC_LOG_PATHS = [
+    "/srv/stochos/logs/sync_exec_marts.log"
+]
+
 OBSERVABILITY_PLATFORM_LOG_PATHS = [
     "/mnt/c/Users/corey/Downloads/Corey - Code Stuff/R Server Project folder/New York Scripts and Process/stochos-platform/logs/observability.log",
     "./logs/observability.log",
@@ -111,6 +119,13 @@ def get_db_stats():
         cur.execute("SELECT COUNT(*) FROM crm_retailers WHERE geodata_last_checked >= NOW() - INTERVAL '24 hours';")
         stats["audited_24h"] = cur.fetchone()[0]
         
+        # 5. Marts sync status
+        try:
+            cur.execute("SELECT COUNT(*) FROM mart_exec_overview_daily;")
+            stats["mart_overview_count"] = cur.fetchone()[0]
+        except Exception:
+            stats["mart_overview_count"] = 0
+            
         conn.close()
     except Exception as e:
         print(f"Database statistics query failed: {e}")
@@ -136,6 +151,14 @@ def get_ews_health():
     try:
         import duckdb
         con = duckdb.connect(db_path, read_only=True)
+        # Check if table exists
+        tbl_check = con.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'ny_retailer_risk_history';").fetchone()
+        if not tbl_check:
+            health["status"] = "warning"
+            health["details"] = "EWS history table ny_retailer_risk_history does not exist."
+            con.close()
+            return health
+            
         res = con.execute("SELECT run_id, ingest_timestamp FROM ny_retailer_risk_history ORDER BY ingest_timestamp DESC LIMIT 1;").fetchone()
         con.close()
         
@@ -176,6 +199,140 @@ def get_ews_health():
         
     return health
 
+def get_demographics_status():
+    """Queries DuckDB to verify demographics database state."""
+    db_path = "/srv/stochos/data/duckdb/stochos_lottery.duckdb"
+    status = {
+        "status": "success",
+        "row_count": 0,
+        "latest_year": "Unknown",
+        "source": "Unknown",
+        "details": "Demographics data is not loaded."
+    }
+    
+    if not os.path.exists(db_path):
+        status["status"] = "failure"
+        status["details"] = f"DuckDB file not found at {db_path}"
+        return status
+        
+    try:
+        import duckdb
+        con = duckdb.connect(db_path, read_only=True)
+        
+        # Check if table exists
+        tbl_check = con.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'ny_county_demographics_dim';").fetchone()
+        if not tbl_check:
+            status["status"] = "warning"
+            status["details"] = "Table ny_county_demographics_dim does not exist."
+            con.close()
+            return status
+            
+        row_count = con.execute("SELECT COUNT(*) FROM ny_county_demographics_dim;").fetchone()[0]
+        latest_year = con.execute("SELECT MAX(data_year) FROM ny_county_demographics_dim;").fetchone()[0]
+        
+        # Check count of counties in the latest view (expecting 62 in NY)
+        view_check = con.execute("SELECT COUNT(*) FROM v_ny_county_demographics_latest;").fetchone()[0]
+        con.close()
+        
+        status["row_count"] = row_count
+        status["latest_year"] = latest_year if latest_year else "Unknown"
+        
+        if row_count > 0:
+            if latest_year and latest_year > 2020:
+                status["source"] = "US Census API"
+                is_fallback = False
+            else:
+                status["source"] = "CORGIS fallback"
+                is_fallback = True
+            
+            status["details"] = f"Demographics loaded: {view_check} counties (latest year {status['latest_year']} via {status['source']})."
+            if is_fallback:
+                status["status"] = "warning"
+            elif view_check < 62:
+                status["status"] = "warning"
+                status["details"] += f" WARNING: Only {view_check}/62 counties present."
+            else:
+                status["status"] = "success"
+        else:
+            status["status"] = "warning"
+            status["details"] = "Demographics table is empty."
+            
+    except Exception as e:
+        status["status"] = "failure"
+        status["details"] = f"Failed to query demographics: {e}"
+        
+    return status
+
+def parse_ews_logs():
+    """Parses EWS automate cron logs."""
+    log_summary = "No EWS log file found or log is empty."
+    status = "unknown"
+    
+    for path in EWS_LOG_PATHS:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    lines = f.readlines()
+                if not lines:
+                    break
+                
+                # Get the last run lines (delimited by ======)
+                start_idx = 0
+                for idx, line in enumerate(reversed(lines)):
+                    if "Starting New York Lottery Early Warning System" in line:
+                        start_idx = len(lines) - 1 - idx
+                        break
+                
+                last_run_lines = lines[start_idx:]
+                details = [line.strip() for line in last_run_lines if line.strip()]
+                log_summary = "\n".join(details)
+                
+                complete = any("Pipeline Completed Successfully!" in line for line in last_run_lines)
+                has_errors = any("error" in line.lower() or "failed" in line.lower() or "exception" in line.lower() for line in last_run_lines)
+                
+                if complete and not has_errors:
+                    status = "success"
+                elif complete and has_errors:
+                    status = "warning"
+                else:
+                    status = "failure"
+                break
+            except Exception as e:
+                print(f"Error reading EWS log at {path}: {e}")
+                
+    return log_summary, status
+
+def parse_marts_sync_logs():
+    """Parses Executive Marts sync logs."""
+    log_summary = "No Marts sync log file found or log is empty."
+    status = "unknown"
+    
+    for path in MARTS_SYNC_LOG_PATHS:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    lines = f.readlines()
+                if not lines:
+                    break
+                
+                recent_lines = [line.strip() for line in lines[-20:] if line.strip()]
+                log_summary = "\n".join(recent_lines)
+                
+                complete = any("Mart synchronization complete" in line for line in recent_lines)
+                has_errors = any("error" in line.lower() or "failed" in line.lower() or "exception" in line.lower() for line in recent_lines)
+                
+                if complete and not has_errors:
+                    status = "success"
+                elif complete and has_errors:
+                    status = "warning"
+                else:
+                    status = "failure"
+                break
+            except Exception as e:
+                print(f"Error reading Marts sync log at {path}: {e}")
+                
+    return log_summary, status
+
 def parse_watchdog_logs():
     """Reads recent lines from watchdog log file to detect recovery warnings or errors."""
     log_content = []
@@ -202,6 +359,7 @@ def parse_maintenance_logs():
     """Parses the weekly maintenance and backup logs."""
     log_summary = "No maintenance log file found or log is empty."
     status = "unknown"
+    budget_status = "unknown"
     details = []
     
     for path in MAINTENANCE_LOG_PATHS:
@@ -238,11 +396,22 @@ def parse_maintenance_logs():
                     status = "warning"
                 else:
                     status = "failure"
+                    
+                # Check status of budget sync
+                has_budget_sync = any("Running planned budget sync..." in line for line in last_run_lines)
+                budget_complete = any("Planned budget sync complete" in line for line in last_run_lines)
+                
+                if has_budget_sync and budget_complete:
+                    budget_status = "success"
+                elif has_budget_sync and not budget_complete:
+                    budget_status = "failure"
+                else:
+                    budget_status = "unknown"
                 break
             except Exception as e:
                 print(f"Error reading maintenance log at {path}: {e}")
                 
-    return log_summary, status
+    return log_summary, status, budget_status
 
 def parse_ny_ingest_logs():
     """Parses the raw New York data download and ingest logs."""
@@ -444,12 +613,18 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                      ingest_log, ingest_status,
                      duckdb_log, duckdb_status, net_contrib,
                      geodata_log, geodata_status, ews_health,
-                     observability_log, observability_status):
+                     observability_log, observability_status,
+                     demographics_status, budget_status,
+                     marts_sync_status, ews_log, marts_sync_log):
     """Formats the system status metrics and job logs into a beautiful HTML email."""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Check overall health status
-    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_health["status"], observability_status]
+    all_statuses = [
+        maint_status, ingest_status, duckdb_status, geodata_status, 
+        ews_health["status"], observability_status, 
+        demographics_status["status"], budget_status, marts_sync_status
+    ]
     if has_watchdog_issues or "failure" in all_statuses or stats is None:
         status_badge = '<span style="background-color: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; border: 1px solid #f87171;">🔴 CRITICAL ALERT</span>'
         status_bg = '#fef2f2'
@@ -473,6 +648,7 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
     # Database summary table
     db_metrics_html = ""
     if stats:
+        mart_count_str = f"{stats['mart_overview_count']:,}" if 'mart_overview_count' in stats else "0"
         db_metrics_html = f"""
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-family: sans-serif; font-size: 13px;">
             <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
@@ -509,6 +685,11 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                 <td style="padding: 10px; color: #2563eb;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#3b82f6; margin-right:8px;"></span>Pending Host Correction</td>
                 <td style="padding: 10px; text-align: right; color: #2563eb; font-weight: bold;">{stats['host_corrections']:,}</td>
                 <td style="padding: 10px; text-align: right; color: #2563eb;">{(stats['host_corrections']/stats['total_retailers']*100):.1f}%</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; color: #0369a1;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#0ea5e9; margin-right:8px;"></span>Synced Exec Marts Days</td>
+                <td style="padding: 10px; text-align: right; color: #0369a1; font-weight: bold;">{mart_count_str}</td>
+                <td style="padding: 10px; text-align: right; color: #64748b;">-</td>
             </tr>
         </table>
         """
@@ -559,7 +740,8 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                     
                     <div style="margin-top: 12px; font-size: 13px; color: #475569; font-family: sans-serif;">
                         <strong>Analytical Contribution (NY):</strong> <span style="color: #2563eb; font-weight: bold;">{net_contrib}</span><br>
-                        <strong>EWS Pipeline Status:</strong> <span style="color: {'#eab308' if ews_health['status'] == 'warning' else '#ef4444' if ews_health['status'] == 'failure' else '#16a34a'}; font-weight: bold;">{ews_health['details']}</span>
+                        <strong>EWS Pipeline Status:</strong> <span style="color: {'#eab308' if ews_health['status'] == 'warning' else '#ef4444' if ews_health['status'] == 'failure' else '#16a34a'}; font-weight: bold;">{ews_health['details']}</span><br>
+                        <strong>US Census Demographics:</strong> <span style="color: {'#eab308' if demographics_status['status'] == 'warning' else '#ef4444' if demographics_status['status'] == 'failure' else '#16a34a'}; font-weight: bold;">{demographics_status['details']}</span>
                     </div>
                     {watchdog_html}
                 </div>
@@ -584,6 +766,14 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 8px; color: #334155; font-weight: bold;">DuckDB Analytical Warehouse Refresh</td>
                             <td style="padding: 8px; text-align: right;">{get_status_light(duckdb_status)}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 8px; color: #334155; font-weight: bold;">Planned Budget Sync</td>
+                            <td style="padding: 8px; text-align: right;">{get_status_light(budget_status)}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 8px; color: #334155; font-weight: bold;">Executive Marts Sync</td>
+                            <td style="padding: 8px; text-align: right;">{get_status_light(marts_sync_status)}</td>
                         </tr>
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 8px; color: #334155; font-weight: bold;">Nightly Retailer Geodata Audit (1,000 max)</td>
@@ -628,6 +818,22 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
                         <pre style="margin: 0; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: #334155; max-height: 150px; overflow-y: auto; background-color: #fafafa;">{duckdb_log}</pre>
                     </div>
 
+                    <!-- EWS Log -->
+                    <div style="margin-top: 10px; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
+                        <div style="background-color: #f8fafc; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569; font-weight: bold;">
+                            ny_ews_automate.log
+                        </div>
+                        <pre style="margin: 0; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: #334155; max-height: 120px; overflow-y: auto; background-color: #fafafa;">{ews_log}</pre>
+                    </div>
+
+                    <!-- Marts Sync Log -->
+                    <div style="margin-top: 10px; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
+                        <div style="background-color: #f8fafc; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569; font-weight: bold;">
+                            sync_exec_marts.log
+                        </div>
+                        <pre style="margin: 0; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; color: #334155; max-height: 120px; overflow-y: auto; background-color: #fafafa;">{marts_sync_log}</pre>
+                    </div>
+
                     <!-- Geodata Audit Log -->
                     <div style="margin-top: 10px; border-radius: 6px; border: 1px solid #e2e8f0; overflow: hidden;">
                         <div style="background-color: #f8fafc; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569; font-weight: bold;">
@@ -657,7 +863,7 @@ def build_email_body(stats, watchdog_alerts, has_watchdog_issues,
     """
     return html
 
-def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_status, ews_status, observability_status, has_watchdog_issues):
+def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_status, ews_status, observability_status, demographics_status, budget_status, marts_sync_status, has_watchdog_issues):
     """Sends the status report via Google SMTP."""
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     try:
@@ -677,7 +883,7 @@ def send_email(html_body, maint_status, ingest_status, duckdb_status, geodata_st
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     
     # Subject prefixes depending on status
-    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_status, observability_status]
+    all_statuses = [maint_status, ingest_status, duckdb_status, geodata_status, ews_status, observability_status, demographics_status, budget_status, marts_sync_status]
     if "failure" in all_statuses or has_watchdog_issues:
         subj_prefix = "🚨 [CRITICAL ALERT]"
     elif "warning" in all_statuses:
@@ -727,7 +933,7 @@ def main():
     
     # 4. Parse server job logs
     print("Parsing maintenance logs...")
-    maint_log, maint_status = parse_maintenance_logs()
+    maint_log, maint_status, budget_status = parse_maintenance_logs()
     
     print("Parsing NY raw ingest logs...")
     ingest_log, ingest_status = parse_ny_ingest_logs()
@@ -740,6 +946,15 @@ def main():
     
     print("Checking EWS database health telemetry...")
     ews_health = get_ews_health()
+    
+    print("Checking US Census demographics status...")
+    demographics_status = get_demographics_status()
+    
+    print("Parsing EWS cron logs...")
+    ews_log, ews_status = parse_ews_logs()
+    
+    print("Parsing Marts sync logs...")
+    marts_sync_log, marts_sync_status = parse_marts_sync_logs()
     
     print("Parsing Next.js & R/Shiny observability logs...")
     observability_log, observability_status, error_count, warning_count = parse_observability_logs()
@@ -755,7 +970,12 @@ def main():
         geodata_log, geodata_status,
         ews_health,
         observability_log,
-        observability_status
+        observability_status,
+        demographics_status,
+        budget_status,
+        marts_sync_status,
+        ews_log,
+        marts_sync_log
     )
     
     # 6. Dispatch email
@@ -767,6 +987,9 @@ def main():
         geodata_status, 
         ews_health["status"],
         observability_status,
+        demographics_status["status"],
+        budget_status,
+        marts_sync_status,
         has_watchdog_issues
     )
     print("=== System Status Reporter Complete ===")

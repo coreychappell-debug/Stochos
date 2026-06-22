@@ -89,7 +89,7 @@ $devComposeNeeded = $false
 $postgresNeeded = $false
 
 # Determine retry attempts based on WSL uptime. If WSL booted recently, allow more time for Docker containers to start.
-$maxAttempts = 3
+$maxAttempts = 6
 try {
     $uptimeRaw = wsl -d Ubuntu-22.04 -u root cat /proc/uptime 2>$null
     if ($uptimeRaw) {
@@ -112,26 +112,114 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
     $devDown = @()
     $postgresDown = $false
 
+    # Query all container states in a single WSL call
+    $rawStates = wsl -d Ubuntu-22.04 -u root docker ps -a --format '{{.Names}}:{{.State}}' 2>$null
+
+    # Guard: If query fails or returns empty, WSL/Docker is busy or lagging. Do NOT assume containers are down.
+    if ($null -eq $rawStates -or $rawStates.Length -eq 0 -or ($rawStates.Count -eq 1 -and $rawStates[0] -eq "")) {
+        Log-Message "  [WARNING] Docker state query returned empty (WSL/Docker may be under heavy load). Skipping check to prevent false restarts (Attempt $attempt/$maxAttempts)."
+        if ($attempt -lt $maxAttempts) {
+            Start-Sleep -Seconds 5
+        }
+        continue
+    }
+
+    $states = @{}
+    foreach ($line in $rawStates) {
+        $trimmedLine = $line.Trim()
+        if ($trimmedLine) {
+            $parts = $trimmedLine.Split(':')
+            if ($parts.Length -eq 2) {
+                $states[$parts[0].Trim()] = $parts[1].Trim()
+            }
+        }
+    }
+
+    # Verify Production Containers
+    $susProd = @()
     foreach ($c in $prodContainers) {
-        $rawState = wsl -d Ubuntu-22.04 -u root docker inspect -f '{{.State.Running}}' $c 2>$null
-        $isRunning = if ($rawState) { $rawState.Trim() } else { "false" }
-        if ($isRunning -ne "true") {
+        if (-not $states.ContainsKey($c) -or $states[$c] -ne "running") {
+            $susProd += $c
+        }
+    }
+    foreach ($c in $susProd) {
+        $inspectResult = ""
+        $inspectExitCode = 1
+        try {
+            $inspectResult = (wsl -d Ubuntu-22.04 -u root docker inspect -f '{{.State.Running}}' $c 2>$null).Trim()
+            $inspectExitCode = $LastExitCode
+        } catch {}
+
+        if ($inspectExitCode -eq 0 -and $inspectResult -eq "true") {
+            Log-Message "  [INFO] Suspected container $c is actually running (confirmed via docker inspect). Ignoring false alarm."
+        } elseif ($inspectExitCode -eq 0 -and $inspectResult -eq "false") {
+            Log-Message "  [WARNING] Suspected container $c is explicitly stopped (confirmed via docker inspect). Adding to down list."
             $prodDown += $c
+        } else {
+            $exists = $states.ContainsKey($c)
+            if (-not $exists) {
+                Log-Message "  [WARNING] Container $c does not exist in docker list. Adding to restart list."
+                $prodDown += $c
+            } else {
+                Log-Message "  [WARNING] Docker inspect query failed for $c (exit code: $inspectExitCode, output: '$inspectResult'), but container is registered. Skipping restart to prevent false alarms."
+            }
         }
     }
 
+    # Verify Development Containers
+    $susDev = @()
     foreach ($c in $devContainers) {
-        $rawState = wsl -d Ubuntu-22.04 -u root docker inspect -f '{{.State.Running}}' $c 2>$null
-        $isRunning = if ($rawState) { $rawState.Trim() } else { "false" }
-        if ($isRunning -ne "true") {
+        if (-not $states.ContainsKey($c) -or $states[$c] -ne "running") {
+            $susDev += $c
+        }
+    }
+    foreach ($c in $susDev) {
+        $inspectResult = ""
+        $inspectExitCode = 1
+        try {
+            $inspectResult = (wsl -d Ubuntu-22.04 -u root docker inspect -f '{{.State.Running}}' $c 2>$null).Trim()
+            $inspectExitCode = $LastExitCode
+        } catch {}
+
+        if ($inspectExitCode -eq 0 -and $inspectResult -eq "true") {
+            Log-Message "  [INFO] Suspected container $c is actually running (confirmed via docker inspect). Ignoring false alarm."
+        } elseif ($inspectExitCode -eq 0 -and $inspectResult -eq "false") {
+            Log-Message "  [WARNING] Suspected container $c is explicitly stopped (confirmed via docker inspect). Adding to down list."
             $devDown += $c
+        } else {
+            $exists = $states.ContainsKey($c)
+            if (-not $exists) {
+                Log-Message "  [WARNING] Container $c does not exist in docker list. Adding to restart list."
+                $devDown += $c
+            } else {
+                Log-Message "  [WARNING] Docker inspect query failed for $c (exit code: $inspectExitCode, output: '$inspectResult'), but container is registered. Skipping restart to prevent false alarms."
+            }
         }
     }
 
-    $rawState = wsl -d Ubuntu-22.04 -u root docker inspect -f '{{.State.Running}}' $postgresContainer 2>$null
-    $isRunning = if ($rawState) { $rawState.Trim() } else { "false" }
-    if ($isRunning -ne "true") {
-        $postgresDown = $true
+    # Verify PostgreSQL Container
+    if (-not $states.ContainsKey($postgresContainer) -or $states[$postgresContainer] -ne "running") {
+        $inspectResult = ""
+        $inspectExitCode = 1
+        try {
+            $inspectResult = (wsl -d Ubuntu-22.04 -u root docker inspect -f '{{.State.Running}}' $postgresContainer 2>$null).Trim()
+            $inspectExitCode = $LastExitCode
+        } catch {}
+
+        if ($inspectExitCode -eq 0 -and $inspectResult -eq "true") {
+            Log-Message "  [INFO] Suspected container $postgresContainer is actually running (confirmed via docker inspect). Ignoring false alarm."
+        } elseif ($inspectExitCode -eq 0 -and $inspectResult -eq "false") {
+            Log-Message "  [WARNING] Suspected container $postgresContainer is explicitly stopped (confirmed via docker inspect). Adding to down list."
+            $postgresDown = $true
+        } else {
+            $exists = $states.ContainsKey($postgresContainer)
+            if (-not $exists) {
+                Log-Message "  [WARNING] Container $postgresContainer does not exist in docker list. Adding to restart list."
+                $postgresDown = $true
+            } else {
+                Log-Message "  [WARNING] Docker inspect query failed for $postgresContainer (exit code: $inspectExitCode, output: '$inspectResult'), but container is registered. Skipping restart to prevent false alarms."
+            }
+        }
     }
 
     # If all containers are up and running, we can stop retrying
@@ -201,8 +289,21 @@ if (-not $composeNeeded) {
     if ($shinyOk) {
         Log-Message "[OK] Shiny server (Production) is responding on port 3838."
     } else {
-        Log-Message "[ERROR] Shiny port 3838 is not responding after retries. Restarting production Shiny container..."
-        wsl -d Ubuntu-22.04 -u root docker restart analyst_lab_prod_shiny | Out-Null
+        # Check if any pipeline scripts are currently executing inside the container
+        $jobRunning = $false
+        try {
+            $jobRunningRaw = (wsl -d Ubuntu-22.04 -u root docker exec analyst_lab_prod_shiny pgrep -f "ny_ews|refresh|marts" 2>$null).Trim()
+            if ($jobRunningRaw) {
+                $jobRunning = $true
+            }
+        } catch {}
+
+        if ($jobRunning) {
+            Log-Message "[INFO] Shiny port 3838 not responding, but a pipeline job is executing inside the container. Skipping restart."
+        } else {
+            Log-Message "[ERROR] Shiny port 3838 is not responding after retries. Restarting production Shiny container..."
+            wsl -d Ubuntu-22.04 -u root docker restart analyst_lab_prod_shiny | Out-Null
+        }
     }
 }
 
@@ -224,8 +325,21 @@ if (-not $devComposeNeeded) {
     if ($devShinyOk) {
         Log-Message "[OK] Shiny server (Development) is responding on port 3535."
     } else {
-        Log-Message "[ERROR] Shiny port 3535 is not responding after retries. Restarting development Shiny container..."
-        wsl -d Ubuntu-22.04 -u root docker restart shiny_server | Out-Null
+        # Check if any pipeline jobs are executing inside the dev container
+        $jobRunning = $false
+        try {
+            $jobRunningRaw = (wsl -d Ubuntu-22.04 -u root docker exec shiny_server pgrep -f "ny_ews|refresh|marts" 2>$null).Trim()
+            if ($jobRunningRaw) {
+                $jobRunning = $true
+            }
+        } catch {}
+
+        if ($jobRunning) {
+            Log-Message "[INFO] Dev Shiny port 3535 not responding, but a job is executing. Skipping restart."
+        } else {
+            Log-Message "[ERROR] Shiny port 3535 is not responding after retries. Restarting development Shiny container..."
+            wsl -d Ubuntu-22.04 -u root docker restart shiny_server | Out-Null
+        }
     }
 }
 

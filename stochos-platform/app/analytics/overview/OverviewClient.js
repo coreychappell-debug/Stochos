@@ -720,7 +720,7 @@ export default function OverviewClient({ initialDaily, initialMix, initialAlerts
                   }}
                 >
                   {waterfallData.map((entry, index) => (
-                    <circle key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>

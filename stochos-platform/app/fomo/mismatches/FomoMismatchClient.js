@@ -5,6 +5,41 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Store, Download, Search, Settings, Zap, Octagon, CheckCircle2, AlertTriangle, ArrowLeft, Clock } from "lucide-react";
 
+function renderAddressDiff(registered, standardized) {
+  if (!standardized || standardized === "—") return <span style={{ color: "var(--text-muted)" }}>—</span>;
+  
+  const cleanReg = registered.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+  const regWords = cleanReg.split(/\s+/).filter(Boolean);
+  
+  const stdWords = standardized.split(/\s+/);
+  
+  return (
+    <div style={{ fontSize: 12, lineHeight: "1.4" }}>
+      {stdWords.map((word, idx) => {
+        const cleanWord = word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+        const isMatch = regWords.includes(cleanWord);
+        return (
+          <span 
+            key={idx} 
+            style={{ 
+              color: isMatch ? "var(--text)" : "var(--purple)", 
+              fontWeight: isMatch ? "normal" : 600,
+              backgroundColor: isMatch ? "transparent" : "rgba(123, 104, 238, 0.08)",
+              borderBottom: isMatch ? "none" : "1px dashed var(--purple)",
+              padding: isMatch ? "0" : "1px 2px",
+              borderRadius: isMatch ? "0" : "2px",
+              marginRight: "4px",
+              display: "inline-block"
+            }}
+          >
+            {word}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function FomoMismatchClient({ initialRetailers }) {
   const router = useRouter();
   const [retailers, setRetailers] = useState(initialRetailers);
@@ -551,19 +586,110 @@ export default function FomoMismatchClient({ initialRetailers }) {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontSize: 12 }}>{r.address}, {r.city}, NY {r.zipCode}</div>
-                      {r.latitude && (
-                        <div style={{ fontSize: 10, color: "var(--text-secondary)", fontFamily: "monospace", marginTop: 2 }}>
-                          ({r.latitude.toFixed(5)}, {r.longitude.toFixed(5)})
-                        </div>
-                      )}
+                      <div style={{ fontSize: 12, fontWeight: 500 }}>{r.address}, {r.city}, NY {r.zipCode}</div>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                        {r.latitude && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>
+                            ({r.latitude.toFixed(5)}, {r.longitude.toFixed(5)})
+                          </div>
+                        )}
+                        {r.latitude && (
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${r.latitude},${r.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "2px", textDecoration: "none" }}
+                            title="View registered coordinates on Google Maps"
+                          >
+                            📍 Pin
+                          </a>
+                        )}
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name}, ${r.address}, ${r.city}, NY`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 10, color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "2px", textDecoration: "none" }}
+                          title="Search registered address on Google Maps"
+                        >
+                          🔍 Search
+                        </a>
+                      </div>
                     </td>
                     <td>
-                      <div style={{ fontSize: 12 }}>{verifiedAddressText}</div>
-                      {r.geodataStandardLatitude && (
-                        <div style={{ fontSize: 10, color: "var(--text-secondary)", fontFamily: "monospace", marginTop: 2 }}>
-                          ({r.geodataStandardLatitude.toFixed(5)}, {r.geodataStandardLongitude.toFixed(5)})
+                      {r.geodataStatus === "unmatched" ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <span style={{ fontSize: 12, color: "var(--red)", fontWeight: 500 }}>Address not found in USPS</span>
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name}, ${r.address}, ${r.city}, NY`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ 
+                              fontSize: 10, 
+                              color: "var(--red)", 
+                              display: "inline-flex", 
+                              alignItems: "center", 
+                              gap: "2px", 
+                              textDecoration: "underline",
+                              marginTop: 2
+                            }}
+                          >
+                            🔍 Search Google Maps to find correct address
+                          </a>
                         </div>
+                      ) : (
+                        <>
+                          {renderAddressDiff(r.address + ", " + r.city + ", NY " + r.zipCode, verifiedAddressText)}
+                          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                            {r.geodataStandardLatitude && (
+                              <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace" }}>
+                                ({r.geodataStandardLatitude.toFixed(5)}, {r.geodataStandardLongitude.toFixed(5)})
+                              </div>
+                            )}
+                            {r.geodataStandardLatitude && (
+                              <a 
+                                href={`https://www.google.com/maps/search/?api=1&query=${r.geodataStandardLatitude},${r.geodataStandardLongitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontSize: 10, color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "2px", textDecoration: "none" }}
+                                title="View standardized coordinates on Google Maps"
+                              >
+                                📍 Pin
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(r.geodataStandardAddress);
+                                alert("Standardized address copied to clipboard!");
+                              }}
+                              style={{ 
+                                background: "none", 
+                                border: "none", 
+                                padding: 0, 
+                                fontSize: 10, 
+                                color: "var(--blue)", 
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "2px"
+                              }}
+                              title="Copy standardized address"
+                            >
+                              📋 Copy
+                            </button>
+                            {r.latitude && r.longitude && r.geodataStandardLatitude && r.geodataStandardLongitude && (
+                              <a 
+                                href={`https://www.google.com/maps/dir/?api=1&origin=${r.latitude},${r.longitude}&destination=${r.geodataStandardLatitude},${r.geodataStandardLongitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontSize: 10, color: "var(--purple)", display: "inline-flex", alignItems: "center", gap: "2px", textDecoration: "none" }}
+                                title="Compare registered vs standardized coordinates"
+                              >
+                                🗺️ Compare
+                              </a>
+                            )}
+                          </div>
+                        </>
                       )}
                     </td>
                     <td style={{ fontFamily: "monospace", fontSize: 12 }}>

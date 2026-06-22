@@ -188,6 +188,10 @@ export async function PUT(request, { params }) {
                   jackpotBonusPercent: g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null ? parseFloat(g.jackpotBonusPercent) : null,
                   jackpotEligiblePercent: g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null ? parseFloat(g.jackpotEligiblePercent) : null,
                   jackpotBonusCap: g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null ? parseFloat(g.jackpotBonusCap) : null,
+                  projectedReturnRate: g.projectedReturnRate !== undefined && g.projectedReturnRate !== null ? parseFloat(g.projectedReturnRate) : 0,
+                  licenseExpirationDate: g.licenseExpirationDate ? new Date(g.licenseExpirationDate) : null,
+                  productFamily: g.productFamily || null,
+                  imageUrl: g.imageUrl || null,
                   sortOrder: sortOrder++
                 }
               });

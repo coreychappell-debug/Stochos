@@ -66,13 +66,22 @@ export default async function InstantTicketPlanPage({ params }) {
     )
   );
 
-    const scenario = plan.scenarios[0];
-  const games = (scenario?.games || []).filter(g => g.budgetStatus !== 'already_booked');
-  const marketingItems = (scenario?.marketingItems || []).filter(m => m.budgetStatus !== 'already_booked');
-  const totalRevenue = games.reduce((s, g) => s + Number(g.units) * g.denomination, 0);
-  const totalPrizeExpense = games.reduce((s, g) => s + Number(g.units) * g.denomination * (parseFloat(g.payoutPercent) / 100), 0);
+  const scenario = plan.scenarios[0];
+  const games = scenario?.games || [];
+  const marketingItems = scenario?.marketingItems || [];
+  const totalRevenue = games.reduce((s, g) => {
+    const returnRate = parseFloat(g.projectedReturnRate || 0) / 100.0;
+    return s + Number(g.units) * g.denomination * (1 - returnRate);
+  }, 0);
+  const totalPrizeExpense = games.reduce((s, g) => {
+    const returnRate = parseFloat(g.projectedReturnRate || 0) / 100.0;
+    const grossSales = Number(g.units) * g.denomination * (1 - returnRate);
+    return s + grossSales * (parseFloat(g.payoutPercent) / 100);
+  }, 0);
   const weightedPayout = totalRevenue > 0 ? (totalPrizeExpense / totalRevenue) * 100 : 0;
-  const totalMarketingCost = marketingItems.reduce((s, m) => s + parseFloat(m.cost), 0);
+  const totalMarketingCost = marketingItems
+    .filter(m => m.budgetStatus !== 'already_booked')
+    .reduce((s, m) => s + parseFloat(m.cost), 0);
 
   const vendorAlloc = {};
   for (const g of games) {

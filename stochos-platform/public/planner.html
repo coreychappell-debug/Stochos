@@ -418,6 +418,17 @@
             white-space: nowrap;
         }
 
+        .game-table.split-layout tr {
+            cursor: pointer;
+        }
+        .game-table.split-layout tr:hover:not(.selected) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .game-table tr.selected {
+            background-color: rgba(245, 158, 11, 0.15) !important;
+            border-left: 3px solid var(--warning-color);
+        }
+
         .game-table th {
             font-weight: 600;
             color: var(--text-dark);
@@ -473,7 +484,10 @@
             padding: 24px;
             border-radius: 8px;
             min-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-sizing: border-box;
         }
 
         .modal-actions {
@@ -706,6 +720,117 @@
             text-align: center;
         }
 
+        /* Segmented control for Layout Mode */
+        .segmented-control {
+            display: inline-flex;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md, 8px);
+            padding: 2px;
+            gap: 2px;
+            align-items: center;
+        }
+
+        .segment-btn {
+            background: none !important;
+            border: none !important;
+            border-radius: calc(var(--radius-md, 8px) - 2px) !important;
+            padding: 4px 10px !important;
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            color: var(--text-dark) !important;
+            transition: all var(--transition, 150ms ease) !important;
+            box-shadow: none !important;
+            height: auto !important;
+            cursor: pointer;
+        }
+
+        .segment-btn.active {
+            background-color: var(--bg-panel) !important;
+            color: var(--text-light) !important;
+            font-weight: 600 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Selected row visual highlight in Split Editor */
+        .game-table tr.selected-row {
+            background-color: rgba(26, 115, 232, 0.12) !important;
+            box-shadow: inset 3px 0 0 var(--accent-color);
+        }
+
+        .game-table tr.clickable-row {
+            cursor: pointer;
+            transition: background-color var(--transition, 150ms ease);
+        }
+
+        .game-table tr.clickable-row:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* Inspector / Detail Editor Panel Styling */
+        .inspector-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 0.5rem 0.25rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .inspector-group {
+            background: var(--bg-dark, rgba(0,0,0,0.15));
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md, 8px);
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .inspector-group-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-light, var(--accent-color));
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 4px;
+        }
+
+        .inspector-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .inspector-field label {
+            font-size: 0.775rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .inspector-field input,
+        .inspector-field select {
+            background-color: var(--bg-input) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 4px !important;
+            color: var(--text-light) !important;
+            padding: 6px 8px !important;
+            font-size: 0.875rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            appearance: auto !important;
+            -webkit-appearance: auto !important;
+            -moz-appearance: auto !important;
+        }
+
+        .inspector-field input:focus,
+        .inspector-field select:focus {
+            border-color: var(--accent-color) !important;
+            outline: none !important;
+        }
+
         /* --- PRINT STYLES --- */
         @media print {
             body {
@@ -787,6 +912,14 @@
             <div class="header-controls" role="group" aria-label="Primary Controls">
                 <button id="undo-btn" aria-label="Undo last action" disabled><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Undo</button>
                 <button id="redo-btn" aria-label="Redo last action" disabled><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>Redo</button>
+                <div class="control-group" id="layout-toggle-group">
+                    <label>Layout:</label>
+                    <div class="segmented-control" role="radiogroup" aria-label="Layout Mode">
+                        <button type="button" class="segment-btn active" data-mode="grid" id="layout-grid-btn">Spreadsheet Grid</button>
+                        <button type="button" class="segment-btn" data-mode="split" id="layout-split-btn">Split Editor</button>
+                        <button type="button" class="segment-btn" data-mode="planogram" id="layout-planogram-btn">Dispenser Planogram</button>
+                    </div>
+                </div>
                 <div class="control-group">
                     <label for="vendor-filter">View:</label>
                     <select id="vendor-filter" aria-label="Filter plan by vendor">
@@ -1005,16 +1138,27 @@
 
             // --- CONSTANTS & STATE ---
             const FEATURES_CSV_DATA = `"Generic Feature","SG Brand Name","PB Brand Name","BS Brand Name","SG (Y/N)","PB (Y/N)","BS (Y/N)"
-"Holographic Foil","HoloFoilâ„¢","Scratch FXÂ® Holographic","Holographic Substrate","Y","Y","Y"
-"Sparkle/Glitter Coating","Glitter Ink","SparkleÂ®","Metallic Sparkle","Y","Y","N"
-"Scented Ink","Scentâ„¢","Scratch & SniffÂ®","Aroma Ink","Y","Y","Y"
+"Holographic Foil","HoloFoil™","Scratch FX® Holographic","Holographic Substrate","Y","Y","Y"
+"Sparkle/Glitter Coating","Glitter Ink","Sparkle®","Metallic Sparkle","Y","Y","N"
+"Scented Ink","Scent™","Scratch & Sniff®","Aroma Ink","Y","Y","Y"
 "Metallic Ink","Metallic Inks","Metallic Inks","Metallic FX","Y","Y","Y"
 "Die-Cut Ticket","Custom Die-Cut","Die-Cut","Custom Shape","Y","Y","Y"
-"Oversized Format","Jumbo Ticket","Big Ticketâ„¢","Oversized Format","Y","Y","Y"
+"Oversized Format","Jumbo Ticket","Big Ticket™","Oversized Format","Y","Y","Y"
 "Extended Play (Crossword/Bingo)","Extended Play","Crossword/Bingo","Extended Play","Y","Y","Y"
 "Licensed Property Usage","Licensed Brands","Licensed Portfolio","","Y","Y","N"
 "Recycled Substrate","Eco-Stock","Recycled Content Paper","","Y","Y","N"
-"Secure Barcoding","Secure Codeâ„¢","SecureValidateâ„¢","Secure Barcode","Y","Y","Y"`;
+"Secure Barcoding","Secure Code™","SecureValidate™","Secure Barcode","Y","Y","Y"
+"Dimension Holographics","Dimension","","","Y","N","N"
+"Obsidian Luxury Substrate","Obsidian","","","Y","N","N"
+"Micromotion Reflective Foil","Micromotion","","","Y","N","N"
+"Double-Sided Play","Scratch My Back","Double Play","Infinity Dual Play","Y","Y","Y"
+"Fold & Punch Interactive","Punch N’ Play","","","Y","N","N"
+"Transparent Substrate","","Clear Play™","","N","Y","N"
+"Bound Booklet Format","","PlayBooks®","","N","Y","N"
+"Folded Multi-Panel Layout","","Jumbo Pop 'n' Play™","","N","Y","N"
+"3D Standing Pop-Up","","Big Ticket Pop-Ups™","","N","Y","N"
+"Perforated Tab Windows","","Scratch Tab™","","N","Y","N"
+"Variable Digital HD Print","","","Infinity Instants™","N","N","Y"`;
 
             const LICENSED_BRANDS = [
                 { id: 'monopoly', name: 'Monopoly', vendorId: 'sg', feeType: 'percent', feeValue: 1.5 },
@@ -1045,6 +1189,16 @@
             const DEFAULT_TICKET_SIZE_FOR_DENOM = {
                 1: '2.4x4', 2: '4x4', 3: '4x4', 5: '6x4', 10: '8x4', 20: '8x4', 25: '8x4', 30: '12x8', 50: '12x8'
             };
+
+            const PRELOADED_TICKETS = [
+                { id: 'theme-platinum', name: 'VIP Millions ($50)', price: 50, color: 'linear-gradient(135deg, #7c3aed, #4c1d95)', bgStyle: 'background: linear-gradient(135deg, #7c3aed, #4c1d95);' },
+                { id: 'theme-gold', name: 'Gold Rush ($30)', price: 30, color: 'linear-gradient(135deg, #eab308, #ca8a04)', bgStyle: 'background: linear-gradient(135deg, #eab308, #ca8a04);' },
+                { id: 'theme-black', name: 'Diamond Celebration ($20)', price: 20, color: 'linear-gradient(135deg, #374151, #111827)', bgStyle: 'background: linear-gradient(135deg, #374151, #111827);' },
+                { id: 'theme-green', name: 'Emerald Crossword ($10)', price: 10, color: 'linear-gradient(135deg, #10b981, #047857)', bgStyle: 'background: linear-gradient(135deg, #10b981, #047857);' },
+                { id: 'theme-sapphire', name: 'Royal Sapphire ($10)', price: 10, color: 'linear-gradient(135deg, #2563eb, #1d4ed8)', bgStyle: 'background: linear-gradient(135deg, #2563eb, #1d4ed8);' },
+                { id: 'theme-ruby', name: 'Ruby Bingo ($5)', price: 5, color: 'linear-gradient(135deg, #ef4444, #b91c1c)', bgStyle: 'background: linear-gradient(135deg, #ef4444, #b91c1c);' },
+                { id: 'theme-neon', name: 'Neon Cash ($3)', price: 3, color: 'linear-gradient(135deg, #ec4899, #be185d)', bgStyle: 'background: linear-gradient(135deg, #ec4899, #be185d);' }
+            ];
 
             let state = {};
             const initialState = {
@@ -1110,7 +1264,7 @@
                     }
                 },
                 featureMasterList: [], auditLog: [],
-                ui: { activeVendorTab: 'sg', activeVendorSection: 'operating', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false, showFeaturesCol: true, showFinancialsCol: true, showLogisticsCol: true }
+                ui: { activeVendorTab: 'sg', activeVendorSection: 'operating', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false, showFeaturesCol: true, showFinancialsCol: true, showLogisticsCol: true, layoutMode: 'grid', selectedGameId: null, selectedNsItemId: null, activeRightTab: 'editor' }
             };
 
             let history = [];
@@ -1198,7 +1352,7 @@
                     auditLog: [],
                     history: [],
                     historyIndex: -1,
-                    ui: { activeVendorTab: 'sg', activeVendorSection: 'operating', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false, showFeaturesCol: true, showFinancialsCol: true, showLogisticsCol: true },
+                    ui: { activeVendorTab: 'sg', activeVendorSection: 'operating', editingFeaturesForGameId: null, vendorFilter: 'all', leftCollapsed: false, rightCollapsed: false, bottomCollapsed: false, showFeaturesCol: true, showFinancialsCol: true, showLogisticsCol: true, layoutMode: 'grid', selectedGameId: null, selectedNsItemId: null, activeRightTab: 'editor' },
                     vendors: [
                         { id: 'sg', name: 'Scientific Games' },
                         { id: 'pb', name: 'Pollard Banknote' },
@@ -1282,9 +1436,43 @@
 
                 // Hydrate feature surcharges
                 const defaultFeatureRates = {
-                    sg: { "Holographic Foil": 0.45, "Metallic Ink": 0.15, "Extended Play (Crossword/Bingo)": 0.25, "Die-Cut Ticket": 0.60, "Sparkle/Glitter Coating": 0.25, "Oversized Format": 0.35 },
-                    pb: { "Holographic Foil": 0.40, "Metallic Ink": 0.12, "Extended Play (Crossword/Bingo)": 0.20, "Die-Cut Ticket": 0.55, "Sparkle/Glitter Coating": 0.20, "Oversized Format": 0.30 },
-                    igt: { "Holographic Foil": 0.42, "Metallic Ink": 0.14, "Extended Play (Crossword/Bingo)": 0.22, "Die-Cut Ticket": 0.58, "Sparkle/Glitter Coating": 0.22, "Oversized Format": 0.32 }
+                    sg: {
+                        "Holographic Foil": 0.45,
+                        "Metallic Ink": 0.15,
+                        "Extended Play (Crossword/Bingo)": 0.25,
+                        "Die-Cut Ticket": 0.60,
+                        "Sparkle/Glitter Coating": 0.25,
+                        "Oversized Format": 0.35,
+                        "Dimension Holographics": 0.85,
+                        "Obsidian Luxury Substrate": 1.10,
+                        "Micromotion Reflective Foil": 0.75,
+                        "Double-Sided Play": 0.30,
+                        "Fold & Punch Interactive": 1.50
+                    },
+                    pb: {
+                        "Holographic Foil": 0.40,
+                        "Metallic Ink": 0.12,
+                        "Extended Play (Crossword/Bingo)": 0.20,
+                        "Die-Cut Ticket": 0.55,
+                        "Sparkle/Glitter Coating": 0.20,
+                        "Oversized Format": 0.30,
+                        "Double-Sided Play": 0.28,
+                        "Transparent Substrate": 2.20,
+                        "Bound Booklet Format": 4.50,
+                        "Folded Multi-Panel Layout": 2.50,
+                        "3D Standing Pop-Up": 3.80,
+                        "Perforated Tab Windows": 1.80
+                    },
+                    igt: {
+                        "Holographic Foil": 0.42,
+                        "Metallic Ink": 0.14,
+                        "Extended Play (Crossword/Bingo)": 0.22,
+                        "Die-Cut Ticket": 0.58,
+                        "Sparkle/Glitter Coating": 0.22,
+                        "Oversized Format": 0.32,
+                        "Double-Sided Play": 0.35,
+                        "Variable Digital HD Print": 1.60
+                    }
                 };
                 Object.keys(mappedState.vendorPricing).forEach(vKey => {
                     mappedState.vendorPricing[vKey].features = defaultFeatureRates[vKey];
@@ -1328,7 +1516,10 @@
                                 cashablePrizePercent: g.cashablePrizePercent !== undefined && g.cashablePrizePercent !== null ? parseFloat(g.cashablePrizePercent) : null,
                                 jackpotBonusPercent: g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null ? parseFloat(g.jackpotBonusPercent) : null,
                                 jackpotEligiblePercent: g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null ? parseFloat(g.jackpotEligiblePercent) : null,
-                                jackpotBonusCap: g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null ? parseFloat(g.jackpotBonusCap) : null
+                                projectedReturnRate: g.projectedReturnRate !== undefined && g.projectedReturnRate !== null ? parseFloat(g.projectedReturnRate) : 0,
+                                licenseExpirationDate: g.licenseExpirationDate ? g.licenseExpirationDate.substring(0, 10) : '',
+                                productFamily: g.productFamily || '',
+                                imageUrl: g.imageUrl || ''
                             };
                         });
  
@@ -1413,6 +1604,10 @@
                             jackpotBonusPercent: (g.jackpotBonusPercent !== undefined && g.jackpotBonusPercent !== null && g.jackpotBonusPercent !== '') ? parseFloat(g.jackpotBonusPercent) : null,
                             jackpotEligiblePercent: (g.jackpotEligiblePercent !== undefined && g.jackpotEligiblePercent !== null && g.jackpotEligiblePercent !== '') ? parseFloat(g.jackpotEligiblePercent) : null,
                             jackpotBonusCap: (g.jackpotBonusCap !== undefined && g.jackpotBonusCap !== null && g.jackpotBonusCap !== '') ? parseFloat(g.jackpotBonusCap) : null,
+                            projectedReturnRate: parseFloat(g.projectedReturnRate || 0),
+                            licenseExpirationDate: g.licenseExpirationDate ? g.licenseExpirationDate : null,
+                            productFamily: g.productFamily || null,
+                            imageUrl: g.imageUrl || null,
                         })),
                         marketingItems: sc.nonScratcherItems.map(m => ({
                             id: (m.id.startsWith('m') || m.id.length < 10) ? undefined : m.id,
@@ -1512,6 +1707,41 @@
                 byId('load-plan-input').addEventListener('change', loadPlan);
                 byId('save-plan-btn').addEventListener('click', savePlan);
 
+                const gridBtn = byId('layout-grid-btn');
+                const splitBtn = byId('layout-split-btn');
+                const planogramBtn = byId('layout-planogram-btn');
+                if (gridBtn && splitBtn) {
+                    gridBtn.addEventListener('click', () => {
+                        commit(s => {
+                            s.ui.layoutMode = 'grid';
+                        }, 'Switched layout to Spreadsheet Grid');
+                    });
+                    splitBtn.addEventListener('click', () => {
+                        commit(s => {
+                            s.ui.layoutMode = 'split';
+                            s.ui.rightCollapsed = false;
+                            // Automatically select the first game or first non-scratcher if none selected
+                            const activeSc = s.scenarios.find(sc => sc.id === s.activeScenarioId) || s.scenarios[0];
+                            if (activeSc) {
+                                if (!s.ui.selectedGameId && activeSc.games.length > 0) {
+                                    s.ui.selectedGameId = activeSc.games[0].id;
+                                    s.ui.selectedNsItemId = null;
+                                } else if (!s.ui.selectedGameId && !s.ui.selectedNsItemId && activeSc.nonScratcherItems.length > 0) {
+                                    s.ui.selectedNsItemId = activeSc.nonScratcherItems[0].id;
+                                    s.ui.selectedGameId = null;
+                                }
+                            }
+                        }, 'Switched layout to Split Editor');
+                    });
+                }
+                if (planogramBtn) {
+                    planogramBtn.addEventListener('click', () => {
+                        commit(s => {
+                            s.ui.layoutMode = 'planogram';
+                        }, 'Switched layout to Dispenser Planogram');
+                    });
+                }
+
                 byId('left-panel').addEventListener('change', handleLeftPanelChange);
                 byId('left-panel').addEventListener('click', handleLeftPanelClick);
 
@@ -1567,6 +1797,28 @@
                         render();
                         return;
                     }
+                    
+                    if (state.ui.layoutMode === 'split') {
+                        const gameRow = e.target.closest('tr[data-game-id]');
+                        if (gameRow && !e.target.closest('[data-action]')) {
+                            const gameId = gameRow.dataset.gameId;
+                            commit(s => {
+                                s.ui.selectedGameId = gameId;
+                                s.ui.selectedNsItemId = null;
+                            }, 'Selected game');
+                            return;
+                        }
+                        const nsRow = e.target.closest('tr[data-ns-item-id]');
+                        if (nsRow && !e.target.closest('[data-action]')) {
+                            const nsItemId = nsRow.dataset.nsItemId;
+                            commit(s => {
+                                s.ui.selectedNsItemId = nsItemId;
+                                s.ui.selectedGameId = null;
+                            }, 'Selected marketing item');
+                            return;
+                        }
+                    }
+                    
                     handleCenterPanelClick(e);
                 });
                 centerPanel.addEventListener('keydown', handleKeyboardNav);
@@ -1710,6 +1962,18 @@
 
                 byId('vendor-filter').value = state.ui.vendorFilter;
 
+                // Update layout toggle active states
+                const gridBtn = byId('layout-grid-btn');
+                const splitBtn = byId('layout-split-btn');
+                const planogramBtn = byId('layout-planogram-btn');
+                if (gridBtn && splitBtn) {
+                    gridBtn.classList.toggle('active', state.ui.layoutMode === 'grid');
+                    splitBtn.classList.toggle('active', state.ui.layoutMode === 'split');
+                }
+                if (planogramBtn) {
+                    planogramBtn.classList.toggle('active', state.ui.layoutMode === 'planogram');
+                }
+
                 renderScenarioBar();
                 renderLeftPanel();
                 renderCenterPanel();
@@ -1722,7 +1986,10 @@
             function applyLayout() {
                 const main = byId('main-content');
                 const leftW = state.ui.leftCollapsed ? '48px' : '280px';
-                const rightW = state.ui.rightCollapsed ? '48px' : '50vw';
+                let rightW = state.ui.rightCollapsed ? '48px' : '50vw';
+                if (state.ui.layoutMode === 'split' && !state.ui.rightCollapsed) {
+                    rightW = state.ui.activeRightTab === 'editor' ? '450px' : '50vw';
+                }
                 main.style.gridTemplateColumns = `${leftW} 1fr ${rightW}`;
 
                 byId('left-panel').style.display = 'flex';
@@ -1849,6 +2116,10 @@
             }
 
             function renderCenterPanel() {
+                if (state.ui.layoutMode === 'planogram') {
+                    renderPlanogramView();
+                    return;
+                }
                 const container = byId('center-panel');
                 const vendorView = state.ui.vendorFilter;
                 const scenario = getActiveScenario();
@@ -1887,6 +2158,8 @@
                 </div>
             `;
 
+                const isSplitMode = state.ui.layoutMode === 'split';
+
                 scenario.denominations.filter(d => d.isActive).forEach(denom => {
                     const group = document.createElement('div');
                     group.className = 'game-group';
@@ -1898,6 +2171,59 @@
                         ? getIcon('chevronRight', 12) 
                         : getIcon('chevronDown', 12);
                     const tableDisplay = denom.isCollapsed ? 'display:none;' : '';
+                    
+                    const headersHtml = isSplitMode ? `
+                        <tr>
+                            <th>Game #</th>
+                            <th>Game Name</th>
+                            <th>Vendor</th>
+                            <th>Units</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    ` : `
+                               <tr>
+                                   <th>Game #</th>
+                                   <th>Game Name</th>
+                                   <th>Vendor</th>
+                                   <th class="col-financials">Cost Model</th>
+                                   <th class="col-financials">Ticket Size</th>
+                                   <th>Units</th>
+                                   <th class="col-features-trigger">
+                                       <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-features-col" title="Click to toggle Features Column">
+                                           <span>Payout %</span>
+                                           <span class="toggle-badge ${state.ui.showFeaturesCol ? '' : 'badge-collapsed'}">
+                                               ${state.ui.showFeaturesCol ? '◀ Collapse' : '▶ Features'}
+                                           </span>
+                                       </div>
+                                   </th>
+                                   <th class="col-features">Features</th>
+                                   <th class="col-financials">Est. Base Cost</th>
+                                   <th class="col-financials">Contract Cost</th>
+                                   <th class="col-financials">Prize Expense</th>
+                                   <th class="col-financials">Total COGS</th>
+                                   <th class="col-financials-trigger">
+                                       <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-financials-col" title="Click to toggle Financial Details">
+                                           <span>Gross Margin</span>
+                                           <span class="toggle-badge ${state.ui.showFinancialsCol ? '' : 'badge-collapsed'}">
+                                               ${state.ui.showFinancialsCol ? '◀ Collapse' : '▶ Financials'}
+                                           </span>
+                                       </div>
+                                   </th>
+                                   <th class="col-logistics">PO #</th>
+                                   <th class="col-logistics">PO Date</th>
+                                   <th class="col-logistics">Receipt Date</th>
+                                   <th class="col-logistics-trigger">
+                                       <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-logistics-col" title="Click to toggle Logistics/PO Columns">
+                                           <span class="toggle-badge ${state.ui.showLogisticsCol ? '' : 'badge-collapsed'}">
+                                               ${state.ui.showLogisticsCol ? 'Collapse ◀' : 'Logistics ▶'}
+                                           </span>
+                                           <span>Status</span>
+                                       </div>
+                                   </th>
+                                   <th>Actions</th>
+                               </tr>
+                    `;
  
                      group.innerHTML = `
                      <div class="game-group-header" data-action="toggle-collapse">
@@ -1908,47 +2234,7 @@
                      <div style="${tableDisplay} width: 100%;">
                      <table class="game-table">
                           <thead>
-                              <tr>
-                                  <th>Game #</th>
-                                  <th>Game Name</th>
-                                  <th>Vendor</th>
-                                  <th class="col-financials">Cost Model</th>
-                                  <th class="col-financials">Ticket Size</th>
-                                  <th>Units</th>
-                                  <th class="col-features-trigger">
-                                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-features-col" title="Click to toggle Features Column">
-                                          <span>Payout %</span>
-                                          <span class="toggle-badge ${state.ui.showFeaturesCol ? '' : 'badge-collapsed'}">
-                                              ${state.ui.showFeaturesCol ? '◀ Collapse' : '▶ Features'}
-                                          </span>
-                                      </div>
-                                  </th>
-                                  <th class="col-features">Features</th>
-                                  <th class="col-financials">Est. Base Cost</th>
-                                  <th class="col-financials">Contract Cost</th>
-                                  <th class="col-financials">Prize Expense</th>
-                                  <th class="col-financials">Total COGS</th>
-                                  <th class="col-financials-trigger">
-                                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-financials-col" title="Click to toggle Financial Details">
-                                          <span>Gross Margin</span>
-                                          <span class="toggle-badge ${state.ui.showFinancialsCol ? '' : 'badge-collapsed'}">
-                                              ${state.ui.showFinancialsCol ? '◀ Collapse' : '▶ Financials'}
-                                          </span>
-                                      </div>
-                                  </th>
-                                  <th class="col-logistics">PO #</th>
-                                  <th class="col-logistics">PO Date</th>
-                                  <th class="col-logistics">Receipt Date</th>
-                                  <th class="col-logistics-trigger">
-                                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-logistics-col" title="Click to toggle Logistics/PO Columns">
-                                          <span class="toggle-badge ${state.ui.showLogisticsCol ? '' : 'badge-collapsed'}">
-                                              ${state.ui.showLogisticsCol ? 'Collapse ◀' : 'Logistics ▶'}
-                                          </span>
-                                          <span>Status</span>
-                                      </div>
-                                  </th>
-                                  <th>Actions</th>
-                              </tr>
+                               ${headersHtml}
                           </thead>
                           <tbody>
                               ${gamesInGroup.map(game => renderGameRow(game)).join('')}
@@ -1968,6 +2254,35 @@
                       const isNsCollapsed = state.ui.nonScratcherCollapsed || false;
                       const toggleNsIcon = isNsCollapsed ? getIcon('chevronRight', 14) : getIcon('chevronDown', 14);
                       const tableNsDisplay = isNsCollapsed ? 'display:none;' : '';
+                      
+                      const nsHeadersHtml = isSplitMode ? `
+                                  <tr>
+                                      <th>Item Name</th>
+                                      <th>Vendor</th>
+                                      <th>Campaign / Holiday</th>
+                                      <th>Total Cost</th>
+                                      <th>Actions</th>
+                                  </tr>
+                      ` : `
+                                  <tr>
+                                      <th style="width: 20%">Item Name</th>
+                                      <th style="width: 15%">Vendor</th>
+                                      <th style="width: 15%">Associated Holiday / Campaign</th>
+                                      <th style="width: 10%">Total Cost</th>
+                                      <th style="width: 8%" class="col-logistics">PO #</th>
+                                      <th style="width: 11%" class="col-logistics">PO Date</th>
+                                      <th style="width: 11%" class="col-logistics">Receipt Date</th>
+                                      <th style="width: 7%" class="col-logistics-trigger">
+                                          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-logistics-col" title="Click to toggle Logistics/PO Columns">
+                                              <span class="toggle-badge ${state.ui.showLogisticsCol ? '' : 'badge-collapsed'}">
+                                                  ${state.ui.showLogisticsCol ? 'Collapse ◀' : 'Logistics ▶'}
+                                              </span>
+                                              <span>Status</span>
+                                          </div>
+                                      </th>
+                                      <th style="width: 3%">Actions</th>
+                                  </tr>
+                      `;
 
                      nsGroup.innerHTML = `
                          <div class="game-group-header" data-action="toggle-ns-collapse" style="background-color: var(--bg-light); border-color: var(--border-color);">
@@ -1978,28 +2293,11 @@
                          <div style="${tableNsDisplay} width: 100%;">
                          <table class="game-table" style="background-color: var(--bg-panel);">
                              <thead>
-                                 <tr>
-                                     <th style="width: 20%">Item Name</th>
-                                     <th style="width: 15%">Vendor</th>
-                                     <th style="width: 15%">Associated Holiday / Campaign</th>
-                                     <th style="width: 10%">Total Cost</th>
-                                     <th style="width: 8%" class="col-logistics">PO #</th>
-                                     <th style="width: 11%" class="col-logistics">PO Date</th>
-                                     <th style="width: 11%" class="col-logistics">Receipt Date</th>
-                                     <th style="width: 7%" class="col-logistics-trigger">
-                                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;" data-action="toggle-logistics-col" title="Click to toggle Logistics/PO Columns">
-                                             <span class="toggle-badge ${state.ui.showLogisticsCol ? '' : 'badge-collapsed'}">
-                                                 ${state.ui.showLogisticsCol ? 'Collapse ◀' : 'Logistics ▶'}
-                                             </span>
-                                             <span>Status</span>
-                                         </div>
-                                     </th>
-                                     <th style="width: 3%">Actions</th>
-                                 </tr>
+                                 ${nsHeadersHtml}
                              </thead>
                              <tbody>
                                  ${(scenario.nonScratcherItems.length === 0)
-                             ? `<tr><td colspan="9" style="text-align:center; padding: 1rem; color: #718096;">No non-scratcher items planned for this scenario.</td></tr>`
+                             ? `<tr><td colspan="${isSplitMode ? 5 : 9}" style="text-align:center; padding: 1rem; color: #718096;">No non-scratcher items planned for this scenario.</td></tr>`
                              : scenario.nonScratcherItems.map(item => renderNonScratcherRow(item)).join('')}
                              </tbody>
                          </table>
@@ -2008,9 +2306,51 @@
                 }
             }
 
+            function getStatusBadge(status) {
+                status = status || 'Planned';
+                let bg = 'rgba(156, 163, 175, 0.15)';
+                let color = '#9ca3af';
+                if (status === 'Ordered') {
+                    bg = 'rgba(59, 130, 246, 0.15)';
+                    color = '#60a5fa';
+                } else if (status === 'Delivered') {
+                    bg = 'rgba(34, 197, 94, 0.15)';
+                    color = '#4ade80';
+                } else if (status === 'Cancelled') {
+                    bg = 'rgba(239, 68, 68, 0.15)';
+                    color = '#f87171';
+                }
+                return `<span style="padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; background: ${bg}; color: ${color}; display: inline-block;">${status}</span>`;
+            }
+
             function renderNonScratcherRow(item) {
                 const activeVendor = state.vendors.find(v => v.id === item.vendorId);
                 const vendorTitle = activeVendor ? activeVendor.name : 'None / Internal';
+                const isSelected = item.id === state.ui.selectedNsItemId;
+
+                if (state.ui.layoutMode === 'split') {
+                    let budgetStatusHtml = '';
+                    if (item.budgetStatus === 'already_booked') {
+                        budgetStatusHtml = `<span style="font-size: 9px; color: var(--text-dark); background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 1px 4px; border-radius: 3px; display: inline-block; margin-left: 6px;">Overhead</span>`;
+                    }
+                    return `
+                        <tr data-ns-item-id="${item.id}" class="clickable-row ${isSelected ? 'selected-row' : ''}">
+                            <td>
+                                <div style="display: flex; align-items: center;">
+                                    <span>${item.name || ''}</span>
+                                    ${budgetStatusHtml}
+                                </div>
+                            </td>
+                            <td>${activeVendor ? vendorAbbrev(activeVendor.name) : 'None'}</td>
+                            <td>${item.associatedHoliday || ''}</td>
+                            <td>$${(item.cost || 0).toLocaleString('en-US')}</td>
+                            <td>
+                                <button class="icon-btn" data-action="delete-ns-item" title="Delete Item" style="padding:4px;">${getIcon('trash')}</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+
                 return `
                     <tr data-ns-item-id="${item.id}" style="background-color: rgba(255, 255, 255, 0.02);">
                         <td><input type="text" value="${item.name || ''}" data-ns-prop="name" placeholder="E.g., Pack Inserts"></td>
@@ -2055,8 +2395,70 @@
                     </tr>`;
             }
 
+            function getGameBackgroundStyle(game) {
+                if (!game || !game.imageUrl) return 'background: rgba(255, 255, 255, 0.03);';
+                const theme = PRELOADED_TICKETS.find(t => t.id === game.imageUrl);
+                if (theme) {
+                    return theme.bgStyle;
+                }
+                return `background: url('${game.imageUrl}') center center / cover no-repeat;`;
+            }
+
+            function getGameThumbnailHtml(game) {
+                const img = game.imageUrl || '';
+                const size = '24px';
+                const borderRadius = '50%';
+                const border = '1px solid var(--border-color)';
+                const flexShrink = '0';
+                const marginRight = '8px';
+                
+                if (!img) {
+                    return `<div style="width: ${size}; height: ${size}; border-radius: ${borderRadius}; border: ${border}; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-dark); flex-shrink: ${flexShrink}; margin-right: ${marginRight}; font-weight: bold;">$</div>`;
+                }
+                
+                const theme = PRELOADED_TICKETS.find(t => t.id === img);
+                if (theme) {
+                    return `<div style="width: ${size}; height: ${size}; border-radius: ${borderRadius}; border: ${border}; ${theme.bgStyle} flex-shrink: ${flexShrink}; margin-right: ${marginRight}; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; font-weight: 900; text-shadow: 0 1px 1px rgba(0,0,0,0.5);">$${theme.price}</div>`;
+                }
+                
+                return `<img src="${img}" style="width: ${size}; height: ${size}; border-radius: ${borderRadius}; border: ${border}; object-fit: cover; flex-shrink: ${flexShrink}; margin-right: ${marginRight};" />`;
+            }
+
              function renderGameRow(game) {
                 const metrics = calculateGameMetrics(game);
+                const isSelected = game.id === state.ui.selectedGameId;
+
+                if (state.ui.layoutMode === 'split') {
+                    const activeVendor = state.vendors.find(v => v.id === game.vendorId);
+                    const vendorLabelStr = activeVendor ? vendorAbbrev(activeVendor.name) : 'None';
+                    let budgetStatusHtml = '';
+                    if (game.budgetStatus === 'already_booked') {
+                        budgetStatusHtml = `<span style="font-size: 9px; color: var(--text-dark); background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 1px 4px; border-radius: 3px; display: inline-block; margin-left: 6px;">Overhead</span>`;
+                    }
+                    
+                    return `
+                        <tr data-game-id="${game.id}" class="clickable-row ${isSelected ? 'selected-row' : ''}">
+                            <td>${game.gameNumber || ''}</td>
+                            <td>
+                                <div style="display: flex; align-items: center;">
+                                    ${getGameThumbnailHtml(game)}
+                                    <span>${game.name}</span>
+                                    ${budgetStatusHtml}
+                                </div>
+                            </td>
+                            <td>${vendorLabelStr}</td>
+                            <td>${game.units.toLocaleString('en-US')}</td>
+                            <td>${getStatusBadge(game.deliveryStatus)}</td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <button class="icon-btn" title="Duplicate Game" data-action="duplicate-game" style="padding:4px; border:none; background:none; color:var(--text-light); cursor:pointer;">${getIcon('copy')}</button>
+                                    <button class="icon-btn" title="Delete Game" data-action="delete-game" style="padding:4px; border:none; background:none; color:var(--danger-color); cursor:pointer;">${getIcon('trash')}</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+
                 const poolSize = POOL_SIZES[game.denominationPrice] || 1200000;
                 
                 let brandWarningHtml = '';
@@ -2104,7 +2506,12 @@
                 return `
                     <tr data-game-id="${game.id}">
                     <td><input type="text" value="${game.gameNumber || ''}" data-prop="gameNumber" maxlength="4" size="4"></td>
-                    <td><input type="text" value="${game.name}" data-prop="name"></td>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            ${getGameThumbnailHtml(game)}
+                            <input type="text" value="${game.name}" data-prop="name" style="flex-grow: 1;">
+                        </div>
+                    </td>
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 2px;">
                             <div style="display: flex; align-items: center; gap: 4px;">
@@ -2175,11 +2582,34 @@
 
                 if (state.ui.rightCollapsed) {
                     container.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; height: 100%; cursor: pointer; padding-top: 8px;" data-action="toggle-right" title="Expand Vendor Pricing">
+                    <div style="display: flex; flex-direction: column; align-items: center; height: 100%; cursor: pointer; padding-top: 8px;" data-action="toggle-right" title="Expand Panel">
                             <button style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-light);">${getIcon('chevronLeft', 16)}</button>
-                            <div style="writing-mode: vertical-rl; margin-top: 1rem; font-weight: 600; color: var(--text-dark);">Vendor Pricing</div>
+                            <div style="writing-mode: vertical-rl; margin-top: 1rem; font-weight: 600; color: var(--text-dark);">${state.ui.layoutMode === 'split' ? 'Inspector & Pricing' : 'Vendor Pricing'}</div>
                         </div>
                     `;
+                    return;
+                }
+
+                // Split Layout tabs
+                let tabsHtml = '';
+                if (state.ui.layoutMode === 'split') {
+                    const activeTab = state.ui.activeRightTab || 'editor';
+                    tabsHtml = `
+                        <div style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; gap: 4px;">
+                            <button class="tab-btn" style="flex: 1; padding: 0.5rem; text-align: center; border: none; border-bottom: 2px solid ${activeTab === 'editor' ? 'var(--accent-color)' : 'transparent'}; background: none; color: ${activeTab === 'editor' ? 'var(--accent-color)' : 'var(--text-dark)'}; font-weight: 600; cursor: pointer; font-size: 0.85rem;" data-right-tab="editor">
+                                📝 Game / Item Editor
+                            </button>
+                            <button class="tab-btn" style="flex: 1; padding: 0.5rem; text-align: center; border: none; border-bottom: 2px solid ${activeTab === 'pricing' ? 'var(--accent-color)' : 'transparent'}; background: none; color: ${activeTab === 'pricing' ? 'var(--accent-color)' : 'var(--text-dark)'}; font-weight: 600; cursor: pointer; font-size: 0.85rem;" data-right-tab="pricing">
+                                🏷️ Vendor Pricing
+                            </button>
+                        </div>
+                    `;
+                }
+
+                const activeRightTab = state.ui.layoutMode === 'split' ? (state.ui.activeRightTab || 'editor') : 'pricing';
+
+                if (activeRightTab === 'editor') {
+                    renderInspector(container, tabsHtml);
                     return;
                 }
 
@@ -2189,10 +2619,10 @@
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button id="add-vendor-btn" style="padding: 4px 8px; font-size: 0.8rem; display: inline-flex; align-items: center;">${getIcon('plus', 11)}Vendor</button>
                         <button id="manage-features-btn" style="padding: 4px 8px; font-size: 0.8rem; display: inline-flex; align-items: center;">${getIcon('settings', 11)}Features</button>
-                        <button data-action="toggle-right" title="Fold Vendor Pricing" style="padding: 4px 6px; display: inline-flex; align-items: center; justify-content: center;">${getIcon('chevronRight', 14)}</button>
+                        <button data-action="toggle-right" title="Fold Panel" style="padding: 4px 6px; display: inline-flex; align-items: center; justify-content: center;">${getIcon('chevronRight', 14)}</button>
                     </div>
                 </div>`;
-                const tabs = `<div style="display: flex; border-bottom: 1px solid var(--border-color);">${vendors.map(v => `<button class="tab-btn" style="padding: 0.5rem 1rem; margin-bottom: -1px; border: 2px solid transparent; ${state.ui.activeVendorTab === v.id ? 'border-bottom-color: var(--accent-color); color: var(--accent-color);' : ''}" data-vendor-id="${v.id}">${v.name}</button>`).join('')}</div>`;
+                const innerTabs = `<div style="display: flex; border-bottom: 1px solid var(--border-color);">${vendors.map(v => `<button class="tab-btn" style="padding: 0.5rem 1rem; margin-bottom: -1px; border: 2px solid transparent; ${state.ui.activeVendorTab === v.id ? 'border-bottom-color: var(--accent-color); color: var(--accent-color);' : ''}" data-vendor-id="${v.id}">${v.name}</button>`).join('')}</div>`;
 
                 let content = vendors.map(v => {
                     const vd = state.vendorPricing[v.id] || {};
@@ -2226,10 +2656,11 @@
                         const name = f['Generic Feature'];
 
                         let isSupported = true;
+                        const csvColPrefix = v.id.toUpperCase() === 'IGT' ? 'BS' : v.id.toUpperCase();
                         if (vd.supportedFeatures && typeof vd.supportedFeatures[name] !== 'undefined') {
                             isSupported = vd.supportedFeatures[name];
-                        } else if (f[`${v.id.toUpperCase()} (Y/N)`]) {
-                            isSupported = f[`${v.id.toUpperCase()} (Y/N)`] === 'Y';
+                        } else if (f[`${csvColPrefix} (Y/N)`]) {
+                            isSupported = f[`${csvColPrefix} (Y/N)`] === 'Y';
                         }
 
                         const saved = vd.features?.[name] ?? '';
@@ -2365,7 +2796,676 @@
                         </div>
                     </div>`;
                 }).join('');
-                container.innerHTML = header + tabs + content;
+
+                container.innerHTML = tabsHtml + header + innerTabs + content;
+            }
+
+            function renderInspector(container, tabsHtml) {
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+
+                let selectedGame = null;
+                let selectedNsItem = null;
+
+                if (state.ui.selectedGameId) {
+                    selectedGame = scenario.games.find(g => g.id === state.ui.selectedGameId);
+                } else if (state.ui.selectedNsItemId) {
+                    selectedNsItem = scenario.nonScratcherItems.find(i => i.id === state.ui.selectedNsItemId);
+                }
+
+                if (!selectedGame && !selectedNsItem) {
+                    container.innerHTML = tabsHtml + `
+                        <div style="padding: 2rem; text-align: center; color: var(--text-dark); display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100% - 60px);">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">🎯</div>
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-light);">No Item Selected</h4>
+                            <p style="font-size: 0.875rem; margin: 0; max-width: 250px; line-height: 1.4; color: var(--text-dark);">Select a game or marketing item from the planner table to view and edit details here.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (selectedGame) {
+                    const game = selectedGame;
+                    const metrics = calculateGameMetrics(game);
+                    const vendorId = game.vendorId;
+                    const vd = state.vendorPricing[vendorId] || {};
+
+                    const availableFeatures = state.featureMasterList.filter(f => {
+                        const name = f['Generic Feature'];
+                        const csvColPrefix = vendorId.toUpperCase() === 'IGT' ? 'BS' : vendorId.toUpperCase();
+                        if (vd.supportedFeatures && typeof vd.supportedFeatures[name] !== 'undefined') {
+                            return vd.supportedFeatures[name];
+                        }
+                        if (f[`${csvColPrefix} (Y/N)`]) {
+                            return f[`${csvColPrefix} (Y/N)`] === 'Y';
+                        }
+                        return true;
+                    });
+
+                    let featuresChecklistHtml = '';
+                    if (availableFeatures.length === 0) {
+                        featuresChecklistHtml = '<div style="color: var(--text-dark); font-size: 0.8rem;">No features available for this vendor.</div>';
+                    } else {
+                        featuresChecklistHtml = `
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                ${availableFeatures.map(f => {
+                                    const name = f['Generic Feature'];
+                                    const checked = game.featureIds?.includes(name) ? 'checked' : '';
+                                    return `
+                                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; color: var(--text-light);">
+                                            <input type="checkbox" class="inspector-game-feature" data-feature-name="${name}" ${checked} style="cursor: pointer; width: auto !important; margin: 0;">
+                                            ${name}
+                                        </label>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    }
+
+                    const brandOptionsHtml = '<option value="">-- None --</option>' + LICENSED_BRANDS.map(b => {
+                        const brandVendor = state.vendors.find(v => v.id === b.vendorId);
+                        const brandVendorName = brandVendor ? vendorAbbrev(brandVendor.name) : b.vendorId.toUpperCase();
+                        const isSelected = game.licensedBrandId === b.id ? 'selected' : '';
+                        const isDisabled = b.vendorId !== game.vendorId ? 'disabled style="color: var(--text-dark); opacity: 0.5;"' : '';
+                        return `<option value="${b.id}" ${isSelected} ${isDisabled}>${b.name} (Exclusive to ${brandVendorName})</option>`;
+                    }).join('');
+
+                    let brandConflictHtml = '';
+                    if (game.licensedBrandId) {
+                        const brandObj = LICENSED_BRANDS.find(b => b.id === game.licensedBrandId);
+                        if (brandObj && brandObj.vendorId !== game.vendorId) {
+                            const brandVendor = state.vendors.find(v => v.id === brandObj.vendorId);
+                            const brandVendorName = brandVendor ? brandVendor.name : brandObj.vendorId.toUpperCase();
+                            brandConflictHtml = `
+                                <div style="margin-top: 6px; padding: 6px 10px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: #f87171; font-size: 0.75rem;">
+                                    ⚠️ Conflict: Brand is exclusive to ${brandVendorName}.
+                                </div>
+                            `;
+                        }
+                    }
+
+                    const sizeOptionsHtml = STANDARD_TICKET_SIZES.map(s => `<option value="${s.id}" ${game.ticketSize === s.id ? 'selected' : ''}>${s.label}</option>`).join('');
+                    const denomOptionsHtml = (scenario.denominations || []).map(d => `<option value="${d.price}" ${game.denominationPrice === d.price ? 'selected' : ''}>$${d.price}</option>`).join('');
+                    const deliveryOptionsHtml = ['Planned', 'Ordered', 'Delivered', 'Cancelled'].map(s => `<option value="${s}" ${game.deliveryStatus === s ? 'selected' : ''}>${s}</option>`).join('');
+
+                    // License Expiration Date vs Launch Date warning check
+                    let licenseWarningHtml = '';
+                    if (game.licensedBrandId && game.licenseExpirationDate && game.launchDate) {
+                        const launch = new Date(game.launchDate);
+                        const expiration = new Date(game.licenseExpirationDate);
+                        if (launch > expiration) {
+                            licenseWarningHtml = `
+                                <div style="margin-bottom: 12px; padding: 10px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: #f87171; font-size: 0.8rem; line-height: 1.4;">
+                                    <strong>⚠️ Licensed Brand Expired</strong><br>
+                                    Planned launch date (${game.launchDate}) is after the contract expiration date (${game.licenseExpirationDate}).
+                                </div>
+                            `;
+                        }
+                    }
+
+                    const activeInspectorTab = state.ui.inspectorTab || 'general';
+
+                    const inspectorSubTabsHtml = `
+                        <div style="display: flex; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; margin-bottom: 12px; background: rgba(0,0,0,0.15);">
+                            <button class="tab-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; font-weight: 600; border: none; background: ${activeInspectorTab === 'general' ? 'var(--accent-color)' : 'transparent'}; color: ${activeInspectorTab === 'general' ? '#fff' : 'var(--text-dark)'}; cursor: pointer; transition: all 150ms;" data-inspector-tab="general">General</button>
+                            <button class="tab-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; font-weight: 600; border: none; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); background: ${activeInspectorTab === 'financials' ? 'var(--accent-color)' : 'transparent'}; color: ${activeInspectorTab === 'financials' ? '#fff' : 'var(--text-dark)'}; cursor: pointer; transition: all 150ms;" data-inspector-tab="financials">Financials</button>
+                            <button class="tab-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; font-weight: 600; border: none; background: ${activeInspectorTab === 'logistics' ? 'var(--accent-color)' : 'transparent'}; color: ${activeInspectorTab === 'logistics' ? '#fff' : 'var(--text-dark)'}; cursor: pointer; transition: all 150ms;" data-inspector-tab="logistics">Logistics</button>
+                        </div>
+                    `;
+
+                    let activeTabContentHtml = '';
+
+                    if (activeInspectorTab === 'general') {
+                        activeTabContentHtml = `
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; gap: 12px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Game Number</label>
+                                        <input type="text" value="${game.gameNumber || ''}" data-inspector-prop="gameNumber" maxlength="4" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 2;">
+                                        <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Game Name</label>
+                                        <input type="text" value="${game.name || ''}" data-inspector-prop="name" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 12px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Price Point</label>
+                                        <select data-inspector-prop="denominationPrice" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                            ${denomOptionsHtml}
+                                        </select>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Vendor</label>
+                                        <select data-inspector-prop="vendorId" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                            ${state.vendors.map(v => `<option value="${v.id}" ${game.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Product Family</label>
+                                    <input type="text" value="${game.productFamily || ''}" data-inspector-prop="productFamily" placeholder="E.g., Multiplier, Crossword" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                </div>
+
+                                <div style="border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; background: rgba(255,255,255,0.01);">
+                                    <h5 style="margin: 0 0 8px 0; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Visual Ticket Design</h5>
+                                    
+                                    <div id="inspector-image-preview" style="height: 80px; border-radius: 6px; border: 1px dashed var(--border-color); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(0,0,0,0.2); position: relative;">
+                                        ${(() => {
+                                            const img = game.imageUrl || '';
+                                            if (!img) {
+                                                return `<span style="color: var(--text-dark); font-size: 0.75rem;">No Image Selected</span>`;
+                                            }
+                                            const theme = PRELOADED_TICKETS.find(t => t.id === img);
+                                            if (theme) {
+                                                return `<div style="position: absolute; inset: 0; ${theme.bgStyle} display: flex; align-items: center; justify-content: center;"><span style="color: #fff; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.6); font-size: 0.85rem;">${theme.name}</span></div>`;
+                                            }
+                                            return `<img src="${img}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />`;
+                                        })()}
+                                    </div>
+
+                                    <div style="margin-bottom: 10px;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Choose Template</label>
+                                        <select data-inspector-prop="imageUrl" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                            <option value="">-- None --</option>
+                                            ${PRELOADED_TICKETS.map(t => `<option value="${t.id}" ${game.imageUrl === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                                            ${game.imageUrl && !PRELOADED_TICKETS.some(t => t.id === game.imageUrl) ? `<option value="${game.imageUrl}" selected>Custom Uploaded Image</option>` : ''}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Upload Custom Image</label>
+                                        <input type="file" id="inspector-image-upload" accept="image/*" style="width: 100%; font-size: 0.75rem; color: var(--text-light); cursor: pointer;">
+                                        <div id="inspector-image-upload-status" style="font-size: 0.7rem; color: var(--text-dark); margin-top: 4px; display: none;">Uploading...</div>
+                                    </div>
+                                </div>
+
+                                <div style="border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; background: rgba(255,255,255,0.01);">
+                                    <h5 style="margin: 0 0 8px 0; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Branding & Options</h5>
+                                    
+                                    <div style="margin-bottom: 10px;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Licensed Brand</label>
+                                        <select data-inspector-prop="licensedBrandId" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                            ${brandOptionsHtml}
+                                        </select>
+                                        ${brandConflictHtml}
+                                    </div>
+
+                                    <div>
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 6px;">Special Print Features</label>
+                                        ${featuresChecklistHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (activeInspectorTab === 'financials') {
+                        const returnRateStr = game.projectedReturnRate !== undefined && game.projectedReturnRate !== null ? game.projectedReturnRate : 0;
+                        activeTabContentHtml = `
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; gap: 12px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Print Run (Tickets)</label>
+                                        <input type="text" value="${game.units.toLocaleString('en-US')}" data-inspector-prop="units" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Ticket Size</label>
+                                        <select data-inspector-prop="ticketSize" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                            ${sizeOptionsHtml}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Payout %</label>
+                                        <input type="number" value="${game.payoutPercent}" step="0.1" min="0" data-inspector-prop="payoutPercent" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Projected Return Rate (%)</label>
+                                        <input type="number" value="${returnRateStr}" step="0.1" min="0" max="100" data-inspector-prop="projectedReturnRate" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                </div>
+
+                                <div style="background: rgba(212, 175, 55, 0.05); border: 1px solid var(--accent-color); border-radius: 6px; padding: 10px;">
+                                    <label style="display: block; font-weight: 700; margin-bottom: 6px; color: var(--accent-color); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Budget Category</label>
+                                    <select data-inspector-prop="budgetStatus" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px; font-weight: 600;">
+                                        <option value="new_request" ${game.budgetStatus !== 'already_booked' ? 'selected' : ''}>🟢 New Funding Request (Include in Plan Totals)</option>
+                                        <option value="already_booked" ${game.budgetStatus === 'already_booked' ? 'selected' : ''}>🟡 Already Booked / Overhead (Exclude from Plan Totals)</option>
+                                    </select>
+                                    <div style="font-size: 0.75rem; color: var(--text-dark); margin-top: 6px; line-height: 1.3;">
+                                        Setting this to Overhead prevents this game's printing and licensing costs from being double-counted in the overall New York Lottery budget summary.
+                                    </div>
+                                </div>
+
+                                <div style="border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; background: rgba(255, 255, 255, 0.02);">
+                                    <h5 style="margin: 0 0 8px 0; color: var(--accent-color); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Loaded Cost Estimates</h5>
+                                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem;">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span style="color: var(--text-dark);">Contract Cost (Print run 100%):</span>
+                                            <span id="inspector-metric-contractCost" style="font-weight: 600; color: var(--text-light);">${formatCurrency(metrics.contractCost)}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span style="color: var(--text-dark);">Prize Expense (Discounted by return):</span>
+                                            <span id="inspector-metric-prizeExpense" style="font-weight: 600; color: var(--text-light);">${formatCurrency(metrics.prizeExpense)}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span style="color: var(--text-dark);">Total COGS:</span>
+                                            <span id="inspector-metric-cogs" style="font-weight: 600; color: var(--text-light);">${formatCurrency(metrics.cogs)}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 4px; margin-top: 2px;">
+                                            <span style="font-weight: 600; color: var(--text-light);">Gross Margin:</span>
+                                            <span id="inspector-metric-grossMargin" style="font-weight: 700; color: ${metrics.grossMargin < 0 ? 'var(--danger-color)' : '#22c55e'}">${formatCurrency(metrics.grossMargin)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (activeInspectorTab === 'logistics') {
+                        const isLicensed = !!game.licensedBrandId;
+                        const disabledAttr = isLicensed ? '' : 'disabled';
+                        const opacityStyle = isLicensed ? '' : 'opacity: 0.5;';
+                        const licenseExpStr = game.licenseExpirationDate ? game.licenseExpirationDate : '';
+
+                        activeTabContentHtml = `
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; gap: 12px; margin-bottom: 4px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">PO Number</label>
+                                        <input type="text" value="${game.poNumber || ''}" data-inspector-prop="poNumber" placeholder="PO #" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Delivery Status</label>
+                                        <select data-inspector-prop="deliveryStatus" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                            ${deliveryOptionsHtml}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 12px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">PO Date</label>
+                                        <input type="date" value="${game.poDate || ''}" data-inspector-prop="poDate" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Receipt Date</label>
+                                        <input type="date" value="${game.receiptDate || ''}" data-inspector-prop="receiptDate" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 12px; margin-top: 4px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Launch Date</label>
+                                        <input type="date" value="${game.launchDate || ''}" data-inspector-prop="launchDate" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1; ${opacityStyle}">
+                                        <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">License Expiration Date ${isLicensed ? '' : '(N/A)'}</label>
+                                        <input type="date" value="${licenseExpStr}" data-inspector-prop="licenseExpirationDate" ${disabledAttr} style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 12px;">
+                                    <div style="flex: 1; padding-top: 8px;">
+                                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer; color: var(--text-light); user-select: none;">
+                                            <input type="checkbox" data-inspector-prop="isReorder" ${game.isReorder ? 'checked' : ''} style="cursor: pointer; width: auto !important; margin: 0;">
+                                            Reorder Run
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    container.innerHTML = tabsHtml + `
+                        <div style="display: flex; flex-direction: column; height: calc(100% - 40px); overflow-y: auto; padding-right: 4px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                                <h4 style="margin: 0; color: var(--accent-color); font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                                    <span>Game Editor</span>
+                                </h4>
+                                <span style="font-size: 0.75rem; color: var(--text-dark); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color);">ID: ${game.id}</span>
+                            </div>
+
+                            ${licenseWarningHtml}
+                            ${inspectorSubTabsHtml}
+
+                            <div style="font-size: 0.875rem;">
+                                ${activeTabContentHtml}
+                            </div>
+                        </div>
+                    `;
+                } else if (selectedNsItem) {
+                    const item = selectedNsItem;
+                    const vendorOptionsHtml = '<option value="">None / Internal</option>' + state.vendors.map(v => `<option value="${v.id}" ${item.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('');
+
+                    container.innerHTML = tabsHtml + `
+                        <div style="display: flex; flex-direction: column; height: calc(100% - 40px); overflow-y: auto; padding-right: 4px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px;">
+                                <h4 style="margin: 0; color: var(--accent-color); font-size: 1rem;">Non-Scratcher Item</h4>
+                                <span style="font-size: 0.75rem; color: var(--text-dark); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color);">ID: ${item.id}</span>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.875rem;">
+                                <div>
+                                    <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Item Name</label>
+                                    <input type="text" value="${item.name || ''}" data-inspector-ns-prop="name" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                </div>
+
+                                <div style="display: flex; gap: 12px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Spend / Cost ($)</label>
+                                        <input type="text" value="${item.cost.toLocaleString('en-US')}" data-inspector-ns-prop="cost" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Campaign / Holiday</label>
+                                        <input type="text" value="${item.associatedHoliday || ''}" data-inspector-ns-prop="associatedHoliday" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-weight: 600; margin-bottom: 4px; color: var(--text-light); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Vendor / Agency</label>
+                                    <select data-inspector-ns-prop="vendorId" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                        ${vendorOptionsHtml}
+                                    </select>
+                                </div>
+
+                                <div style="background: rgba(212, 175, 55, 0.05); border: 1px solid var(--accent-color); border-radius: 6px; padding: 10px;">
+                                    <label style="display: block; font-weight: 700; margin-bottom: 6px; color: var(--accent-color); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Budget Category</label>
+                                    <select data-inspector-ns-prop="budgetStatus" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px; font-weight: 600;">
+                                        <option value="new_request" ${item.budgetStatus !== 'already_booked' ? 'selected' : ''}>🟢 New Funding Request (Include in Plan Totals)</option>
+                                        <option value="already_booked" ${item.budgetStatus === 'already_booked' ? 'selected' : ''}>🟡 Already Booked / Overhead (Exclude from Plan Totals)</option>
+                                    </select>
+                                    <div style="font-size: 0.75rem; color: var(--text-dark); margin-top: 6px; line-height: 1.3;">
+                                        Setting this to Overhead prevents this marketing spend from being double-counted in the overall New York Lottery budget summary.
+                                    </div>
+                                </div>
+
+                                <div style="border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; background: rgba(255,255,255,0.01); margin-bottom: 12px;">
+                                    <h5 style="margin: 0 0 8px 0; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Logistics & Orders</h5>
+                                    
+                                    <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+                                        <div style="flex: 1;">
+                                            <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">PO Number</label>
+                                            <input type="text" value="${item.poNumber || ''}" data-inspector-ns-prop="poNumber" placeholder="PO #" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Status</label>
+                                            <select data-inspector-ns-prop="status" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                                ${['Planned', 'Ordered', 'Delivered', 'Cancelled'].map(s => `<option value="${s}" ${item.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 12px;">
+                                        <div style="flex: 1;">
+                                            <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">PO Date</label>
+                                            <input type="date" value="${item.poDate || ''}" data-inspector-ns-prop="poDate" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="display: block; font-size: 0.75rem; color: var(--text-dark); margin-bottom: 4px;">Receipt Date</label>
+                                            <input type="date" value="${item.receiptDate || ''}" data-inspector-ns-prop="receiptDate" style="width: 100%; box-sizing: border-box; padding: 6px; background: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 4px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            function isGameActiveInMonth(game, yearMonthStr) {
+                if (!game.launchDate) return true; // If no launch date is set, assume active for planning purposes
+                const [targetYear, targetMonth] = yearMonthStr.split('-').map(Number);
+                
+                const launch = new Date(game.launchDate);
+                const launchYear = launch.getFullYear();
+                const launchMonth = launch.getMonth() + 1; // 1-indexed
+                
+                const launchVal = launchYear * 12 + launchMonth;
+                const targetVal = targetYear * 12 + targetMonth;
+                
+                if (targetVal < launchVal) return false;
+                
+                if (game.closeDate) {
+                    const close = new Date(game.closeDate);
+                    const closeYear = close.getFullYear();
+                    const closeMonth = close.getMonth() + 1;
+                    const closeVal = closeYear * 12 + closeMonth;
+                    if (targetVal > closeVal) return false;
+                }
+                
+                return true;
+            }
+
+            function getMonthName(m) {
+                const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return names[m - 1];
+            }
+
+            function getVendorBadgeBg(vendorId) {
+                if (vendorId === 'sg') return '#1e3a8a';
+                if (vendorId === 'pb') return '#065f46';
+                if (vendorId === 'igt') return '#7c2d12';
+                return '#374151';
+            }
+
+            function renderPlanogramView() {
+                const container = byId('center-panel');
+                const scenario = getActiveScenario();
+                if (!scenario) return;
+
+                const fy = parseInt(state.fiscalYear) || 2027;
+                
+                // Ensure defaults
+                if (!state.ui.dispenserSize) state.ui.dispenserSize = 30;
+                if (!state.ui.planogramMonth) state.ui.planogramMonth = `${fy - 1}-07`;
+
+                const size = parseInt(state.ui.dispenserSize, 10);
+                const targetMonth = state.ui.planogramMonth;
+
+                // Generate fiscal year months for select
+                const months = [];
+                for (let m = 7; m <= 12; m++) {
+                    const mm = m < 10 ? `0${m}` : `${m}`;
+                    months.push({ value: `${fy - 1}-${mm}`, label: `${getMonthName(m)} ${fy - 1}` });
+                }
+                for (let m = 1; m <= 6; m++) {
+                    const mm = m < 10 ? `0${m}` : `${m}`;
+                    months.push({ value: `${fy}-${mm}`, label: `${getMonthName(m)} ${fy}` });
+                }
+
+                // Filter active games
+                const activeGames = scenario.games.filter(g => isGameActiveInMonth(g, targetMonth));
+
+                // Group games by row index
+                const rowCount = (size === 20 || size === 24) ? 4 : 5;
+                const colCount = (size === 20) ? 5 : (size === 24 || size === 30) ? 6 : 8;
+
+                const rowDefinitions = (size === 20 || size === 24) ? [
+                    { label: 'Row 1 ($30+ High Tier)', filter: g => g.denominationPrice >= 30 },
+                    { label: 'Row 2 ($10-$20 Mid-High Tier)', filter: g => g.denominationPrice >= 10 && g.denominationPrice < 30 },
+                    { label: 'Row 3 ($5 Mid Tier)', filter: g => g.denominationPrice === 5 },
+                    { label: 'Row 4 ($1-$3 Core Tier)', filter: g => g.denominationPrice < 5 }
+                ] : [
+                    { label: 'Row 1 ($30+ Super Premium)', filter: g => g.denominationPrice >= 30 },
+                    { label: 'Row 2 ($20 Premium)', filter: g => g.denominationPrice === 20 },
+                    { label: 'Row 3 ($10 Mid-High)', filter: g => g.denominationPrice === 10 },
+                    { label: 'Row 4 ($5 Core)', filter: g => g.denominationPrice === 5 },
+                    { label: 'Row 5 ($1-$3 Low Tier)', filter: g => g.denominationPrice < 5 }
+                ];
+
+                let planogramRowsHtml = '';
+                let complianceScorecardHtml = '';
+                let totalComplianceIssues = 0;
+
+                rowDefinitions.forEach((rowDef, rowIndex) => {
+                    const rowGames = activeGames.filter(rowDef.filter).sort((a, b) => {
+                        const dateA = a.launchDate ? new Date(a.launchDate) : new Date(0);
+                        const dateB = b.launchDate ? new Date(b.launchDate) : new Date(0);
+                        return dateB - dateA || a.name.localeCompare(b.name);
+                    });
+
+                    const capacity = colCount;
+                    const allocatedCount = rowGames.length;
+                    
+                    let rowStatusBadge = '';
+                    let rowWarningText = '';
+                    if (allocatedCount === capacity) {
+                        rowStatusBadge = '<span style="background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Optimal</span>';
+                    } else if (allocatedCount < capacity) {
+                        rowStatusBadge = '<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Under-allocated</span>';
+                        rowWarningText = `Under-allocated: Needs ${capacity - allocatedCount} more game(s).`;
+                        totalComplianceIssues++;
+                    } else {
+                        rowStatusBadge = '<span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">Over-allocated</span>';
+                        rowWarningText = `Over-allocated: ${allocatedCount - capacity} game(s) will not fit in standard dispenser slots.`;
+                        totalComplianceIssues++;
+                    }
+
+                    // Render grid cells
+                    let cellsHtml = '';
+                    for (let c = 0; c < colCount; c++) {
+                        const game = rowGames[c];
+                        if (game) {
+                            const isSelected = game.id === state.ui.selectedGameId;
+                            const vendor = state.vendors.find(v => v.id === game.vendorId);
+                            const vendorAbbrevStr = vendor ? vendorAbbrev(vendor.name) : 'None';
+                            
+                            let cellBorder = isSelected ? 'border: 2px solid var(--warning-color);' : 'border: 1px solid var(--border-color);';
+                            let cellBg = getGameBackgroundStyle(game);
+                            if (isSelected && !game.imageUrl) {
+                                cellBg = 'background: rgba(245, 158, 11, 0.1);';
+                            }
+                            
+                            const hasBg = !!game.imageUrl;
+                            const textStyleHeader = hasBg 
+                                ? "display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 4px 6px; border-radius: 4px; width: 100%; box-sizing: border-box;"
+                                : "display: flex; justify-content: space-between; align-items: flex-start; gap: 4px;";
+                            const textStyleFooter = hasBg 
+                                ? "display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; font-size: 10px; color: #e2e8f0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 4px 6px; border-radius: 4px; width: 100%; box-sizing: border-box;"
+                                : "display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; font-size: 10px; color: var(--text-dark);";
+                            const textColor = hasBg ? "#fff" : "var(--text-light)";
+                            const textShadow = hasBg ? "text-shadow: 0 1px 2px rgba(0,0,0,0.5);" : "";
+                            
+                            cellsHtml += `
+                                <div class="planogram-slot" data-game-id="${game.id}" style="${cellBorder} ${cellBg} border-radius: 6px; padding: 6px; min-height: 95px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: all 150ms; box-sizing: border-box;" title="Click to view details in inspector">
+                                    <div style="${textStyleHeader}">
+                                        <span style="font-weight: 700; color: ${textColor}; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; ${textShadow}">$${game.denominationPrice} ${game.name}</span>
+                                        <span style="font-size: 9px; font-weight: 700; color: #fff; background: ${getVendorBadgeBg(game.vendorId)}; padding: 1px 4px; border-radius: 3px; white-space: nowrap; align-self: flex-start;">${vendorAbbrevStr}</span>
+                                    </div>
+                                    <div style="${textStyleFooter}">
+                                        <span style="font-weight: 600;">#${game.gameNumber || 'TBD'}</span>
+                                        <span style="font-weight: 600;">L: ${game.launchDate ? game.launchDate.substring(5) : 'TBD'}</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            cellsHtml += `
+                                <div style="border: 1px dashed rgba(255,255,255,0.15); background: rgba(0,0,0,0.1); border-radius: 6px; min-height: 90px; display: flex; align-items: center; justify-content: center; color: var(--text-dark); font-size: 0.75rem; font-style: italic;">
+                                    Empty Slot
+                                </div>
+                            `;
+                        }
+                    }
+
+                    planogramRowsHtml += `
+                        <div style="margin-bottom: 1.5rem; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0; color: var(--text-light); font-size: 0.85rem; font-weight: 600;">${rowDef.label}</h4>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span style="font-size: 11px; color: var(--text-dark);">${allocatedCount} / ${capacity} Slots Filled</span>
+                                    ${rowStatusBadge}
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(${colCount}, 1fr); gap: 10px;">
+                                ${cellsHtml}
+                            </div>
+                        </div>
+                    `;
+
+                    complianceScorecardHtml += `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+                            <span style="color: var(--text-light); font-weight: 500;">${rowDef.label.split(' (')[0]}</span>
+                            <span style="font-weight: 600; color: ${allocatedCount === capacity ? '#4ade80' : allocatedCount < capacity ? '#fbbf24' : '#f87171'};">
+                                ${rowWarningText ? rowWarningText : 'Optimal (100% compliant)'}
+                            </span>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = `
+                    <div class="sticky-planner-header" style="background: var(--bg-panel); border-bottom: 1px solid var(--border-color); padding: 12px 16px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h2 style="font-size: 1.15rem; margin: 0; color: var(--text-light);">Dispenser Planogram Planner</h2>
+                            </div>
+                            
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 0.75rem; color: var(--text-dark); font-weight: 600;">Dispenser Capacity:</label>
+                                    <select id="planogram-size-select" style="background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-light); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
+                                        <option value="20" ${size === 20 ? 'selected' : ''}>20-Bin Grid (4x5)</option>
+                                        <option value="24" ${size === 24 ? 'selected' : ''}>24-Bin Grid (4x6)</option>
+                                        <option value="30" ${size === 30 ? 'selected' : ''}>30-Bin Grid (5x6)</option>
+                                        <option value="40" ${size === 40 ? 'selected' : ''}>40-Bin Grid (5x8)</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <label style="font-size: 0.75rem; color: var(--text-dark); font-weight: 600;">Planning Month:</label>
+                                    <select id="planogram-month-select" style="background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-light); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
+                                        ${months.map(m => `<option value="${m.value}" ${m.value === targetMonth ? 'selected' : ''}>${m.label}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="padding: 16px; overflow-y: auto; height: calc(100% - 60px);">
+                        <!-- Compliance Summary Panel -->
+                        <div style="background: rgba(26, 115, 232, 0.04); border: 1px solid rgba(26, 115, 232, 0.2); border-radius: 8px; padding: 12px; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 0.9rem; color: var(--accent-light); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                <span>📋 planogram compliance scorecard</span>
+                                <span style="margin-left: auto; font-size: 11px; background: ${totalComplianceIssues === 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${totalComplianceIssues === 0 ? '#4ade80' : '#fbbf24'}; padding: 2px 6px; border-radius: 4px;">
+                                    ${totalComplianceIssues === 0 ? '✓ 100% Compliant' : `⚠️ ${totalComplianceIssues} Issues Detected`}
+                                </span>
+                            </h3>
+                            <div style="display: flex; flex-direction: column;">
+                                ${complianceScorecardHtml}
+                            </div>
+                        </div>
+
+                        <!-- Dispenser Rows Grid -->
+                        <div class="dispenser-grid-container">
+                            ${planogramRowsHtml}
+                        </div>
+                    </div>
+                `;
+
+                // Add event listeners for selections
+                byId('planogram-size-select').addEventListener('change', e => {
+                    commit(s => {
+                        s.ui.dispenserSize = parseInt(e.target.value, 10);
+                    }, `Changed dispenser size to ${e.target.value}-Bin.`);
+                });
+
+                byId('planogram-month-select').addEventListener('change', e => {
+                    commit(s => {
+                        s.ui.planogramMonth = e.target.value;
+                    }, `Changed planogram target month to ${e.target.value}.`);
+                });
+
+                // Add event listeners for slot clicks to select game and expand right panel
+                container.querySelectorAll('.planogram-slot').forEach(slot => {
+                    slot.addEventListener('click', e => {
+                        const gameId = slot.dataset.gameId;
+                        commit(s => {
+                            s.ui.selectedGameId = gameId;
+                            s.ui.selectedNsItemId = null;
+                            s.ui.rightCollapsed = false;
+                            s.ui.activeRightTab = 'editor';
+                        }, `Selected game ${gameId} from planogram.`);
+                    });
+                });
             }
 
             function renderAuditTrail() {
@@ -2761,7 +3861,27 @@
             }
 
             function handleRightPanelClick(e) {
-                const target = e.target.closest('[data-vendor-id], #manage-features-btn, #add-vendor-btn, [data-action="toggle-right"], [data-action="add-tier"], [data-action="delete-tier"], [data-section]');
+                const target = e.target.closest('[data-vendor-id], #manage-features-btn, #add-vendor-btn, [data-action="toggle-right"], [data-action="add-tier"], [data-action="delete-tier"], [data-section], [data-right-tab], [data-inspector-tab]');
+                if (!target) return;
+
+                if (target.dataset.rightTab) {
+                    const tab = target.dataset.rightTab;
+                    commit(s => {
+                        s.ui.activeRightTab = tab;
+                        if (tab === 'pricing') {
+                            s.ui.rightCollapsed = false;
+                        }
+                    }, `Switched right panel tab to ${tab}.`);
+                    return;
+                }
+
+                if (target.dataset.inspectorTab) {
+                    const tab = target.dataset.inspectorTab;
+                    commit(s => {
+                        s.ui.inspectorTab = tab;
+                    }, `Switched inspector tab to ${tab}.`);
+                    return;
+                }
                 if (!target) return;
 
                 if (target.dataset.section) {
@@ -2817,6 +3937,133 @@
             }
 
             function handleRightPanelChange(e) {
+                // Handle file upload
+                if (e.target.id === 'inspector-image-upload') {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const statusDiv = byId('inspector-image-upload-status');
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.textContent = 'Uploading...';
+                        statusDiv.style.color = 'var(--text-light)';
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    fetch('/api/instant-tickets/upload-image', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Upload failed');
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.error) throw new Error(data.error);
+                        if (statusDiv) {
+                            statusDiv.textContent = 'Upload successful!';
+                            statusDiv.style.color = '#22c55e';
+                        }
+                        const url = data.url;
+                        const gameId = state.ui.selectedGameId;
+                        commit(s => {
+                            const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                            if (!sc) return;
+                            const game = sc.games.find(g => g.id === gameId);
+                            if (game) {
+                                game.imageUrl = url;
+                            }
+                        }, `Uploaded custom image for game ${gameId}.`);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (statusDiv) {
+                            statusDiv.textContent = 'Upload failed: ' + err.message;
+                            statusDiv.style.color = 'var(--danger-color)';
+                        }
+                    });
+                    return;
+                }
+
+                // Game Editor Inspector updates
+                const inspectorProp = e.target.dataset.inspectorProp;
+                if (inspectorProp && state.ui.selectedGameId) {
+                    const gameId = state.ui.selectedGameId;
+                    let value;
+                    if (inspectorProp === 'units') {
+                        value = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                        if (value < 0) value = 0;
+                        e.target.value = value.toLocaleString('en-US');
+                    } else if (inspectorProp === 'denominationPrice') {
+                        value = parseInt(e.target.value, 10) || 1;
+                    } else if (e.target.type === 'number') {
+                        value = parseFloat(e.target.value) || 0;
+                        if (value < 0) { value = 0; e.target.value = 0; }
+                    } else if (e.target.type === 'checkbox') {
+                        value = e.target.checked;
+                    } else {
+                        value = e.target.value;
+                    }
+
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        const game = sc.games.find(g => g.id === gameId);
+                        if (game) game[inspectorProp] = value;
+                    }, `Updated game ${gameId} property ${inspectorProp} via inspector.`);
+
+                    renderCenterPanel();
+                    return;
+                }
+
+                // Marketing Item Inspector updates
+                const inspectorNsProp = e.target.dataset.inspectorNsProp;
+                if (inspectorNsProp && state.ui.selectedNsItemId) {
+                    const nsItemId = state.ui.selectedNsItemId;
+                    let value = e.target.value;
+                    if (inspectorNsProp === 'cost') {
+                        value = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                        if (value < 0) value = 0;
+                        e.target.value = value.toLocaleString('en-US');
+                    }
+
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        const item = sc.nonScratcherItems.find(i => i.id === nsItemId);
+                        if (item) item[inspectorNsProp] = value;
+                    }, `Updated Non-Scratcher item property ${inspectorNsProp} via inspector.`);
+
+                    renderCenterPanel();
+                    return;
+                }
+
+                // Game feature checkbox checklist updates in inspector
+                if (e.target.classList.contains('inspector-game-feature') && state.ui.selectedGameId) {
+                    const gameId = state.ui.selectedGameId;
+                    const featureName = e.target.dataset.featureName;
+                    const isChecked = e.target.checked;
+                    commit(s => {
+                        const sc = s.scenarios.find(x => x.id === s.activeScenarioId);
+                        if (!sc) return;
+                        const game = sc.games.find(g => g.id === gameId);
+                        if (game) {
+                            if (!game.featureIds) game.featureIds = [];
+                            if (isChecked) {
+                                if (!game.featureIds.includes(featureName)) {
+                                    game.featureIds.push(featureName);
+                                }
+                            } else {
+                                game.featureIds = game.featureIds.filter(f => f !== featureName);
+                            }
+                        }
+                    }, `${isChecked ? 'Added' : 'Removed'} feature ${featureName} on game ${gameId}.`);
+                    renderCenterPanel();
+                    return;
+                }
+
                 const vendorId = state.ui.activeVendorTab;
                 const vendorData = state.vendorPricing[vendorId];
                 if (!vendorData) return;
@@ -2976,11 +4223,12 @@
 
                 const availableFeatures = state.featureMasterList.filter(f => {
                     const name = f['Generic Feature'];
+                    const csvColPrefix = vendorId.toUpperCase() === 'IGT' ? 'BS' : vendorId.toUpperCase();
                     if (vd.supportedFeatures && typeof vd.supportedFeatures[name] !== 'undefined') {
                         return vd.supportedFeatures[name];
                     }
-                    if (f[`${vendorId.toUpperCase()} (Y/N)`]) {
-                        return f[`${vendorId.toUpperCase()} (Y/N)`] === 'Y';
+                    if (f[`${csvColPrefix} (Y/N)`]) {
+                        return f[`${csvColPrefix} (Y/N)`] === 'Y';
                     }
                     return true;
                 });
@@ -2998,7 +4246,8 @@
                 brandSelect.innerHTML = '<option value="">-- None --</option>' + LICENSED_BRANDS.map(b => {
                     const brandVendor = state.vendors.find(v => v.id === b.vendorId);
                     const brandVendorName = brandVendor ? vendorAbbrev(brandVendor.name) : b.vendorId.toUpperCase();
-                    return `<option value="${b.id}">${b.name} (Exclusive to ${brandVendorName})</option>`;
+                    const isDisabled = b.vendorId !== game.vendorId ? 'disabled style="color: var(--text-dark); opacity: 0.5;"' : '';
+                    return `<option value="${b.id}" ${isDisabled}>${b.name} (Exclusive to ${brandVendorName})</option>`;
                 }).join('');
                 brandSelect.value = game.licensedBrandId || '';
                 updateModalBrandWarning();
@@ -4000,6 +5249,31 @@
                     plan.activeScenarioId = plan.scenarios[0].id;
                 }
 
+                // Patch UI State
+                if (!plan.ui) {
+                    plan.ui = {
+                        activeVendorTab: 'sg',
+                        activeVendorSection: 'operating',
+                        editingFeaturesForGameId: null,
+                        vendorFilter: 'all',
+                        leftCollapsed: false,
+                        rightCollapsed: false,
+                        bottomCollapsed: false,
+                        showFeaturesCol: true,
+                        showFinancialsCol: true,
+                        showLogisticsCol: true,
+                        layoutMode: 'grid',
+                        selectedGameId: null,
+                        selectedNsItemId: null,
+                        activeRightTab: 'editor'
+                    };
+                } else {
+                    if (typeof plan.ui.layoutMode === 'undefined') plan.ui.layoutMode = 'grid';
+                    if (typeof plan.ui.selectedGameId === 'undefined') plan.ui.selectedGameId = null;
+                    if (typeof plan.ui.selectedNsItemId === 'undefined') plan.ui.selectedNsItemId = null;
+                    if (typeof plan.ui.activeRightTab === 'undefined') plan.ui.activeRightTab = 'editor';
+                }
+
                 // Patch Scenarios
                 if (plan.scenarios && Array.isArray(plan.scenarios)) {
                     plan.scenarios.forEach(sc => {
@@ -4073,9 +5347,10 @@
                 const denom = scenario?.denominations.find(d => d.price === game.denominationPrice);
                 if (!denom) return { revenue: 0, contractCost: 0, prizeExpense: 0, cogs: 0, grossMargin: 0, baseCostApplied: 0 };
 
-                // Apply Sell-through % to revenue
+                // Apply Sell-through % and projected return rate to revenue
                 const sellThrough = (state.sellThroughPercent ?? 100) / 100;
-                const revenue = (game.units * sellThrough) * denom.price;
+                const returnRate = parseFloat(game.projectedReturnRate || 0) / 100.0;
+                const revenue = (game.units * sellThrough) * denom.price * (1 - returnRate);
 
                 const vendor = state.vendorPricing[game.vendorId];
                 if (!vendor) return { revenue: 0, contractCost: 0, prizeExpense: 0, cogs: 0, grossMargin: 0, baseCostApplied: 0 };

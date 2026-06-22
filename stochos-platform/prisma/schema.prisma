@@ -521,6 +521,10 @@ model InstantTicketGame {
   jackpotBonusPercent    Decimal?        @map("jackpot_bonus_percent") @db.Decimal(5, 2)
   jackpotEligiblePercent Decimal?        @map("jackpot_eligible_percent") @db.Decimal(5, 2)
   jackpotBonusCap        Decimal?        @map("jackpot_bonus_cap") @db.Decimal(14, 2)
+  projectedReturnRate    Decimal?        @default(0.00) @map("projected_return_rate") @db.Decimal(5, 2)
+  licenseExpirationDate  DateTime?       @map("license_expiration_date") @db.Date
+  productFamily          String?         @map("product_family")
+  imageUrl               String?         @map("image_url")
   createdAt      DateTime              @default(now()) @map("created_at")
 
   features InstantTicketGameFeature[]

@@ -40,8 +40,8 @@ export async function calculateAllocation(planId, basis = "sales") {
     throw new Error("Plan not found");
   }
   const scenario = plan.scenarios[0];
-  const games = (scenario?.games || []).filter(g => g.budgetStatus !== 'already_booked');
-  const marketingItems = (scenario?.marketingItems || []).filter(m => m.budgetStatus !== 'already_booked');
+  const games = scenario?.games || [];
+  const marketingItems = scenario?.marketingItems || [];
   const sellThrough = parseFloat(plan.sellThroughPct) / 100.0;
   const retailerCommPct = parseFloat(plan.retailerCommPct) / 100.0;
 
@@ -60,7 +60,8 @@ export async function calculateAllocation(planId, basis = "sales") {
     const denom = parseFloat(game.denomination);
     const payout = parseFloat(game.payoutPercent) / 100.0;
 
-    const grossSales = units * denom * sellThrough;
+    const returnRate = parseFloat(game.projectedReturnRate || 0) / 100.0;
+    const grossSales = units * denom * sellThrough * (1 - returnRate);
     const prizeExpense = grossSales * payout;
     const retailerComm = grossSales * retailerCommPct;
 
@@ -72,7 +73,12 @@ export async function calculateAllocation(planId, basis = "sales") {
         "Extended Play (Crossword/Bingo)": 0.25,
         "Die-Cut Ticket": 0.60,
         "Sparkle/Glitter Coating": 0.25,
-        "Oversized Format": 0.35
+        "Oversized Format": 0.35,
+        "Dimension Holographics": 0.85,
+        "Obsidian Luxury Substrate": 1.10,
+        "Micromotion Reflective Foil": 0.75,
+        "Double-Sided Play": 0.30,
+        "Fold & Punch Interactive": 1.50
       },
       pb: {
         "Holographic Foil": 0.40,
@@ -80,7 +86,13 @@ export async function calculateAllocation(planId, basis = "sales") {
         "Extended Play (Crossword/Bingo)": 0.20,
         "Die-Cut Ticket": 0.55,
         "Sparkle/Glitter Coating": 0.20,
-        "Oversized Format": 0.30
+        "Oversized Format": 0.30,
+        "Double-Sided Play": 0.28,
+        "Transparent Substrate": 2.20,
+        "Bound Booklet Format": 4.50,
+        "Folded Multi-Panel Layout": 2.50,
+        "3D Standing Pop-Up": 3.80,
+        "Perforated Tab Windows": 1.80
       },
       igt: {
         "Holographic Foil": 0.42,
@@ -88,7 +100,9 @@ export async function calculateAllocation(planId, basis = "sales") {
         "Extended Play (Crossword/Bingo)": 0.22,
         "Die-Cut Ticket": 0.58,
         "Sparkle/Glitter Coating": 0.22,
-        "Oversized Format": 0.32
+        "Oversized Format": 0.32,
+        "Double-Sided Play": 0.35,
+        "Variable Digital HD Print": 1.60
       }
     };
 
@@ -149,7 +163,8 @@ export async function calculateAllocation(planId, basis = "sales") {
       manufacturing = (units / 1000) * baseCost;
     }
     const featureCost = (units / 1000) * featureCpm;
-    const printingCost = manufacturing + featureCost;
+    const basePrintingCost = manufacturing + featureCost;
+    const printingCost = game.budgetStatus === 'already_booked' ? 0 : basePrintingCost;
 
     totalInstantSales += grossSales;
     totalInstantUnits += units;
@@ -258,7 +273,9 @@ export async function calculateAllocation(planId, basis = "sales") {
     };
   });
 
-  const totalMarketingCost = marketingItems.reduce((s, m) => s + parseFloat(m.cost), 0);
+  const totalMarketingCost = marketingItems
+    .filter(m => m.budgetStatus !== 'already_booked')
+    .reduce((s, m) => s + parseFloat(m.cost), 0);
 
   return {
     plan,

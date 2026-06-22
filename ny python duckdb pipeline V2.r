@@ -210,6 +210,230 @@ def build_dimensions(con: duckdb.DuckDBPyConnection) -> None:
         print("Creating empty tmp_ny_retailer_county_lookup table...")
         con.execute("CREATE TABLE tmp_ny_retailer_county_lookup (retailer_id VARCHAR, county VARCHAR)")
 
+    # 1.6. Ensure ny_county_demographics_dim and v_ny_county_demographics_latest exist
+    has_demo = False
+    if DB_PATH.exists():
+        print(f"Attaching live database {DB_PATH} to copy county demographics...")
+        try:
+            con.execute(f"ATTACH '{DB_PATH}' AS live_db (READ_ONLY)")
+            tables = con.execute("SELECT table_name FROM information_schema.tables WHERE table_catalog = 'live_db' AND table_schema = 'main' AND table_name = 'ny_county_demographics_dim'").fetchall()
+            if tables:
+                print("Found ny_county_demographics_dim in live database. Copying...")
+                con.execute("CREATE TABLE ny_county_demographics_dim AS SELECT * FROM live_db.ny_county_demographics_dim")
+                has_demo = True
+            con.execute("DETACH live_db")
+        except Exception as e:
+            print(f"[WARNING] Failed to copy demographics from live database: {e}")
+            try:
+                con.execute("DETACH live_db")
+            except Exception:
+                pass
+
+    if not has_demo:
+        print("ny_county_demographics_dim not found. Sourcing demographics from CORGIS fallback...")
+        con.execute("""
+            CREATE TABLE ny_county_demographics_dim (
+                county VARCHAR,
+                population INTEGER,
+                land_area DOUBLE,
+                median_income DOUBLE,
+                data_year INTEGER,
+                PRIMARY KEY (county, data_year)
+            );
+        """)
+        try:
+            import urllib.request
+            import csv
+            corgis_url = "https://corgis-edu.github.io/corgis/datasets/csv/county_demographics/county_demographics.csv"
+            req = urllib.request.Request(corgis_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                lines = [line.decode('utf-8') for line in response.read().splitlines()]
+            reader = csv.reader(lines)
+            header = next(reader)
+            county_idx = header.index("County")
+            state_idx = header.index("State")
+            area_idx = header.index("Miscellaneous.Land Area")
+            income_idx = header.index("Income.Median Houseold Income")
+            pop_idx = header.index("Population.2020 Population")
+            
+            for row in reader:
+                if row[state_idx].strip() == "NY":
+                    cleaned_county = row[county_idx].replace(" County", "").strip()
+                    pop = int(row[pop_idx].replace(",", "").strip())
+                    area = float(row[area_idx].replace(",", "").strip())
+                    income = float(row[income_idx].replace(",", "").strip())
+                    con.execute("""
+                        INSERT OR REPLACE INTO ny_county_demographics_dim 
+                        (county, population, land_area, median_income, data_year)
+                        VALUES (?, ?, ?, ?, 2020);
+                    """, (cleaned_county, pop, area, income))
+            print("Successfully seeded demographics from CORGIS fallback.")
+        except Exception as e:
+            print(f"[WARNING] Failed to seed demographics from CORGIS: {e}")
+
+    # Recreate the view v_ny_county_demographics_latest
+    con.execute("""
+        CREATE OR REPLACE VIEW v_ny_county_demographics_latest AS
+        WITH ranked AS (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY county ORDER BY data_year DESC) as rn
+            FROM ny_county_demographics_dim
+        )
+        SELECT county, population, land_area, median_income, data_year
+        FROM ranked
+        WHERE rn = 1;
+    """)
+
+    # 1.7. Ensure EWS tables are copied or created empty
+    ews_tables = {
+        "ny_source_registry": """
+            CREATE TABLE IF NOT EXISTS ny_source_registry (
+                source_name VARCHAR PRIMARY KEY,
+                source_url VARCHAR,
+                hazard_type VARCHAR,
+                status_field VARCHAR,
+                priority_rank INTEGER,
+                enabled_flag BOOLEAN,
+                notes VARCHAR
+            );
+        """,
+        "ny_raw_emergency_features": """
+            CREATE TABLE IF NOT EXISTS ny_raw_emergency_features (
+                run_id VARCHAR,
+                source_name VARCHAR,
+                source_feature_id VARCHAR,
+                source_timestamp TIMESTAMP,
+                ingest_timestamp TIMESTAMP,
+                raw_metadata JSON,
+                geom GEOMETRY
+            );
+        """,
+        "ny_normalized_emergencies": """
+            CREATE TABLE IF NOT EXISTS ny_normalized_emergencies (
+                run_id VARCHAR,
+                emergency_id VARCHAR,
+                source_name VARCHAR,
+                source_feature_id VARCHAR,
+                hazard_type VARCHAR,
+                status VARCHAR,
+                severity_rank INTEGER,
+                event_name VARCHAR,
+                county VARCHAR,
+                geometry_type VARCHAR,
+                source_timestamp TIMESTAMP,
+                ingest_timestamp TIMESTAMP,
+                raw_metadata JSON,
+                geom GEOMETRY
+            );
+        """,
+        "ny_retailer_risk_history": """
+            CREATE TABLE IF NOT EXISTS ny_retailer_risk_history (
+                run_id VARCHAR,
+                ingest_timestamp TIMESTAMP,
+                retailer_id VARCHAR,
+                emergency_id VARCHAR,
+                source_name VARCHAR,
+                hazard_type VARCHAR,
+                status VARCHAR,
+                inside_polygon BOOLEAN,
+                distance_to_boundary_meters DOUBLE,
+                within_buffer BOOLEAN,
+                action_level VARCHAR
+            );
+        """
+    }
+
+    for tbl, create_sql in ews_tables.items():
+        has_tbl = False
+        if DB_PATH.exists():
+            try:
+                con.execute(f"ATTACH '{DB_PATH}' AS live_db (READ_ONLY)")
+                tables = con.execute(f"SELECT table_name FROM information_schema.tables WHERE table_catalog = 'live_db' AND table_schema = 'main' AND table_name = '{tbl}'").fetchall()
+                if tables:
+                    print(f"Found {tbl} in live database. Copying...")
+                    con.execute(f"CREATE TABLE {tbl} AS SELECT * FROM live_db.{tbl}")
+                    has_tbl = True
+                con.execute("DETACH live_db")
+            except Exception as e:
+                print(f"[WARNING] Failed to copy {tbl} from live database: {e}")
+                try:
+                    con.execute("DETACH live_db")
+                except:
+                    pass
+        if not has_tbl:
+            print(f"Creating empty fallback for {tbl}...")
+            con.execute(create_sql)
+            if tbl == "ny_source_registry":
+                # Seed source registry
+                con.execute("""
+                    INSERT INTO ny_source_registry (source_name, source_url, hazard_type, status_field, priority_rank, enabled_flag, notes)
+                    VALUES 
+                    ('nws_alerts', 'https://api.weather.gov/alerts/active', 'weather', 'event', 1, TRUE, 'National Weather Service active alerts'),
+                    ('usgs_earthquakes', 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson', 'earthquake', 'status', 2, TRUE, 'USGS earthquakes magnitude 4.5+')
+                    ON CONFLICT (source_name) DO UPDATE SET 
+                        source_url = EXCLUDED.source_url,
+                        priority_rank = EXCLUDED.priority_rank;
+                """)
+
+    # Recreate view ny_retailer_risk_current
+    con.execute("""
+        CREATE OR REPLACE VIEW ny_retailer_risk_current AS
+        WITH latest_run AS (
+            SELECT MAX(run_id) as run_id FROM ny_retailer_risk_history
+        ),
+        ranked_risks AS (
+            SELECT 
+                h.retailer_id,
+                r.retailer_name,
+                r.county as district_name,
+                h.emergency_id,
+                h.source_name,
+                h.hazard_type,
+                h.status,
+                h.inside_polygon,
+                h.distance_to_boundary_meters,
+                h.within_buffer,
+                h.action_level,
+                e.severity_rank,
+                e.source_timestamp,
+                h.ingest_timestamp,
+                ROW_NUMBER() OVER (
+                    PARTITION BY h.retailer_id 
+                    ORDER BY 
+                        CASE h.action_level 
+                            WHEN 'CRITICAL' THEN 1 
+                            WHEN 'WARNING' THEN 2 
+                            WHEN 'MONITOR' THEN 3 
+                            WHEN 'INFO' THEN 4 
+                            ELSE 5 
+                        END,
+                        e.severity_rank ASC,
+                        h.distance_to_boundary_meters ASC
+                ) as rnk
+            FROM ny_retailer_risk_history h
+            JOIN ny_retailer_dim r ON r.retailer_id = h.retailer_id
+            JOIN ny_normalized_emergencies e ON h.emergency_id = e.emergency_id AND e.run_id = (SELECT MAX(run_id) FROM ny_normalized_emergencies)
+            WHERE h.run_id = (SELECT run_id FROM latest_run)
+        )
+        SELECT 
+            r.retailer_id,
+            r.retailer_name,
+            COALESCE(r.county, 'Unknown') as district_name,
+            COALESCE(rr.emergency_id, 'NONE') as emergency_id,
+            COALESCE(rr.source_name, 'NONE') as source_name,
+            COALESCE(rr.hazard_type, 'NONE') as hazard_type,
+            COALESCE(rr.status, 'SAFE') as status,
+            COALESCE(rr.inside_polygon, FALSE) as inside_polygon,
+            COALESCE(rr.distance_to_boundary_meters, -1.0) as distance_to_boundary_meters,
+            COALESCE(rr.within_buffer, FALSE) as within_buffer,
+            COALESCE(rr.action_level, 'SAFE') as action_level,
+            COALESCE(rr.severity_rank, 99) as severity_rank,
+            rr.source_timestamp,
+            rr.ingest_timestamp
+        FROM ny_retailer_dim r
+        LEFT JOIN ranked_risks rr ON r.retailer_id = rr.retailer_id AND rr.rnk = 1;
+    """)
+
     # 2. Build ny_retailer_dim using historical lookup and automated spatial joins
     print("Building ny_retailer_dim with spatial boundaries & regions...")
     con.execute("INSTALL spatial; LOAD spatial;")

@@ -492,6 +492,59 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
     };
   });
 
+  // --- SYSTEM DATE BASIS FOR LIFECYCLE ---
+  const systemToday = new Date();
+  systemToday.setHours(0, 0, 0, 0);
+
+  // 1. Actively Available: launchDate <= today and (closeDate > today or !closeDate) and status != cancelled/ended
+  const activelyAvailableCount = (dynamicAllocatedGames || []).filter(g => {
+    if (!g.launchDate) return false;
+    const launch = new Date(g.launchDate);
+    const close = g.closeDate ? new Date(g.closeDate) : null;
+    const status = (g.deliveryStatus || "").toLowerCase();
+    return launch <= systemToday && 
+           (!close || close > systemToday) && 
+           status !== "cancelled" && 
+           status !== "ended" && 
+           status !== "closed";
+  }).length;
+
+  // 2. In Pipeline (Ordered/Delivered but not yet launched): status is ordered/delivered/received/in_production/shipped and (launchDate > today or !launchDate)
+  const pipelineCount = (dynamicAllocatedGames || []).filter(g => {
+    const status = (g.deliveryStatus || "").toLowerCase();
+    const isPipelineStatus = ["ordered", "delivered", "received", "in_production", "shipped"].includes(status);
+    if (!isPipelineStatus) return false;
+    if (!g.launchDate) return true;
+    const launch = new Date(g.launchDate);
+    return launch > systemToday;
+  }).length;
+
+  // 3. Future Scheduled (Planned): launchDate > today, status is planned
+  const futurePlannedCount = (dynamicAllocatedGames || []).filter(g => {
+    const status = (g.deliveryStatus || "").toLowerCase();
+    if (status !== "planned") return false;
+    if (!g.launchDate) return false;
+    const launch = new Date(g.launchDate);
+    return launch > systemToday;
+  }).length;
+
+  // 4. Unscheduled Backlog: launchDate is null, status is planned/cancelled/etc. (not in pipeline status)
+  const unscheduledCount = (dynamicAllocatedGames || []).filter(g => {
+    if (g.launchDate) return false;
+    const status = (g.deliveryStatus || "").toLowerCase();
+    const isPipelineStatus = ["ordered", "delivered", "received", "in_production", "shipped"].includes(status);
+    return !isPipelineStatus;
+  }).length;
+
+  // 5. Ended / Closed: closeDate <= today or status is ended/closed
+  const endedCount = (dynamicAllocatedGames || []).filter(g => {
+    const status = (g.deliveryStatus || "").toLowerCase();
+    if (status === "ended" || status === "closed") return true;
+    if (!g.launchDate || !g.closeDate) return false;
+    const close = new Date(g.closeDate);
+    return close <= systemToday;
+  }).length;
+
   const dynamicContracts = originalContracts.map(c => {
     const allocatedToInstant = c.annualCost * dynamicInstantShareFraction;
     return {
@@ -535,8 +588,6 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
       return new Date(a.launchDate) - new Date(b.launchDate);
     });
 
-  const unscheduledCount = (dynamicAllocatedGames || []).filter(g => !g.launchDate).length;
-
   const isSandboxActive = 
     sellThroughOverride !== parseFloat(plan.sellThroughPct) ||
     retailerCommOverride !== parseFloat(plan.retailerCommPct) ||
@@ -560,6 +611,10 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
               {" · "}
               <span className={`badge ${plan.status === "approved" ? "badge-active" : "badge-submitted"}`}>
                 {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+              </span>
+              {" · "}
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>
+                Active: <strong style={{ color: "var(--text)" }}>{activelyAvailableCount}</strong> · Pipeline: <strong style={{ color: "var(--text)" }}>{pipelineCount}</strong>
               </span>
             </p>
           </div>
@@ -1216,6 +1271,13 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
                 {fmtUnits(dynamicTotalInstantUnits)} printed units
               </div>
             </div>
+            <div className="kpi-card kpi-green">
+              <div className="kpi-label">Product Availability</div>
+              <div className="kpi-value">{activelyAvailableCount} Active</div>
+              <div className="kpi-subtitle">
+                {pipelineCount} in pipeline (not selling yet)
+              </div>
+            </div>
             <div className="kpi-card kpi-gold">
               <div className="kpi-label">Weighted Payout</div>
               <div className="kpi-value">{dynamicWeightedPayout.toFixed(1)}%</div>
@@ -1409,7 +1471,7 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
           {/* Allocation Breakdown and Method Math */}
 
           {hasAllocation && (
-            <div className="card" style={{ background: "transparent", border: "none", boxShadow: "none", padding: 0 }} className="no-print">
+            <div className="card no-print" style={{ background: "transparent", border: "none", boxShadow: "none", padding: 0 }}>
               <div 
                 onClick={() => setCollapseOverhead(!collapseOverhead)}
                 style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--card-bg)", padding: "16px 20px", borderRadius: "8px", border: "1px solid var(--border)", cursor: "pointer", userSelect: "none", marginBottom: collapseOverhead ? "0" : "16px" }}
@@ -1509,10 +1571,8 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
               )}
             </div>
           )}
-
-
-          {/* Two-column: Vendor Allocation + Pipeline */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  {/* Three-column: Vendor Allocation + Pipeline + Product Availability & Lifecycles */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
             <div className="card">
               <div className="card-header"><h3>Vendor Allocation</h3></div>
               <div className="card-body">
@@ -1549,11 +1609,38 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
                       <div style={{ width: "120px", textTransform: "capitalize", fontSize: "13px", color: "var(--text-muted)" }}>{status.replace(/_/g, " ")}</div>
                       <div style={{ flex: 1, background: "var(--surface-3)", borderRadius: "4px", height: "24px", overflow: "hidden" }}>
                         <div style={{ width: `${dynamicGames.length > 0 ? (count / dynamicGames.length) * 100 : 0}%`, height: "100%", background: STATUS_COLORS[status], borderRadius: "4px", minWidth: count > 0 ? "24px" : "0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: "#fff" }}>
-                          {count > 0 ? count : ""}
+                           {count > 0 ? count : ""}
                         </div>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+            <div className="card">
+              <div className="card-header"><h3>Product Availability &amp; Lifecycles</h3></div>
+              <div className="card-body">
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "8px" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: "500" }}>Currently On Sale</span>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--green)" }}>{activelyAvailableCount} Games</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "8px" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: "500" }}>Pipeline (Ordered &amp; Delivered)</span>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--blue)" }}>{pipelineCount} Games</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "8px" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: "500" }}>Future Scheduled (Planned)</span>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--gold)" }}>{futurePlannedCount} Games</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "8px" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: "500" }}>Unscheduled Backlog</span>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--text-secondary)" }}>{unscheduledCount} Games</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: "500" }}>Ended / Closed</span>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--red)" }}>{endedCount} Games</span>
+                  </div>
                 </div>
               </div>
             </div>
