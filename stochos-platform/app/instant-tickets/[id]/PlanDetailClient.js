@@ -126,7 +126,8 @@ export default function PlanDetailClient({ plan, stats }) {
 
   const renderGanttRow = (g) => {
     const startMonth = getFiscalMonthIndex(g.launchDate);
-    const statusColor = STATUS_COLORS[g.deliveryStatus.toLowerCase()] || "#6b7280";
+    const isCarryover = g.budgetStatus === 'already_booked';
+    const statusColor = isCarryover ? "#a855f7" : (STATUS_COLORS[g.deliveryStatus.toLowerCase()] || "#6b7280");
     const isReorder = g.isReorder;
 
     const sales = g.grossSales;
@@ -139,7 +140,9 @@ export default function PlanDetailClient({ plan, stats }) {
       cancelled: "linear-gradient(90deg, #ef4444cc, #b91c1ccc)",
       default: "linear-gradient(90deg, #6b7280cc, #4b5563cc)"
     };
-    const gradient = barGradients[g.deliveryStatus.toLowerCase()] || barGradients.default;
+    const gradient = isCarryover 
+      ? "linear-gradient(90deg, #a855f7cc, #7e22cecc)" 
+      : (barGradients[g.deliveryStatus.toLowerCase()] || barGradients.default);
 
     const duration = getSalesDuration(g);
     const launchDateObj = g.launchDate ? new Date(g.launchDate) : new Date();
@@ -214,7 +217,10 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
               }}
             >
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {`[$${g.denomination}] ${g.name} (${g.deliveryStatus})`}
+                {isCarryover 
+                  ? `[$${g.denomination}] ${g.name} (Carryover)` 
+                  : `[$${g.denomination}] ${g.name} (${g.deliveryStatus})`
+                }
               </span>
             </div>
           )}
@@ -836,18 +842,19 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "16px" }}>
                             {q.games.map(g => {
                               const isReorder = g.isReorder;
-                              const statusColor = STATUS_COLORS[g.deliveryStatus.toLowerCase()] || "#6b7280";
+                              const isCarryover = g.budgetStatus === 'already_booked';
+                              const statusColor = isCarryover ? "#a855f7" : (STATUS_COLORS[g.deliveryStatus.toLowerCase()] || "#6b7280");
 
                               return (
-                                <div key={g.id} style={{ border: "1px solid var(--border)", borderRadius: "6px", background: "var(--surface-2)", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "space-between", height: "340px" }}>
+                                <div key={g.id} style={{ border: isCarryover ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid var(--border)", borderRadius: "6px", background: isCarryover ? "rgba(168, 85, 247, 0.02)" : "var(--surface-2)", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "space-between", height: "340px" }}>
                                   
                                   {/* Ticket Visual Area */}
-                                  <div style={{ height: "110px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", borderBottom: "1px solid var(--border)", ...getTicketBgStyle(g.imageUrl) }}>
+                                  <div style={{ height: "110px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", borderBottom: isCarryover ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid var(--border)", ...getTicketBgStyle(g.imageUrl) }}>
                                     <div style={{ position: "absolute", top: "8px", left: "8px", background: "rgba(15, 23, 42, 0.75)", backdropFilter: "blur(4px)", padding: "2px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: 700, color: "#fff" }}>
                                       ${g.denomination}
                                     </div>
-                                    <div style={{ position: "absolute", top: "8px", right: "8px", background: statusColor + "33", border: `1px solid ${statusColor}`, color: statusColor, padding: "1px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                                      {g.deliveryStatus}
+                                    <div style={{ position: "absolute", top: "8px", right: "8px", background: isCarryover ? "rgba(168, 85, 247, 0.3)" : (statusColor + "33"), border: `1px solid ${isCarryover ? "#a855f7" : statusColor}`, color: isCarryover ? "#d8b4fe" : statusColor, padding: "1px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
+                                      {isCarryover ? "Carryover" : g.deliveryStatus}
                                     </div>
                                     {!g.imageUrl && (
                                       <div style={{ color: "var(--text-muted)", fontSize: "12px", fontStyle: "italic" }}>No visual ticket plan</div>
@@ -1399,6 +1406,7 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
                   </button>
 
                   <div style={{ fontSize: "12px", color: "var(--text-muted)", display: "flex", gap: "10px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#a855f7" }} /> Carryover (Prior FY)</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }} /> Delivered</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#3b82f6" }} /> Ordered</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#f59e0b" }} /> Planned</span>
@@ -1727,16 +1735,16 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
                                   {g.budgetStatus === 'already_booked' && (
                                     <span style={{ 
                                       fontSize: "10px", 
-                                      color: "var(--text-muted)", 
-                                      background: "rgba(255, 255, 255, 0.05)", 
-                                      border: "1px solid var(--border)", 
-                                      padding: "1px 5px", 
+                                      color: "#fff", 
+                                      background: "rgba(168, 85, 247, 0.2)", 
+                                      border: "1px solid rgba(168, 85, 247, 0.4)", 
+                                      padding: "1px 6px", 
                                       borderRadius: "3px", 
                                       marginLeft: "8px", 
-                                      fontWeight: "normal",
+                                      fontWeight: "600",
                                       display: "inline-block"
                                     }}>
-                                      Overhead
+                                      Carryover
                                     </span>
                                   )}
                                 </td>

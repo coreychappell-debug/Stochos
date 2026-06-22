@@ -88,5 +88,93 @@ export async function POST(request) {
     include: { scenarios: true },
   });
 
+  // Carryover games lookup and cloning
+  try {
+    const prevPlan = await prisma.instantTicketPlan.findFirst({
+      where: {
+        jurisdictionId,
+        fiscalYear: parseInt(fiscalYear) - 1,
+      },
+      include: {
+        scenarios: {
+          orderBy: { sortOrder: "asc" },
+          take: 1,
+          include: {
+            games: true,
+          },
+        },
+      },
+    });
+
+    if (prevPlan && prevPlan.scenarios.length > 0) {
+      const prevGames = prevPlan.scenarios[0].games;
+      const carryoverGamesToCreate = [];
+      const boundaryYear = parseInt(fiscalYear) - 1;
+      const boundaryDate = new Date(`${boundaryYear}-07-01T00:00:00.000Z`);
+
+      for (const g of prevGames) {
+        if (!g.launchDate) continue;
+
+        const status = (g.deliveryStatus || "").toLowerCase();
+        if (status === "cancelled" || status === "ended" || status === "closed") continue;
+
+        let closeDate = g.closeDate;
+        if (!closeDate) {
+          const d = new Date(g.launchDate);
+          d.setUTCMonth(d.getUTCMonth() + 3);
+          closeDate = d;
+        } else {
+          closeDate = new Date(closeDate);
+        }
+
+        if (closeDate >= boundaryDate) {
+          carryoverGamesToCreate.push({
+            scenarioId: plan.scenarios[0].id,
+            vendorId: g.vendorId,
+            productId: g.productId,
+            gameNumber: g.gameNumber,
+            name: g.name,
+            denomination: g.denomination,
+            ticketSize: g.ticketSize,
+            units: g.units,
+            payoutPercent: g.payoutPercent,
+            topPrize: g.topPrize,
+            launchDate: g.launchDate,
+            closeDate: g.closeDate,
+            endDate: g.endDate,
+            poNumber: g.poNumber,
+            poDate: g.poDate,
+            receiptDate: g.receiptDate,
+            deliveryStatus: g.deliveryStatus,
+            sortOrder: g.sortOrder,
+            isReorder: g.isReorder,
+            licensedBrandId: g.licensedBrandId,
+            budgetStatus: "already_booked",
+            gamingSystemPercent: g.gamingSystemPercent,
+            retailerBonusPercent: g.retailerBonusPercent,
+            fixedOperatingCost: g.fixedOperatingCost,
+            retailerCashingPercent: g.retailerCashingPercent,
+            cashablePrizePercent: g.cashablePrizePercent,
+            jackpotBonusPercent: g.jackpotBonusPercent,
+            jackpotEligiblePercent: g.jackpotEligiblePercent,
+            jackpotBonusCap: g.jackpotBonusCap,
+            projectedReturnRate: g.projectedReturnRate,
+            licenseExpirationDate: g.licenseExpirationDate,
+            productFamily: g.productFamily,
+            imageUrl: g.imageUrl,
+          });
+        }
+      }
+
+      if (carryoverGamesToCreate.length > 0) {
+        await prisma.instantTicketGame.createMany({
+          data: carryoverGamesToCreate,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Failed to copy carryover games:", err);
+  }
+
   return NextResponse.json(plan, { status: 201 });
 }
