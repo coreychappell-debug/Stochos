@@ -106,6 +106,7 @@ These gates must be cleared in sequence. Each gate builds on the previous one.
 - [ ] Switch to Prisma Migrate for versioned schema changes (Prioritize before next schema update)
 - [x] Perform Database Index Audit and apply indexes to `crm_retailers` queries (Done)
 - [x] Implement Blue-Green database staging swaps for zero-downtime DuckDB refreshes (Done)
+- [x] Set DuckDB concurrency thread limits (`SET threads = 4`) during warehouse ingestion to prevent Next.js/PostgreSQL CPU starvation (Done)
 - [ ] Complete security review
 - [ ] Implement active daily sales windowing (rolling 12 months) in active DuckDB database (see [Database Scaling Roadmap](file:///c:/Users/corey/Downloads/Corey%20-%20Code%20Stuff/R%20Server%20Project%20folder/New%20York%20Scripts%20and%20Process/docs/architecture/database_scaling_roadmap.md))
 

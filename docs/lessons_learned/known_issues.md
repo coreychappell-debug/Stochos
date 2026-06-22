@@ -400,4 +400,70 @@ Cash 4 Life was activated in the product catalog *after* the initial draw scenar
 
 Executed a database migration script to align all existing scenarios, and updated the `GET /api/draw-games` endpoint to dynamically verify and insert any missing active products into the scenario on-the-fly, ensuring the compiler always receives the full product line. We also updated the budget rollup and commentary engines to fallback gracefully to the first available scenario if `"Base Plan"` is missing.
 
+---
+
+## 17. DuckDB View-Table Compile Dependency Constraint
+
+**Date discovered:** 2026-06-15  
+**Severity:** High (failed weekly database refresh job)  
+**Status:** Resolved
+
+### Problem
+
+The weekly database normalization job (`ny_duckdb_refresh.py`) crashed with the following error during database build:
+```
+_duckdb.CatalogException: Catalog Error: Table with name ny_retailer_dim does not exist!
+Did you mean "ny_retailer_risk_history"?
+LINE 36:             JOIN ny_retailer_dim r ON r.retailer_id = h.retailer_id
+```
+
+### Root Cause
+
+In PostgreSQL or other database systems, view compilation demands only syntactical correctness, deferring binding until execution. In DuckDB, view creation (`CREATE OR REPLACE VIEW`) demands that all referenced tables (specifically `ny_retailer_dim` here) exist at compile-time. Because view compilation was placed before the `ny_retailer_dim` table creation block in `build_dimensions()`, the engine threw a catalog exception.
+
+### Resolution
+
+Relocated the view creation statement `CREATE OR REPLACE VIEW ny_retailer_risk_current` to the end of the `build_dimensions()` function, ensuring that all dependent tables (specifically `ny_retailer_dim`) are created and populated beforehand.
+
+---
+
+## 18. Ingestion CPU Starvation & Operational Database Query Slowdowns
+
+**Date discovered:** 2026-06-22  
+**Severity:** Medium (caused operational query timeouts up to 6.5s)  
+**Status:** Resolved
+
+### Problem
+
+During the weekly maintenance run, Next.js and PostgreSQL logged several `Slow Database Query` warnings (ranging from 1s to 6.5s) and the client dashboard suffered intermittent query delays.
+
+### Root Cause
+
+Ingesting the 3.1 GB daily sales CSV via DuckDB's multi-threaded `read_csv_auto` parser defaults to saturating all available CPU cores (pegging CPU usage at 1200% across 12 cores). This heavy resource contention starved the operational Next.js server and PostgreSQL container of CPU cycles, causing active queries to block and slow down.
+
+### Resolution
+
+Added a thread-limiting instruction (`con.execute("SET threads = 4;")`) inside the DuckDB pipeline ETL scripts right after establishing the connection. Limiting DuckDB to 4 cores leaves the remaining 8 cores fully open for Next.js, PostgreSQL, and other background tasks, ensuring responsive query runtimes during ingestion.
+
+---
+
+## 19. EWS Pipeline Container Shutdown Collision
+
+**Date discovered:** 2026-06-22  
+**Severity:** Low (triggered false-positive pipeline alerts)  
+**Status:** Mitigated
+
+### Problem
+
+The automated Early Warning System (EWS) pipeline cron job reported intermittent `EWS Risk Pipeline Failure` alerts.
+
+### Root Cause
+
+The EWS cron job executes inside the active `analyst_lab_prod_shiny` Docker container. The weekly server maintenance job begins at the same time and executes `docker-compose down` to stop and remove all analytics containers. When the container was stopped mid-run, the EWS script process received a SIGTERM/SIGKILL, causing the cron executor to exit with an error code and trigger an alarm.
+
+### Mitigation
+
+The EWS pipeline self-heals as soon as the maintenance finishes and the containers are spun back up by the system. System operators should expect brief intermittent failures during the 2 AM PDT weekly maintenance window. For future deployment, we plan to schedule the weekly server maintenance and the EWS cron job with a 30-minute safety offset.
+
+
 

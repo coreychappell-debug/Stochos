@@ -375,64 +375,7 @@ def build_dimensions(con: duckdb.DuckDBPyConnection) -> None:
                         priority_rank = EXCLUDED.priority_rank;
                 """)
 
-    # Recreate view ny_retailer_risk_current
-    con.execute("""
-        CREATE OR REPLACE VIEW ny_retailer_risk_current AS
-        WITH latest_run AS (
-            SELECT MAX(run_id) as run_id FROM ny_retailer_risk_history
-        ),
-        ranked_risks AS (
-            SELECT 
-                h.retailer_id,
-                r.retailer_name,
-                r.county as district_name,
-                h.emergency_id,
-                h.source_name,
-                h.hazard_type,
-                h.status,
-                h.inside_polygon,
-                h.distance_to_boundary_meters,
-                h.within_buffer,
-                h.action_level,
-                e.severity_rank,
-                e.source_timestamp,
-                h.ingest_timestamp,
-                ROW_NUMBER() OVER (
-                    PARTITION BY h.retailer_id 
-                    ORDER BY 
-                        CASE h.action_level 
-                            WHEN 'CRITICAL' THEN 1 
-                            WHEN 'WARNING' THEN 2 
-                            WHEN 'MONITOR' THEN 3 
-                            WHEN 'INFO' THEN 4 
-                            ELSE 5 
-                        END,
-                        e.severity_rank ASC,
-                        h.distance_to_boundary_meters ASC
-                ) as rnk
-            FROM ny_retailer_risk_history h
-            JOIN ny_retailer_dim r ON r.retailer_id = h.retailer_id
-            JOIN ny_normalized_emergencies e ON h.emergency_id = e.emergency_id AND e.run_id = (SELECT MAX(run_id) FROM ny_normalized_emergencies)
-            WHERE h.run_id = (SELECT run_id FROM latest_run)
-        )
-        SELECT 
-            r.retailer_id,
-            r.retailer_name,
-            COALESCE(r.county, 'Unknown') as district_name,
-            COALESCE(rr.emergency_id, 'NONE') as emergency_id,
-            COALESCE(rr.source_name, 'NONE') as source_name,
-            COALESCE(rr.hazard_type, 'NONE') as hazard_type,
-            COALESCE(rr.status, 'SAFE') as status,
-            COALESCE(rr.inside_polygon, FALSE) as inside_polygon,
-            COALESCE(rr.distance_to_boundary_meters, -1.0) as distance_to_boundary_meters,
-            COALESCE(rr.within_buffer, FALSE) as within_buffer,
-            COALESCE(rr.action_level, 'SAFE') as action_level,
-            COALESCE(rr.severity_rank, 99) as severity_rank,
-            rr.source_timestamp,
-            rr.ingest_timestamp
-        FROM ny_retailer_dim r
-        LEFT JOIN ranked_risks rr ON r.retailer_id = rr.retailer_id AND rr.rnk = 1;
-    """)
+
 
     # 2. Build ny_retailer_dim using historical lookup and automated spatial joins
     print("Building ny_retailer_dim with spatial boundaries & regions...")
@@ -543,6 +486,65 @@ def build_dimensions(con: duckdb.DuckDBPyConnection) -> None:
     CREATE OR REPLACE TABLE {DIM_GAME_TABLE} AS
     SELECT *
     FROM {NY_GAME_DIM_TABLE}
+    """)
+
+    # Recreate view ny_retailer_risk_current (moved here so ny_retailer_dim exists)
+    con.execute("""
+        CREATE OR REPLACE VIEW ny_retailer_risk_current AS
+        WITH latest_run AS (
+            SELECT MAX(run_id) as run_id FROM ny_retailer_risk_history
+        ),
+        ranked_risks AS (
+            SELECT 
+                h.retailer_id,
+                r.retailer_name,
+                r.county as district_name,
+                h.emergency_id,
+                h.source_name,
+                h.hazard_type,
+                h.status,
+                h.inside_polygon,
+                h.distance_to_boundary_meters,
+                h.within_buffer,
+                h.action_level,
+                e.severity_rank,
+                e.source_timestamp,
+                h.ingest_timestamp,
+                ROW_NUMBER() OVER (
+                    PARTITION BY h.retailer_id 
+                    ORDER BY 
+                        CASE h.action_level 
+                            WHEN 'CRITICAL' THEN 1 
+                            WHEN 'WARNING' THEN 2 
+                            WHEN 'MONITOR' THEN 3 
+                            WHEN 'INFO' THEN 4 
+                            ELSE 5 
+                        END,
+                        e.severity_rank ASC,
+                        h.distance_to_boundary_meters ASC
+                ) as rnk
+            FROM ny_retailer_risk_history h
+            JOIN ny_retailer_dim r ON r.retailer_id = h.retailer_id
+            JOIN ny_normalized_emergencies e ON h.emergency_id = e.emergency_id AND e.run_id = (SELECT MAX(run_id) FROM ny_normalized_emergencies)
+            WHERE h.run_id = (SELECT run_id FROM latest_run)
+        )
+        SELECT 
+            r.retailer_id,
+            r.retailer_name,
+            COALESCE(r.county, 'Unknown') as district_name,
+            COALESCE(rr.emergency_id, 'NONE') as emergency_id,
+            COALESCE(rr.source_name, 'NONE') as source_name,
+            COALESCE(rr.hazard_type, 'NONE') as hazard_type,
+            COALESCE(rr.status, 'SAFE') as status,
+            COALESCE(rr.inside_polygon, FALSE) as inside_polygon,
+            COALESCE(rr.distance_to_boundary_meters, -1.0) as distance_to_boundary_meters,
+            COALESCE(rr.within_buffer, FALSE) as within_buffer,
+            COALESCE(rr.action_level, 'SAFE') as action_level,
+            COALESCE(rr.severity_rank, 99) as severity_rank,
+            rr.source_timestamp,
+            rr.ingest_timestamp
+        FROM ny_retailer_dim r
+        LEFT JOIN ranked_risks rr ON r.retailer_id = rr.retailer_id AND rr.rnk = 1;
     """)
 
 # -----------------------------------------------------------------------------
@@ -1069,6 +1071,8 @@ def main() -> int:
     # 2. Connect to the staging database
     print(f"Connecting to staging database: {DB_PATH_TEMP}...")
     con = duckdb.connect(str(DB_PATH_TEMP))
+    print("Limiting DuckDB execution threads to 4 to prevent CPU starvation...")
+    con.execute("SET threads = 4;")
     try:
         print(f"Normalizing {STATE_CODE} warehouse and canonical layer (v11)...")
         create_raw_tables(con)
