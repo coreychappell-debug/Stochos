@@ -148,7 +148,7 @@ get_adaptive_weights <- function(jackpot, n_recent) {
   if (jackpot <= 150e6) {
     w_base <- c(0.50, 0.30, 0.20) # Smooth out low-jackpot noise
   } else if (jackpot <= 600e6) {
-    w_base <- c(0.90, 0.08, 0.02) # Rely heavily on recent momentum during growth
+    w_base <- c(0.95, 0.04, 0.01) # Rely heavily on recent momentum during growth
   } else {
     w_base <- c(0.70, 0.20, 0.10) # Balance recency and saturation risk at high tails
   }
