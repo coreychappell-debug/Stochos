@@ -69,6 +69,22 @@ export async function PUT(request, { params }) {
   const body = await request.json();
 
   try {
+    const currentPlan = await prisma.instantTicketPlan.findUnique({
+      where: { id },
+      select: { updatedAt: true }
+    });
+
+    if (!currentPlan) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
+    if (body.updatedAt && new Date(body.updatedAt).getTime() !== new Date(currentPlan.updatedAt).getTime()) {
+      return NextResponse.json({
+        error: "Conflict",
+        details: "This plan has been modified by another user. Please reload the page to see their changes."
+      }, { status: 409 });
+    }
+
     const updatedPlan = await prisma.$transaction(async (tx) => {
       // 1. Update main plan metadata
       const planUpdateData = {

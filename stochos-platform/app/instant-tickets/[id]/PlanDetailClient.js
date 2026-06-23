@@ -345,9 +345,18 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
       const res = await fetch(`/api/instant-tickets/plans/${plan.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ 
+          status: newStatus,
+          updatedAt: plan.updatedAt
+        }),
       });
-      if (!res.ok) throw new Error("Failed to update plan status");
+      if (!res.ok) {
+        if (res.status === 409) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(`Conflict: ${data.details || "The plan has been modified by another user."}`);
+        }
+        throw new Error("Failed to update plan status");
+      }
       router.refresh();
     } catch (err) {
       alert(err.message);
@@ -364,10 +373,17 @@ Units: ${fmtUnits(g.units)} | Est. Sales: ${fmt$(sales)}`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sellThroughPct: sellThroughOverride,
-          retailerCommPct: retailerCommOverride
+          retailerCommPct: retailerCommOverride,
+          updatedAt: plan.updatedAt
         }),
       });
-      if (!res.ok) throw new Error("Failed to save sandbox values to database");
+      if (!res.ok) {
+        if (res.status === 409) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(`Conflict: ${data.details || "The plan has been modified by another user."}`);
+        }
+        throw new Error("Failed to save sandbox values to database");
+      }
       router.refresh();
     } catch (err) {
       alert(err.message);

@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOG_PREFIX="[STOCHOS WEEKLY]"
+
+# Enforce single-instance lock using file descriptor 9
+LOCK_FILE="/var/run/stochos_weekly_maintenance.lock"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    echo "$LOG_PREFIX ERROR: Another instance of weekly maintenance is already running!" >&2
+    exit 1
+fi
+
+echo "$LOG_PREFIX Starting weekly maintenance: $(date)"
+
+# Detect correct docker compose command (v1 hyphen vs v2 space plugin compatibility)
+if docker compose version &>/dev/null; then
+    COMPOSE_CMD="docker compose"
+elif which docker-compose &>/dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
+    echo "$LOG_PREFIX ERROR: Neither 'docker compose' nor 'docker-compose' command found!" >&2
+    exit 1
+fi
+
+echo "$LOG_PREFIX Using compose utility: $COMPOSE_CMD"
+
+########################################
+# Step 1: Navigate to compose directory
+########################################
+cd /home/analyst1/analyst_lab
+
+echo "$LOG_PREFIX In directory: $(pwd)"
+
+########################################
+# Step 2: Stop analytics services
+########################################
+echo "$LOG_PREFIX Stopping RStudio and Shiny containers..."
+
+$COMPOSE_CMD down
+
+echo "$LOG_PREFIX Containers stopped"
+
+########################################
+# Step 3: Run NY data refresh
+########################################
+echo "$LOG_PREFIX Running NY refresh..."
+
+/usr/bin/python3 /srv/stochos/jobs/ny_refresh.py
+
+echo "$LOG_PREFIX NY refresh complete"
+
+########################################
+# Step 4: Run DuckDB normalization
+########################################
+echo "$LOG_PREFIX Running DuckDB normalization..."
+
+/usr/bin/python3 /srv/stochos/jobs/ny_duckdb_refresh.py
+
+echo "$LOG_PREFIX DuckDB normalization complete"
+
+########################################
+# Step 4b: Run planned budget sync
+########################################
+echo "$LOG_PREFIX Running planned budget sync..."
+
+/usr/bin/python3 /srv/stochos/jobs/sync_budget.py
+
+echo "$LOG_PREFIX Planned budget sync complete"
+
+########################################
+# Step 5: Run backup
+########################################
+echo "$LOG_PREFIX Running backup..."
+
+/usr/local/bin/stochos-backup
+
+echo "$LOG_PREFIX Backup complete"
+
+########################################
+# Step 6: Restart services
+########################################
+echo "$LOG_PREFIX Restarting containers..."
+
+$COMPOSE_CMD up -d
+
+echo "$LOG_PREFIX Containers started"
+
+########################################
+# Step 6b: Compile R Marts & Sync to PostgreSQL
+########################################
+echo "$LOG_PREFIX Waiting for containers to stabilize before running R Marts (15s)..."
+sleep 15
+
+echo "$LOG_PREFIX Rebuilding Phase 1 Marts inside RStudio container..."
+docker exec -i analyst_lab_prod_rstudio Rscript /srv/stochos/jobs/NY_Dashboard_Marts_Phase1.r
+
+echo "$LOG_PREFIX Rebuilding Executive Marts inside RStudio container..."
+docker exec -i analyst_lab_prod_rstudio Rscript /srv/stochos/jobs/NY_Exec_Dashboard_Marts.r
+
+echo "$LOG_PREFIX Mart compilation complete. Synchronizing to PostgreSQL..."
+/usr/bin/python3 /srv/stochos/jobs/sync_exec_marts.py >> /srv/stochos/logs/sync_exec_marts.log 2>&1
+
+echo "$LOG_PREFIX Mart synchronization complete."
+
+########################################
+# Step 7: Health check
+########################################
+echo "$LOG_PREFIX Running final health check..."
+
+sleep 5
+
+docker ps
+
+echo "$LOG_PREFIX Weekly maintenance COMPLETE: $(date)"
