@@ -9,6 +9,10 @@ library(DBI)
 # Database path
 db_path <- "/srv/stochos/data/duckdb/stochos_lottery.duckdb"
 con <- dbConnect(duckdb(), db_path, read_only = FALSE)
+
+# Limit DuckDB execution threads to 4 to prevent CPU starvation
+dbExecute(con, "SET threads = 4;")
+
 dbExecute(con, "INSTALL spatial;")
 dbExecute(con, "LOAD spatial;")
 dbExecute(con, "INSTALL json;")
