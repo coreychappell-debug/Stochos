@@ -354,7 +354,7 @@ generate_prediction <- function(mm_data, target_date, target_jp, cfg) {
           rd_tickets <- pred_M7_ConstrainedGAM(rd_m_base, rd)[1]
         }
         
-        ratio <- rd$Tickets / rd_tickets
+        ratio <- max(0.50, min(1.50, rd$Tickets / rd_tickets))
         recent_ratios[idx] = ratio
         
         momentum_details <- bind_rows(momentum_details, data.frame(

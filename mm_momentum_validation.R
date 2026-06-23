@@ -364,7 +364,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
               rd_pred <- pred_M7_ConstrainedGAM(model_base, rd)[1]
             }
           }
-          ratios[idx] <- rd$Tickets / rd_pred
+          ratios[idx] <- max(0.50, min(1.50, rd$Tickets / rd_pred))
         }
         
         # Assign weights based on actual available draws
