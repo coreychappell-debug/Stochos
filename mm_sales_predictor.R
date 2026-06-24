@@ -381,6 +381,18 @@ generate_prediction <- function(mm_data, target_date, target_jp, cfg) {
   final_sales_conservative <- final_sales * cfg$CONSERVATIVE_DISCOUNT
   final_tickets_conservative <- final_tickets * cfg$CONSERVATIVE_DISCOUNT
   
+  # 9. Find Historical Analogues (Same Day of Week, Same Price Point, Jackpot +/- 20%)
+  analogues <- mm_data %>%
+    filter(
+      PostChange == post_change,
+      DayOfWeek == dow,
+      Jackpot >= target_jp * 0.80,
+      Jackpot <= target_jp * 1.20,
+      DrawDate < target_date
+    ) %>%
+    select(DrawDate, Jackpot, Sales, Tickets) %>%
+    arrange(desc(DrawDate))
+  
   list(
     inputs = test_row,
     price = price,
@@ -391,7 +403,8 @@ generate_prediction <- function(mm_data, target_date, target_jp, cfg) {
     final_sales = final_sales,
     final_sales_conservative = final_sales_conservative,
     final_tickets_conservative = final_tickets_conservative,
-    momentum_details = momentum_details
+    momentum_details = momentum_details,
+    analogues = analogues
   )
 }
 
@@ -435,6 +448,24 @@ if (nrow(pred$momentum_details) > 0) {
   cat(sprintf("\n   ★ COMBINED RECENCY MOMENTUM MULTIPLIER: %.3fx\n", pred$momentum_multiplier))
 } else {
   cat("   No previous draws in the current roll run. Multiplier defaults to 1.000x.\n")
+}
+cat("\n")
+
+cat(strrep("-", 80), "\n")
+cat("  HISTORICAL ANALOGUES (Same Day of Week, Same Price Point, Jackpot +/-20%)\n")
+cat(strrep("-", 80), "\n")
+
+if (nrow(pred$analogues) > 0) {
+  for (i in seq_len(nrow(pred$analogues))) {
+    an <- pred$analogues[i, ]
+    cat(sprintf("   ➔ Draw %s (JP: $%7sM): Actual Sales = $%10s | Tickets = %s\n",
+                an$DrawDate,
+                format(round(an$Jackpot / 1e6), big.mark = ","),
+                format(round(an$Sales), big.mark = ","),
+                format(round(an$Tickets), big.mark = ",")))
+  }
+} else {
+  cat("   No similar historical jackpots found on this day under the current price point.\n")
 }
 cat("\n")
 
