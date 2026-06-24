@@ -311,6 +311,27 @@ run_momentum_backtest <- function(mm_data, cfg) {
       pred_tickets_base <- pred_M7_ConstrainedGAM(model_base, eval_row)[1]
     }
     
+    # 1.1 Find analogues in historical data prior to target_date
+    pred_tickets_analogue <- NA_real_
+    if (eval_row$Is_Reset_Final[1] == 1) {
+      pred_tickets_analogue <- pred_tickets_base
+    } else {
+      hist_data <- d[1:(i-1), ]
+      analogues <- hist_data %>%
+        filter(
+          Is_Reset_Final == 0,
+          PostChange == eval_row$PostChange[1],
+          DayOfWeek == eval_row$DayOfWeek[1],
+          Jackpot >= eval_row$Jackpot[1] * 0.80,
+          Jackpot <= eval_row$Jackpot[1] * 1.20
+        )
+      if (nrow(analogues) > 0) {
+        pred_tickets_analogue <- mean(analogues$Tickets, na.rm = TRUE)
+      } else {
+        pred_tickets_analogue <- pred_tickets_base
+      }
+    }
+    
     actual_tickets <- eval_row$Tickets[1]
     if (!is.finite(pred_tickets_base) || is.na(actual_tickets) || actual_tickets <= 0) next
     
@@ -388,6 +409,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     pred_tickets_C <- pred_tickets_base * mult_C
     pred_tickets_D <- pred_tickets_base * mult_D
     pred_tickets_E <- pred_tickets_base * mult_E
+    pred_tickets_F <- pred_tickets_analogue * mult_E
     
     price <- eval_row$Price[1]
     
@@ -405,6 +427,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
       Pred_C = pred_tickets_C * price,
       Pred_D = pred_tickets_D * price,
       Pred_E = pred_tickets_E * price,
+      Pred_F = pred_tickets_F * price,
       
       Err_Base = abs(pred_tickets_base - actual_tickets)/actual_tickets * 100,
       Err_A = abs(pred_tickets_A - actual_tickets)/actual_tickets * 100,
@@ -412,6 +435,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
       Err_C = abs(pred_tickets_C - actual_tickets)/actual_tickets * 100,
       Err_D = abs(pred_tickets_D - actual_tickets)/actual_tickets * 100,
       Err_E = abs(pred_tickets_E - actual_tickets)/actual_tickets * 100,
+      Err_F = abs(pred_tickets_F - actual_tickets)/actual_tickets * 100,
       
       Dollar_Err_Base = abs(pred_tickets_base * price - eval_row$Sales[1]),
       Dollar_Err_A = abs(pred_tickets_A * price - eval_row$Sales[1]),
@@ -419,6 +443,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
       Dollar_Err_C = abs(pred_tickets_C * price - eval_row$Sales[1]),
       Dollar_Err_D = abs(pred_tickets_D * price - eval_row$Sales[1]),
       Dollar_Err_E = abs(pred_tickets_E * price - eval_row$Sales[1]),
+      Dollar_Err_F = abs(pred_tickets_F * price - eval_row$Sales[1]),
       
       stringsAsFactors = FALSE
     )
@@ -434,7 +459,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
 # ------------------------------------------------------------------------------
 
 compile_scorecard <- function(res) {
-  variants <- c("Base", "A_50_30_20", "B_70_20_10", "C_Equal", "D_t1_Only", "E_Adaptive")
+  variants <- c("Base", "A_50_30_20", "B_70_20_10", "C_Equal", "D_t1_Only", "E_Adaptive", "F_Analogue_Hybrid")
   
   # Overall Scorecard
   scorecard <- list()
@@ -443,6 +468,7 @@ compile_scorecard <- function(res) {
     suffix <- switch(v,
                      "Base" = "Base",
                      "E_Adaptive" = "E",
+                     "F_Analogue_Hybrid" = "F",
                      substr(v, 1, 1))
     err_col <- paste0("Err_", suffix)
     dol_col <- paste0("Dollar_Err_", suffix)
