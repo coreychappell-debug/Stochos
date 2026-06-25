@@ -49,6 +49,28 @@ calculate_smear <- function(model) {
   mean(exp(residuals(model)), na.rm = TRUE)
 }
 
+align_levels <- function(model, newdata, default_day = "Wed") {
+  fit_obj <- if (is.list(model) && !is.null(model$fit)) model$fit else model
+  
+  if (is.null(fit_obj) || is.null(fit_obj$xlevels) || is.null(fit_obj$xlevels$DayOfWeek)) {
+    return(newdata)
+  }
+  
+  valid_levels <- fit_obj$xlevels$DayOfWeek
+  
+  if ("DayOfWeek" %in% names(newdata)) {
+    dow_char <- as.character(newdata$DayOfWeek)
+    invalid_idx <- !(dow_char %in% valid_levels)
+    if (any(invalid_idx)) {
+      fallback_day <- if (default_day %in% valid_levels) default_day else valid_levels[1]
+      dow_char[invalid_idx] <- fallback_day
+    }
+    newdata$DayOfWeek <- factor(dow_char, levels = valid_levels)
+  }
+  
+  newdata
+}
+
 calc_roll_count <- function(draw_dates, jackpots, drop_threshold = 0.50) {
   n <- length(jackpots)
   counts <- integer(n)
@@ -112,6 +134,8 @@ fit_M7_ConstrainedGAM <- function(train) {
 
 pred_M7_ConstrainedGAM <- function(model, newdata) {
   if (is.null(model)) return(rep(NA_real_, nrow(newdata)))
+  
+  newdata <- align_levels(model$fit, newdata, default_day = "Wed")
   
   nd_base <- newdata
   nd_base$Jackpot <- 20e6
@@ -285,7 +309,8 @@ generate_prediction <- function(pb_data, target_date, target_jp, cfg) {
   base_tickets <- NA_real_
   if (is_reset_final == 1) {
     if (!is.null(m_reset)) {
-      p <- predict(m_reset, newdata = test_row)
+      test_row_aligned <- align_levels(m_reset, test_row, default_day = "Wed")
+      p <- predict(m_reset, newdata = test_row_aligned)
       base_tickets <- exp(p) * sm_reset
     } else {
       base_tickets <- r_mean
@@ -332,7 +357,8 @@ generate_prediction <- function(pb_data, target_date, target_jp, cfg) {
           rd_m_reset <- if (nrow(rd_reset_train) >= 5) lm(log(Tickets) ~ DayOfWeek, data = rd_reset_train) else NULL
           rd_sm_reset <- if (!is.null(rd_m_reset)) calculate_smear(rd_m_reset) else 1.0
           if (!is.null(rd_m_reset)) {
-            rd_tickets <- exp(predict(rd_m_reset, newdata = rd)) * rd_sm_reset
+            rd_aligned <- align_levels(rd_m_reset, rd, default_day = "Wed")
+            rd_tickets <- exp(predict(rd_m_reset, newdata = rd_aligned)) * rd_sm_reset
           } else {
             rd_tickets <- mean(rd_reset_train$Tickets, na.rm = TRUE)
           }

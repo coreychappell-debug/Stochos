@@ -47,6 +47,28 @@ calculate_smear <- function(model) {
   mean(exp(residuals(model)), na.rm = TRUE)
 }
 
+align_levels <- function(model, newdata, default_day = "Tue") {
+  fit_obj <- if (is.list(model) && !is.null(model$fit)) model$fit else model
+  
+  if (is.null(fit_obj) || is.null(fit_obj$xlevels) || is.null(fit_obj$xlevels$DayOfWeek)) {
+    return(newdata)
+  }
+  
+  valid_levels <- fit_obj$xlevels$DayOfWeek
+  
+  if ("DayOfWeek" %in% names(newdata)) {
+    dow_char <- as.character(newdata$DayOfWeek)
+    invalid_idx <- !(dow_char %in% valid_levels)
+    if (any(invalid_idx)) {
+      fallback_day <- if (default_day %in% valid_levels) default_day else valid_levels[1]
+      dow_char[invalid_idx] <- fallback_day
+    }
+    newdata$DayOfWeek <- factor(dow_char, levels = valid_levels)
+  }
+  
+  newdata
+}
+
 get_price <- function(game, draw_date, cfg) {
   if (game == "MM") return(ifelse(draw_date >= cfg$MM_PRICE_CHANGE_DATE, cfg$PRICES$MM_POST, cfg$PRICES$MM_PRE))
   if (game == "PB") return(rep(cfg$PRICES$PB, length(draw_date)))
@@ -119,6 +141,8 @@ fit_M7_ConstrainedGAM <- function(train) {
 
 pred_M7_ConstrainedGAM <- function(model, newdata) {
   if (is.null(model)) return(rep(NA_real_, nrow(newdata)))
+  
+  newdata <- align_levels(model$fit, newdata, default_day = "Tue")
   
   nd_base <- newdata
   nd_base$Jackpot <- 20e6
@@ -257,8 +281,9 @@ get_lookahead_free_pred <- function(train_subset, rd) {
     reset_train <- train_subset %>% filter(Is_Reset_Final == 1)
     m_res <- if (nrow(reset_train) >= 5) lm(log(Tickets) ~ DayOfWeek, data = reset_train) else NULL
     if (!is.null(m_res)) {
+      rd_aligned <- align_levels(m_res, rd, default_day = "Tue")
       sm <- mean(exp(residuals(m_res)), na.rm = TRUE)
-      exp(predict(m_res, newdata = rd)) * sm
+      exp(predict(m_res, newdata = rd_aligned)) * sm
     } else {
       mean(reset_train$Tickets, na.rm = TRUE)
     }
@@ -323,7 +348,8 @@ run_momentum_backtest <- function(mm_data, cfg) {
     pred_tickets_base <- NA_real_
     if (eval_row$Is_Reset_Final[1] == 1) {
       if (!is.null(model_reset)) {
-        p <- tryCatch(predict(model_reset, newdata = eval_row), error = function(e) NA)
+        eval_row_aligned <- align_levels(model_reset, eval_row, default_day = "Tue")
+        p <- tryCatch(predict(model_reset, newdata = eval_row_aligned), error = function(e) NA)
         pred_tickets_base <- exp(p) * sm_reset
       } else {
         pred_tickets_base <- r_mean
