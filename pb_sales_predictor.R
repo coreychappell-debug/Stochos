@@ -52,7 +52,7 @@ calculate_smear <- function(model) {
 align_levels <- function(model, newdata, default_day = "Wed") {
   fit_obj <- if (is.list(model) && !is.null(model$fit)) model$fit else model
   
-  if (is.null(fit_obj) || is.null(fit_obj$xlevels) || is.null(fit_obj$xlevels$DayOfWeek)) {
+  if (is.null(fit_obj) || !is.list(fit_obj) || is.null(fit_obj$xlevels) || is.null(fit_obj$xlevels$DayOfWeek)) {
     return(newdata)
   }
   
