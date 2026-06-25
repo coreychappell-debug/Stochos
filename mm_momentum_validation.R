@@ -273,7 +273,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     
     # Refit model periodically
     if (is.null(model_base) || (i - last_fit_i) >= cfg$REFIT_EVERY) {
-      train <- d[1:(i-1), ]
+      train <- d[1:(i-2), ]
       
       # Enforce 3-year lookback
       cutoff <- target_date - years(cfg$TRAINING_YEARS)
@@ -316,7 +316,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     if (eval_row$Is_Reset_Final[1] == 1) {
       pred_tickets_analogue <- pred_tickets_base
     } else {
-      hist_data <- d[1:(i-1), ]
+      hist_data <- d[1:(i-2), ]
       analogues <- hist_data %>%
         filter(
           Is_Reset_Final == 0,
@@ -346,7 +346,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     if (eval_row$Is_Reset_Final[1] == 1) {
       # Reset draw: do not carry over momentum from the previous roll run
     } else {
-      active_roll <- d[1:(i-1), ] %>%
+      active_roll <- d[1:(i-2), ] %>%
         arrange(desc(DrawDate))
       
       # Isolate current roll run draws

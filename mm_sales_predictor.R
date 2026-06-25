@@ -259,6 +259,15 @@ generate_prediction <- function(mm_data, target_date, target_jp, cfg) {
   previous_draw <- mm_data %>% filter(DrawDate < target_date) %>% arrange(desc(DrawDate)) %>% head(1)
   prev_jp <- previous_draw$Jackpot[1]
   prev_roll <- previous_draw$RollCount[1]
+  prev_date <- previous_draw$DrawDate[1]
+  
+  # Helper to count drawings (Tuesdays/Fridays) in interval (start, end]
+  count_draws_between <- function(start_date, end_date) {
+    if (start_date >= end_date) return(0)
+    dates <- seq(start_date + 1, end_date, by = "1 day")
+    sum(wday(dates) %in% c(3, 6))
+  }
+  n_draws <- max(1, count_draws_between(prev_date, target_date))
   
   # 3. Calculate roll count and reset state for target draw
   is_reset_a <- target_jp <= 50e6
@@ -267,7 +276,7 @@ generate_prediction <- function(mm_data, target_date, target_jp, cfg) {
   
   # Detect if a reset draw occurred
   is_reset_final <- as.integer(is_reset_a | is_reset_c)
-  roll_count <- if (is_reset_final == 1) 1 else prev_roll + 1
+  roll_count <- if (is_reset_final == 1) 1 else prev_roll + n_draws
   if (prev_jp >= 0.5 * target_jp && target_jp <= 50e6) {
     is_reset_final <- 1
     roll_count <- 1
