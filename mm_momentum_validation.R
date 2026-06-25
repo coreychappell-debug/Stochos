@@ -252,6 +252,27 @@ load_data <- function(cfg) {
 # SECTION 4: ROLLING BACKTEST HARNESS WITH MULTIPLE MOMENTUM SCHEMES
 # ------------------------------------------------------------------------------
 
+get_lookahead_free_pred <- function(train_subset, rd) {
+  if (rd$Is_Reset_Final[1] == 1) {
+    reset_train <- train_subset %>% filter(Is_Reset_Final == 1)
+    m_res <- if (nrow(reset_train) >= 5) lm(log(Tickets) ~ DayOfWeek, data = reset_train) else NULL
+    if (!is.null(m_res)) {
+      sm <- mean(exp(residuals(m_res)), na.rm = TRUE)
+      exp(predict(m_res, newdata = rd)) * sm
+    } else {
+      mean(reset_train$Tickets, na.rm = TRUE)
+    }
+  } else {
+    base_train <- train_subset %>% filter(Is_Reset_Final == 0)
+    m_base <- fit_M7_ConstrainedGAM(base_train)
+    if (!is.null(m_base)) {
+      pred_M7_ConstrainedGAM(m_base, rd)[1]
+    } else {
+      mean(base_train$Tickets, na.rm = TRUE)
+    }
+  }
+}
+
 run_momentum_backtest <- function(mm_data, cfg) {
   d <- mm_data %>% arrange(DrawDate)
   n <- nrow(d)
@@ -273,7 +294,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     
     # Refit model periodically
     if (is.null(model_base) || (i - last_fit_i) >= cfg$REFIT_EVERY) {
-      train <- d[1:(i-2), ]
+      train <- d[1:(i-1), ]
       
       # Enforce 3-year lookback
       cutoff <- target_date - years(cfg$TRAINING_YEARS)
@@ -316,7 +337,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     if (eval_row$Is_Reset_Final[1] == 1) {
       pred_tickets_analogue <- pred_tickets_base
     } else {
-      hist_data <- d[1:(i-2), ]
+      hist_data <- d[1:(i-1), ]
       analogues <- hist_data %>%
         filter(
           Is_Reset_Final == 0,
@@ -346,7 +367,7 @@ run_momentum_backtest <- function(mm_data, cfg) {
     if (eval_row$Is_Reset_Final[1] == 1) {
       # Reset draw: do not carry over momentum from the previous roll run
     } else {
-      active_roll <- d[1:(i-2), ] %>%
+      active_roll <- d[1:(i-1), ] %>%
         arrange(desc(DrawDate))
       
       # Isolate current roll run draws
@@ -366,24 +387,17 @@ run_momentum_backtest <- function(mm_data, cfg) {
           
           # Check if we already have the base prediction for this draw from our results
           rd_pred <- NA_real_
-          if (length(results) >= (i - j) && j > min_train) {
+          if (j > min_train && length(results) >= (j - min_train)) {
             res_idx <- j - min_train
             if (res_idx > 0 && res_idx <= length(results)) {
               rd_pred <- results[[res_idx]]$Pred_Base / rd$Price
             }
           }
           
-          # Fallback to current models if not available (e.g. at the very start of backtest)
+          # Fallback to lookahead-free model if not available (e.g. at the very start of backtest)
           if (is.na(rd_pred)) {
-            if (rd$Is_Reset_Final == 1) {
-              if (!is.null(model_reset)) {
-                rd_pred <- exp(predict(model_reset, newdata = rd)) * sm_reset
-              } else {
-                rd_pred <- r_mean
-              }
-            } else {
-              rd_pred <- pred_M7_ConstrainedGAM(model_base, rd)[1]
-            }
+            rd_train <- d[1:(j-1), ]
+            rd_pred <- get_lookahead_free_pred(rd_train, rd)
           }
           ratios[idx] <- max(0.50, min(1.50, rd$Tickets / rd_pred))
         }
