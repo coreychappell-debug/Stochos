@@ -236,6 +236,15 @@ Combines physical device tracking and vehicle operations into a unified registry
 * **Avery 5163 Tag Compiler `[Staged]`**: Generates printable Code 39 barcode labels drawn via PDFKit vector geometry, preventing scanner failures.
 * **Odometer Compliance Loop `[Staged]`**: Drivers scan dashboard QR codes to submit odometer readings and pre-trip checklists. If logs are missing for 3 days, escalation alerts are flagged on the Fleet Manager's dashboard, with a "Copy to Clipboard" button to notify supervisors via Teams/Slack.
 
+### 6. Instant Ticket Working Papers & Prize Structures
+Integrates sandbox planning models with legal contracts and official prize payout specifications.
+* **1-to-1 Relational Integrity**: Establishes a strict 1-to-1 connection between planned scenario games (`InstantTicketGame`) and executed contracts (`InstantTicketWorkingPaper`). Database foreign key constraints employ `onDelete: SetNull` cascade policies so that if a sandbox plan is deleted or re-seeded, the historical co-signed working paper remains archived in the system of record.
+* **Atomic Save Transactions (`$transaction`)**: Modifying prize grid structures triggers an atomic PostgreSQL transaction. The engine deletes old tiers, validates input structures, creates new rows, and recalculates parent parameters (overall odds, total prize expense) in a single block. A failure in any row immediately rolls back all changes, protecting the database from corrupted or orphaned allocations.
+* **Statutory Compliance Checkers**: The balancer enforces retail cashability compliance (alerting if prizes cashable at retail under $600 fall below a 75% target) and highlights claim-only W-2G tax limits (flagging tiers at $600+).
+* **Dynamic Relational Pre-filling**: Associating a working paper with a planned scenario game automatically pre-fills game parameters (denomination, print run size, and titles) directly from the active plan, aligning procurement records.
+* **Tiptap Legal Document Compiler**: Storing rich-text HTML validation procedures and play style rules directly in the database, allowing users to compile and co-sign formal agreements via an inline WYSIWYG editor.
+* **Bidirectional Sandbox Sync**: Saving calculated payout overrides automatically synchronizes the data model back to the planning sandbox, updating Gantt calendar lifespans, central overhead allocations, and margin sliders in real-time.
+
 ---
 
 # Conclusion

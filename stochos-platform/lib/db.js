@@ -5,14 +5,22 @@
 // Prevents multiple Prisma Client instances during hot reload in development.
 // =============================================================================
 
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-
 const globalForPrisma = globalThis;
 
 function createPrismaClient() {
   const logger = require('./logger');
   logger.info("[Db] Instantiating a new Prisma Client...");
+
+  // Force-clear require cache for prisma packages to load fresh client from disk
+  Object.keys(require.cache).forEach((key) => {
+    if (key.includes('@prisma/client') || key.includes('.prisma')) {
+      delete require.cache[key];
+    }
+  });
+
+  const { PrismaClient } = require('@prisma/client');
+  const { PrismaPg } = require('@prisma/adapter-pg');
+
   const connectionString = process.env.DATABASE_URL;
   const adapter = new PrismaPg({ connectionString });
   
@@ -74,7 +82,7 @@ function createPrismaClient() {
 }
 
 let prisma = globalForPrisma.prisma;
-if (!prisma || !prisma.gasbRow) {
+if (!prisma || !prisma.gasbRow || !prisma.instantTicketWorkingPaper) {
   prisma = createPrismaClient();
   if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 }

@@ -79,8 +79,9 @@ export default async function InstantTicketsPage() {
             <h2>Instant Ticket Planner</h2>
             <p>Fiscal year game portfolio planning, vendor allocation, and procurement tracking.</p>
           </div>
-          <div>
+          <div className="flex gap-2 items-center">
             <HelpTrigger topicId="tickets" />
+            <Link href="/instant-tickets/working-papers" className="btn btn-secondary">Working Papers Registry</Link>
           </div>
         </div>
 

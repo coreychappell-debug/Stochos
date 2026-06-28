@@ -101,6 +101,15 @@ This document outlines key technical items, feature improvements, and completed 
   - **Creative Asset Review Board**: Integrate digital design sign-off flows (Draft, Under Review, Approved) for TV/Radio ads and creative mockups.
   - **Channel Spend Breakdown**: Track advertising channel costs (TV, Radio, Digital, POS) with ROI impression and sales uplift estimators.
 
+### 6.3 Instant Ticket Working Papers & Prize Structures [COMPLETED]
+- **Objective:** Bridge working paper specifications directly with instant ticket planning and financial forecasting.
+- **Completed Enhancements:**
+  - **Working Paper Registry**: An index ledger at `/instant-tickets/working-papers` tracks co-signed contracts, price points, status, and associated planned games.
+  - **Prize Expense Structure Builder**: Real-time balancer board calculating actual payouts, overall winning odds, total budgets, and variance relative to the scenario plan target. Features autocomplete pickers for Ways to Win and certified New York price category templates ($1 to $50).
+  - **Retail Cashability & W-2G Warnings**: Automated checks warning if the retail cashing rate (payouts under $600) falls below 75% or highlighting claim-only tiers (>= $600).
+  - **Planogram & Sandbox Override Sync**: Option to override the sandbox planned payout percent back to the PostgreSQL database, automatically propagating to the net margin sandbox modeler and department budgets.
+  - **Tiptap Legal Editor**: Renders the complete legal rules and security procedures document.
+
 ---
 
 ## 7. Next-Generation UX/UI Enhancements

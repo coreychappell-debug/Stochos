@@ -39,6 +39,7 @@ const navItems = [
       { href: "/analytics/forecast", label: "Forecast & Outlook", icon: <TrendingUp size={18} /> },
       { href: "/marketing", label: "Marketing MRM", icon: <Megaphone size={18} /> },
       { href: "/instant-tickets", label: "Instant Tickets", icon: <Ticket size={18} /> },
+      { href: "/instant-tickets/working-papers", label: "Working Papers", icon: <FileText size={18} /> },
       { href: "/draw-planning", label: "Draw Game Planning", icon: <Dices size={18} /> },
       { href: "/products", label: "Products", icon: <Layers size={18} /> },
     ],
@@ -100,6 +101,7 @@ export default function Sidebar() {
     if (href === "/analytics/forecast") return "feature_analytics_forecast";
     if (href === "/marketing") return "feature_marketing";
     if (href === "/instant-tickets") return "feature_instant_tickets";
+    if (href === "/instant-tickets/working-papers") return "feature_instant_tickets";
     if (href === "/draw-planning") return "feature_draw_planning";
     if (href === "/products") return "feature_products";
     if (href === "/fomo") return "feature_fomo";

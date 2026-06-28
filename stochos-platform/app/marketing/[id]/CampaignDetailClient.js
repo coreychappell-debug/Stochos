@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Radio, AlertTriangle, Trash2, Image, Check, Link2, CheckSquare, FileText, ArrowLeft } from "lucide-react";
+import { Radio, AlertTriangle, Trash2, Image, Check, Link2, CheckSquare, FileText, ArrowLeft, Printer } from "lucide-react";
 
 const STATUS_LABELS = {
   planning: "Planning",
@@ -57,6 +57,17 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
   const plannedSpend = campaign.channels.reduce((sum, ch) => sum + (parseFloat(ch.plannedSpend) || 0), 0);
   const actualSpend = campaign.channels.reduce((sum, ch) => sum + (parseFloat(ch.actualSpend) || 0), 0);
   
+  const handlePrint = async () => {
+    setSaving(true);
+    try {
+      await fetch(`/api/campaigns/${campaign.id}/export/pdf`, { method: "POST" });
+    } catch (err) {
+      console.error("Failed to log export audit:", err);
+    }
+    setSaving(false);
+    window.open(`/marketing/${campaign.id}/print`, "_blank");
+  };
+
   const handleUpdateStatus = async (newStatus) => {
     if (!confirm(`Move campaign to ${STATUS_LABELS[newStatus]}?`)) return;
     setSaving(true);
@@ -236,16 +247,25 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
               </span>
             </p>
           </div>
-          
-          {NEXT_STATUS[campaign.status] && (
+          <div className="flex gap-2">
             <button
-              className="btn btn-primary"
-              onClick={() => handleUpdateStatus(NEXT_STATUS[campaign.status])}
+              className="btn btn-secondary"
+              onClick={handlePrint}
               disabled={saving}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              Move to {STATUS_LABELS[NEXT_STATUS[campaign.status]]} →
+              <Printer size={16} /> Print Packet
             </button>
-          )}
+            {NEXT_STATUS[campaign.status] && (
+              <button
+                className="btn btn-primary"
+                onClick={() => handleUpdateStatus(NEXT_STATUS[campaign.status])}
+                disabled={saving}
+              >
+                Move to {STATUS_LABELS[NEXT_STATUS[campaign.status]]} →
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -453,8 +453,25 @@ export const guides = [
         "Track Changes (Versions): Open the 'History & Snapshots' panel to review the list of previous compiles (showing dates, item counts, totals, and authors).",
         "Restore Previous Compiles: Select a version and click 'Restore Snapshot' to undo compile changes. The system automatically creates a backup of the current state."
       ],
-      examples: "Example Use Case: The Division Lead compiles the FY 2025 comparative reports. They modify the 'Cash and cash equivalents' row name to match audit formats and save. Later, they review previous drafts in the history panel and restore version v1, which automatically backs up their name change draft.",
-      tips: "Troubleshooting: If statements are out-of-balance, check the double-entry status banner. If it is red, use the Active Ledger Grid to locate the unbalanced entry."
+    }
+  },
+  {
+    id: "working_papers",
+    category: "tickets",
+    title: "Instant Ticket Working Papers & Prize Builder",
+    summary: "Establish official co-signed contract sheets, compile legal validation procedures, and balance prize structures.",
+    content: {
+      overview: "The Instant Ticket Working Papers & Prize Structures Builder is the definitive system of record for compiling co-signed contractual specifications, security validation rules, and prize payout structures for New York State instant games. It connects sandbox planning profiles to legally binding execution drafts, ensuring that the physical ticket printing runs correspond exactly to authorized performance thresholds.",
+      steps: [
+        "Create Working Paper: Navigate to the Working Papers Registry from the sidebar or the main Planner page. Click '+ New Working Paper', select an active sandbox game (e.g. Game #1028) from the dropdown, and click 'Create'. This connects the document to the sandbox and imports the planned game name, denomination, and print run volumes.",
+        "Load NYSGC Templates: Open the Working Paper detail page and navigate to the 'Prize Structure Builder' tab. Click 'Load NYSGC Template' to populate the grid with certified prize structures tailored to your game's price point ($1, $2, $5, $10, $20, $30, or $50). The system scales winner counts relative to your target print run size.",
+        "Design Prize Grid: Edit individual tiers, winning descriptions (e.g. '10X Multiplier w/ $10'), and winner counts. The system computes tier odds, actual payouts, and cashability rates in real time.",
+        "Monitor Cashability & Tax Warnings: Check the metrics panel. If the retail cashability rate falls below the 75% target, or if a prize tier is >= $600 (triggering a claim-only W-2G tax warning), the system flags the warning to encourage cashing accessibility.",
+        "Compile Contract Text: Switch to the 'Contract Language Editor' tab to edit rules, play styles, and validation procedures using the integrated Tiptap word processor. Clicking 'Save Changes' updates the contract database.",
+        "Sync Sandbox Overrides: Toggle 'Override Plan Payout %' and click 'Save Changes' to update the sandboxed game's payout percentage in the active scenario, syncing financial models and division budgets."
+      ],
+      examples: "Example Use Case: A product designer loads Game #1028. They select the $30 template and scale the print run to 3,400,000. They add a custom $100 tier and use the 'Ways to Win' picker to select a multiplier. Observing that the retail cashability is 85% and the payout rate is 63.5%, they toggle the plan override sync, edit the security controls in the contract editor, and click 'Save Changes'. The master plan immediately updates to 63.5%.",
+      tips: "Troubleshooting & Best Practices: Ensure that your actual payout variance is close to $0.00. Standard retail cashability should remain above 75% to encourage retail re-investment. For prizes over $599.00, remind users in the contract body that they cannot be cashed at local retailer registers and must be submitted to the Commission's claim centers."
     }
   }
 ];

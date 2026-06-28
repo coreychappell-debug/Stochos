@@ -42,6 +42,8 @@ const getGuideIcon = (id, size = 16) => {
       return <Megaphone size={size} style={{ color: 'var(--blue)' }} />;
     case 'tickets':
       return <Ticket size={size} style={{ color: 'var(--blue)' }} />;
+    case 'working_papers':
+      return <FileCheck size={size} style={{ color: 'var(--blue)' }} />;
     case 'products':
       return <Layers size={size} style={{ color: 'var(--blue)' }} />;
     case 'auditor_playbook':

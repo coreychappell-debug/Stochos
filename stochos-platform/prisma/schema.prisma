@@ -493,6 +493,7 @@ model InstantTicketGame {
   vendor         Vendor?               @relation(fields: [vendorId], references: [id])
   productId      String?               @map("product_id")
   product        Product?              @relation(fields: [productId], references: [id])
+  workingPaper   InstantTicketWorkingPaper?
   gameNumber     String                @map("game_number")
   name           String
   denomination   Int // 1, 2, 3, 5, 10, 20, 25, 30, 50
@@ -1828,6 +1829,45 @@ model MartNyGameTimeseries {
   @@index([category])
   @@index([date])
 }
+
+// ─────────────────────────────────────────────
+// INSTANT TICKET WORKING PAPERS
+// ─────────────────────────────────────────────
+
+model InstantTicketWorkingPaper {
+  id                   String            @id @default(uuid())
+  gameId               String?           @unique @map("game_id")
+  game                 InstantTicketGame? @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  gameNumber           String            @unique @map("game_number")
+  name                 String
+  denomination         Int
+  printRun             BigInt            @map("print_run")
+  plannedPrizeExpense  Decimal           @map("planned_prize_expense") @db.Decimal(14, 2)
+  overallOdds          Decimal?          @map("overall_odds") @db.Decimal(10, 4)
+  status               String            @default("draft") // 'draft', 'pending_approval', 'approved', 'executed'
+  coSignedDate         DateTime?         @map("co_signed_date") @db.Date
+  documentContent      String?           @map("document_content") @db.Text
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  prizeTiers           InstantTicketWorkingPaperPrizeTier[]
+
+  @@map("instant_ticket_working_papers")
+}
+
+model InstantTicketWorkingPaperPrizeTier {
+  id             String                    @id @default(uuid())
+  workingPaperId String                    @map("working_paper_id")
+  workingPaper   InstantTicketWorkingPaper @relation(fields: [workingPaperId], references: [id], onDelete: Cascade)
+  prizeValue     Decimal                   @map("prize_value") @db.Decimal(14, 2)
+  description    String?                   @map("description")
+  winnerCount    BigInt                    @map("winner_count")
+  payoutAmount   Decimal                   @map("payout_amount") @db.Decimal(14, 2)
+  odds           Decimal?                  @db.Decimal(15, 4)
+
+  @@map("instant_ticket_working_paper_prize_tiers")
+}
+
 
 
 

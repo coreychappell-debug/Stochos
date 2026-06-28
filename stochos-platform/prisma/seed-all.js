@@ -16,7 +16,8 @@ const scripts = [
   'seed-ny-lottery-demo.js',
   'seed-gasb34.js',
   'seed-sales-force.js',
-  'seed-org-structure.js'
+  'seed-org-structure.js',
+  'seed-working-papers.js'
 ];
 
 console.log('🏁 Starting complete database rebuild and seeding sequence...\n');
