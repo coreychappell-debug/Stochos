@@ -2019,4 +2019,52 @@ body.light-theme .skeleton-shimmer {
   display: inline-block;
 }
 
+/* ─── Gantt Chart CSS ─── */
+.gantt-bar-hover {
+  position: relative;
+}
+.gantt-bar-hover:hover {
+  opacity: 0.95;
+  transform: scaleY(1.05);
+}
+.gantt-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  width: 240px;
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  font-size: 11px;
+  line-height: 1.4;
+  z-index: 100;
+  text-align: left;
+  pointer-events: none;
+}
+.gantt-bar-hover:hover .gantt-tooltip {
+  display: block;
+}
+.gantt-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--border) transparent transparent transparent;
+}
+
+/* ─── Kanban Asset Board CSS ─── */
+.kanban-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border-color: var(--primary) !important;
+}
+
 

@@ -28,6 +28,12 @@ export default async function MarketingPage() {
       vendor: { select: { name: true } },
       jurisdiction: { select: { name: true } },
       channels: true,
+      assets: {
+        include: {
+          vendor: { select: { name: true } },
+          channel: { select: { channel: true } }
+        }
+      },
       _count: { select: { channels: true, assets: true, milestones: true } },
     },
     orderBy: { updatedAt: "desc" },

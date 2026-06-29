@@ -221,6 +221,27 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
     setSaving(false); router.refresh();
   };
 
+  const handleLoadTemplate = async (templateType) => {
+    if (!templateType) return;
+    if (!confirm(`Are you sure you want to load the ${templateType.replace(/_/g, " ")} milestones template? This will add standard timeline milestones.`)) return;
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/campaigns/${campaign.id}/milestones/template`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateType }),
+      });
+      if (!res.ok) throw new Error("Failed to load template");
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Error loading template: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "channels", label: `Channels (${campaign.channels?.length || 0})` },
@@ -643,9 +664,26 @@ export default function CampaignDetailClient({ campaign, auditLog, products, ven
 
         {tab === "milestones" && (
           <div className="card">
-            <div className="card-header flex justify-between">
+            <div className="card-header flex justify-between items-center">
               <h3>Milestones</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowAddMilestone(!showAddMilestone)}>{showAddMilestone ? "Cancel" : "+ Add Milestone"}</button>
+              <div className="flex gap-2">
+                <select 
+                  className="form-select form-select-sm" 
+                  value=""
+                  onChange={(e) => {
+                    handleLoadTemplate(e.target.value);
+                    e.target.value = "";
+                  }}
+                  disabled={saving}
+                  style={{ fontSize: 12, height: 28, width: 180 }}
+                >
+                  <option value="" disabled>Load Template Timeline...</option>
+                  <option value="new_game_launch">New Game Launch Wave</option>
+                  <option value="jackpot_awareness">Jackpot Awareness Wave</option>
+                  <option value="seasonal_brand">Seasonal / Brand Campaign</option>
+                </select>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowAddMilestone(!showAddMilestone)}>{showAddMilestone ? "Cancel" : "+ Add Milestone"}</button>
+              </div>
             </div>
             <div className="card-body">
               {showAddMilestone && (
