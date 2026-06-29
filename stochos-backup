@@ -38,7 +38,16 @@ fi
 TMP_ARCHIVE="$LOCAL_BACKUP/stochos_backup_latest.tmp.tar.gz"
 
 # Create compressed tarball
+# Temporarily disable set -e to handle non-fatal tar exit code 1 (file changed during read)
+set +e
 tar -czf "$TMP_ARCHIVE" "${BACKUP_ITEMS[@]}"
+TAR_EXIT_CODE=$?
+set -e
+
+if [ $TAR_EXIT_CODE -ne 0 ] && [ $TAR_EXIT_CODE -ne 1 ]; then
+  echo "ERROR: tar failed with exit code $TAR_EXIT_CODE"
+  exit $TAR_EXIT_CODE
+fi
 
 mv -f "$TMP_ARCHIVE" "$ARCHIVE_LOCAL"
 

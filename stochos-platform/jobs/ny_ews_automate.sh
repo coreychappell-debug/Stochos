@@ -7,6 +7,17 @@
 
 set -e
 
+# Check if weekly maintenance is active. If so, exit cleanly to prevent database lock contention.
+LOCK_FILE="/var/run/stochos_weekly_maintenance.lock"
+if [ -f "$LOCK_FILE" ]; then
+    exec 9>"$LOCK_FILE"
+    if ! flock -n 9; then
+        echo "Stochos Weekly Server Maintenance is active. Skipping this EWS run to avoid database lock contention."
+        exit 0
+    fi
+    exec 9>&-
+fi
+
 # Change directory to the jobs directory
 cd "/srv/stochos/jobs"
 
